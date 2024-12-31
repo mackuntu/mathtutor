@@ -16,7 +16,7 @@ emoji_data = {
 }
 
 # Define the font for macOS
-font_path = "/System/Library/Fonts/Apple Color Emoji.ttc"  # Default emoji font on macOS
+font_path = "/System/Library/Fonts/Apple Color Emoji.ttc"
 font_size = 64  # Size of the emoji
 
 # Generate each emoji as an image

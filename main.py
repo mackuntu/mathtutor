@@ -33,7 +33,7 @@ def main():
         f"Generated answer key: {answer_key_filename}, worksheet_id: {worksheet_id}, version: {version}"
     )
     DatabaseHandler.save_to_database(worksheet_id, problems, answers, version)
-    print(f"Saved to database..")
+    print("Saved to database..")
 
 
 if __name__ == "__main__":
