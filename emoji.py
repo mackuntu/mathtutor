@@ -12,7 +12,7 @@ emoji_data = {
     "⭐": "star.png",
     "🌟": "shining_star.png",
     "🪐": "planet.png",
-    "🌌": "galaxy.png"
+    "🌌": "galaxy.png",
 }
 
 # Define the font for macOS

@@ -1,5 +1,6 @@
 import random
 
+
 # Module: Problem Templates
 class ProblemTemplates:
     @staticmethod
@@ -31,7 +32,7 @@ class ProblemTemplates:
 
         operations = {
             1: [addition, subtraction],
-            2: [addition, subtraction, multiplication, division]
+            2: [addition, subtraction, multiplication, division],
         }
 
         for _ in range(count):
@@ -56,7 +57,7 @@ class ProblemTemplates:
                 lambda: ("Which shape has 4 equal sides?", "square"),
                 lambda: ("Which shape has 3 sides?", "triangle"),
                 lambda: ("Draw a triangle.", "triangle"),
-                lambda: ("Which shape has no corners?", "circle")
+                lambda: ("Which shape has no corners?", "circle"),
             ]
         }
 

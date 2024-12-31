@@ -13,7 +13,7 @@ class WorksheetRenderer:
         "assets/star.png",
         "assets/shining_star.png",
         "assets/planet.png",
-        "assets/galaxy.png"
+        "assets/galaxy.png",
     ]
 
     @staticmethod
@@ -31,7 +31,9 @@ class WorksheetRenderer:
         return byte_stream
 
     @staticmethod
-    def create_math_worksheet(filename, problems, worksheet_id, version, qr_code_stream):
+    def create_math_worksheet(
+        filename, problems, worksheet_id, version, qr_code_stream
+    ):
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
         pdf.setFont("Helvetica", 18)
 
@@ -43,14 +45,19 @@ class WorksheetRenderer:
 
         y_positions = {"left": 680, "right": 680}
         x_positions = {"left": 50, "right": 300}
-        columns = {"left": problems[:len(problems) // 2], "right": problems[len(problems) // 2:]}
+        columns = {
+            "left": problems[: len(problems) // 2],
+            "right": problems[len(problems) // 2 :],
+        }
 
         decoration_index = 0
 
         def draw_problem(pdf, column, y, x, problem, index):
             nonlocal decoration_index
             decoration_path = WorksheetRenderer.SPACE_DECORATIONS[decoration_index]
-            decoration_index = (decoration_index + 1) % len(WorksheetRenderer.SPACE_DECORATIONS)
+            decoration_index = (decoration_index + 1) % len(
+                WorksheetRenderer.SPACE_DECORATIONS
+            )
             decoration = ImageReader(decoration_path)
 
             pdf.drawImage(decoration, x - 30, y - 3, width=18, height=18)
@@ -76,7 +83,9 @@ class WorksheetRenderer:
         pdf.save()
 
     @staticmethod
-    def create_answer_key(filename, problems, answers, worksheet_id, version, qr_code_stream):
+    def create_answer_key(
+        filename, problems, answers, worksheet_id, version, qr_code_stream
+    ):
         """
         Create a PDF answer key for the given math problems.
         """
@@ -90,8 +99,14 @@ class WorksheetRenderer:
 
         y_positions = {"left": 680, "right": 680}
         x_positions = {"left": 50, "right": 300}
-        columns = {"left": list(zip(problems[:len(problems) // 2], answers[:len(problems) // 2])),
-                   "right": list(zip(problems[len(problems) // 2:], answers[len(problems) // 2:]))}
+        columns = {
+            "left": list(
+                zip(problems[: len(problems) // 2], answers[: len(problems) // 2])
+            ),
+            "right": list(
+                zip(problems[len(problems) // 2 :], answers[len(problems) // 2 :])
+            ),
+        }
 
         def draw_answer(pdf, column, y, x, problem, answer, index):
             pdf.setFont("Helvetica-Bold", 12)

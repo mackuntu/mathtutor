@@ -9,13 +9,14 @@ NUM_PROBLEMS = 30
 
 # Map decorations to image paths
 SPACE_DECORATIONS = [
-    "assets/rocket.png", 
-    "assets/moon.png", 
-    "assets/star.png", 
-    "assets/shining_star.png", 
-    "assets/planet.png", 
-    "assets/galaxy.png"
+    "assets/rocket.png",
+    "assets/moon.png",
+    "assets/star.png",
+    "assets/shining_star.png",
+    "assets/planet.png",
+    "assets/galaxy.png",
 ]
+
 
 def generate_math_problems():
     """
@@ -46,6 +47,7 @@ def generate_math_problems():
         answers.append(answer)
 
     return problems, answers
+
 
 def create_math_worksheet(filename, problems):
     """
@@ -79,6 +81,7 @@ def create_math_worksheet(filename, problems):
 
     pdf.save()
 
+
 def create_answer_key(filename, problems, answers):
     """
     Generate a PDF answer key for the given math problems.
@@ -95,12 +98,17 @@ def create_answer_key(filename, problems, answers):
     x_right = 300
     for i, (problem, answer) in enumerate(zip(problems, answers)):
         if i % 2 == 0:  # Left column
-            pdf.drawString(x_left, y, f"{i + 1}. {problem.replace('= _______', f'= {answer}')}")
+            pdf.drawString(
+                x_left, y, f"{i + 1}. {problem.replace('= _______', f'= {answer}')}"
+            )
         else:  # Right column
-            pdf.drawString(x_right, y, f"{i + 1}. {problem.replace('= _______', f'= {answer}')}")
+            pdf.drawString(
+                x_right, y, f"{i + 1}. {problem.replace('= _______', f'= {answer}')}"
+            )
             y -= 40
 
     pdf.save()
+
 
 def main():
     # Generate problems and answers
@@ -117,6 +125,7 @@ def main():
 
     print(f"Generated worksheet: {worksheet_filename}")
     print(f"Generated answer key: {answer_key_filename}")
+
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@ import uuid
 
 
 def main():
-    #age = int(input("Enter the age of the student: "))
+    # age = int(input("Enter the age of the student: "))
     age = 6
     school_year_month = ProblemGenerator.get_school_year_month()
 
@@ -20,12 +20,21 @@ def main():
     answer_key_filename = f"math_answer_key_{today}.pdf"
     qr_code_stream = WorksheetRenderer.create_qr_code(worksheet_id, version)
 
-    WorksheetRenderer.create_math_worksheet(worksheet_filename, problems, worksheet_id, version, qr_code_stream)
-    print(f"Generated worksheet: {worksheet_filename}, worksheet_id: {worksheet_id}, version: {version}")
-    WorksheetRenderer.create_answer_key(answer_key_filename, problems, answers, worksheet_id, version, qr_code_stream)
-    print(f"Generated answer key: {answer_key_filename}, worksheet_id: {worksheet_id}, version: {version}")
+    WorksheetRenderer.create_math_worksheet(
+        worksheet_filename, problems, worksheet_id, version, qr_code_stream
+    )
+    print(
+        f"Generated worksheet: {worksheet_filename}, worksheet_id: {worksheet_id}, version: {version}"
+    )
+    WorksheetRenderer.create_answer_key(
+        answer_key_filename, problems, answers, worksheet_id, version, qr_code_stream
+    )
+    print(
+        f"Generated answer key: {answer_key_filename}, worksheet_id: {worksheet_id}, version: {version}"
+    )
     DatabaseHandler.save_to_database(worksheet_id, problems, answers, version)
     print(f"Saved to database..")
+
 
 if __name__ == "__main__":
     main()
