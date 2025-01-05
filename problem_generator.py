@@ -36,27 +36,3 @@ class ProblemGenerator:
         answers = [p[1] for p in problems]
 
         return questions, answers
-
-    @staticmethod
-    def save_to_database(worksheet_id, problems, answers, version):
-        conn = sqlite3.connect("worksheets.db")
-        c = conn.cursor()
-
-        # Create table if it doesn't exist
-        c.execute(
-            """CREATE TABLE IF NOT EXISTS worksheets (
-                     id TEXT PRIMARY KEY, 
-                     version TEXT, 
-                     problems TEXT, 
-                     answers TEXT
-                     )"""
-        )
-
-        # Insert data
-        c.execute(
-            "INSERT INTO worksheets (id, version, problems, answers) VALUES (?, ?, ?, ?)",
-            (worksheet_id, version, ",".join(problems), ",".join(answers)),
-        )
-
-        conn.commit()
-        conn.close()

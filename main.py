@@ -6,13 +6,17 @@ import uuid
 
 
 def main():
-    # age = int(input("Enter the age of the student: "))
+    # Initialize the database
+    DatabaseHandler.initialize_database()
+
+    # Step 1: Generate math problems and answers
     age = 6
     school_year_month = ProblemGenerator.get_school_year_month()
-
     print(f"Automatically calculated school year month: {school_year_month}")
+
     problems, answers = ProblemGenerator.generate_math_problems(age)
 
+    # Step 2: Prepare metadata and file names
     today = datetime.now().strftime("%Y-%m-%d")
     worksheet_id = str(uuid.uuid4())
     version = "v1"
@@ -20,20 +24,30 @@ def main():
     answer_key_filename = f"math_answer_key_{today}.pdf"
     qr_code_stream = WorksheetRenderer.create_qr_code(worksheet_id, version)
 
-    WorksheetRenderer.create_math_worksheet(
+    # Step 3: Render worksheet and answer key, and retrieve template ID
+    template_id = WorksheetRenderer.create_math_worksheet(
         worksheet_filename, problems, worksheet_id, version, qr_code_stream
     )
     print(
-        f"Generated worksheet: {worksheet_filename}, worksheet_id: {worksheet_id}, version: {version}"
+        f"Generated worksheet: {worksheet_filename}, worksheet_id: {worksheet_id}, template_id: {template_id}"
     )
+
     WorksheetRenderer.create_answer_key(
         answer_key_filename, problems, answers, worksheet_id, version, qr_code_stream
     )
     print(
         f"Generated answer key: {answer_key_filename}, worksheet_id: {worksheet_id}, version: {version}"
     )
-    DatabaseHandler.save_to_database(worksheet_id, problems, answers, version)
-    print("Saved to database..")
+
+    # Step 4: Save metadata and problems to the database
+    DatabaseHandler.save_worksheet(
+        worksheet_id=worksheet_id,
+        version=version,
+        problems=problems,
+        answers=answers,
+        template_id=template_id,
+    )
+    print("Saved worksheet and answers to the database.")
 
 
 if __name__ == "__main__":
