@@ -1,8 +1,9 @@
+import uuid
+from datetime import datetime
+
+from db_handler import DatabaseHandler
 from problem_generator import ProblemGenerator
 from renderer import WorksheetRenderer
-from datetime import datetime
-from db_handler import DatabaseHandler
-import uuid
 
 
 def main():
@@ -26,14 +27,14 @@ def main():
 
     # Step 3: Render worksheet and answer key, and retrieve template ID
     template_id = WorksheetRenderer.create_math_worksheet(
-        worksheet_filename, problems, worksheet_id, version, qr_code_stream
+        worksheet_filename, problems, qr_code_stream
     )
     print(
         f"Generated worksheet: {worksheet_filename}, worksheet_id: {worksheet_id}, template_id: {template_id}"
     )
 
     WorksheetRenderer.create_answer_key(
-        answer_key_filename, problems, answers, worksheet_id, version, qr_code_stream
+        answer_key_filename, problems, answers, qr_code_stream
     )
     print(
         f"Generated answer key: {answer_key_filename}, worksheet_id: {worksheet_id}, version: {version}"

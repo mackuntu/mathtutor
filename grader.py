@@ -1,8 +1,13 @@
-from PIL import Image
-from pyzbar.pyzbar import decode
-import pytesseract
-from db_handler import DatabaseHandler
 import sqlite3
+
+import cv2
+import numpy as np
+import pytesseract
+from PIL import Image
+
+from db_handler import DatabaseHandler
+from marker_utils import MarkerUtils
+from worksheet_pb2 import Worksheet
 
 
 class AnswerGrader:
@@ -16,13 +21,17 @@ class AnswerGrader:
 
     @staticmethod
     def extract_qr_code(image_path):
-        """Extract and decode QR code from an image."""
-        image = Image.open(image_path)
-        decoded_data = decode(image)
-        if decoded_data:
-            qr_data = decoded_data[0].data.decode("utf-8")
-            return eval(qr_data)  # Assuming QR code contains a dictionary
-        raise ValueError("QR Code not found in image.")
+        """Extract and decode QR code from an image using OpenCV."""
+        image = cv2.imread(image_path)
+        qr_code_detector = cv2.QRCodeDetector()
+
+        # Detect and decode the QR code
+        data, _, _ = qr_code_detector.detectAndDecode(image)
+
+        if data:
+            return eval(data)  # Assuming QR code contains a dictionary
+        else:
+            raise ValueError("QR Code not found in image.")
 
     @staticmethod
     def fetch_answer_key(worksheet_id, version):
@@ -30,31 +39,26 @@ class AnswerGrader:
         conn = sqlite3.connect("worksheets.db")
         c = conn.cursor()
         c.execute(
-            "SELECT answers FROM worksheets WHERE id = ? AND version = ?",
+            "SELECT data FROM worksheets WHERE id = ? AND version = ?",
             (worksheet_id, version),
         )
         result = c.fetchone()
         conn.close()
+
         if result:
-            return result[0].split(
-                ","
-            )  # Convert answers from a stored string to a list
+            serialized_data = result[0]
+            worksheet = Worksheet()
+            worksheet.ParseFromString(serialized_data)
+            return worksheet.answers
         else:
             raise ValueError("Worksheet not found in database.")
 
     @staticmethod
-    def parse_student_answers(image_path):
+    def parse_student_answers(image_path, rois):
         """Extract handwritten student answers from the image."""
         image = Image.open(image_path)
-
-        # Define regions of interest (ROIs) for each answer
-        # Example coordinates must be calibrated based on worksheet layout
-        rois = [
-            (100, 200, 400, 250),  # Example ROI for first answer
-            # Add more ROIs for each question
-        ]
-
         student_answers = []
+
         for roi in rois:
             cropped_image = image.crop(roi)
             answer = pytesseract.image_to_string(
@@ -87,11 +91,28 @@ class AnswerGrader:
         qr_data = AnswerGrader.extract_qr_code(image_path)
         worksheet_id, version = qr_data["worksheet_id"], qr_data["version"]
 
-        # Fetch the answer key
-        correct_answers = AnswerGrader.fetch_answer_key(worksheet_id, version)
+        # Fetch worksheet metadata
+        worksheet_metadata = DatabaseHandler.fetch_worksheet(worksheet_id, version)
+        template_id = worksheet_metadata.template_id
+        correct_answers = worksheet_metadata.answers
+
+        # Fetch ROIs and alignment markers
+        rois = DatabaseHandler.fetch_roi_template(template_id)
+        image_markers = MarkerUtils.detect_alignment_markers(image_path)
+
+        # Get image dimensions
+        image = Image.open(image_path)
+        image_width, image_height = image.size
+
+        # Map ROIs to image space
+        transformed_rois = MarkerUtils.map_pdf_to_image_space(
+            rois, image_markers, (image_width, image_height)
+        )
 
         # Parse student answers
-        student_answers = AnswerGrader.parse_student_answers(image_path)
+        student_answers = AnswerGrader.parse_student_answers(
+            image_path, transformed_rois
+        )
 
         # Grade answers
         total_correct, total_questions, grade = AnswerGrader.grade_answers(
@@ -106,6 +127,5 @@ class AnswerGrader:
 
 
 if __name__ == "__main__":
-    AnswerGrader.grade_worksheet(
-        "/Users/martinqian/Downloads/math_worksheet_2024-12-30_filled.png"
-    )
+    result = AnswerGrader.grade_worksheet("math_worksheet_2025-01-05.jpg")
+    print(result)

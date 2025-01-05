@@ -9,32 +9,28 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    5,
-    29,
-    2,
-    '',
-    'worksheet.proto'
+    _runtime_version.Domain.PUBLIC, 5, 29, 2, "", "worksheet.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fworksheet.proto\"j\n\tWorksheet\x12\x14\n\x0cworksheet_id\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x10\n\x08problems\x18\x03 \x03(\t\x12\x0f\n\x07\x61nswers\x18\x04 \x03(\t\x12\x13\n\x0btemplate_id\x18\x05 \x01(\t\"5\n\x03ROI\x12\n\n\x02x1\x18\x01 \x01(\x05\x12\n\n\x02y1\x18\x02 \x01(\x05\x12\n\n\x02x2\x18\x03 \x01(\x05\x12\n\n\x02y2\x18\x04 \x01(\x05\"-\n\x0bROITemplate\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\x04rois\x18\x02 \x03(\x0b\x32\x04.ROIb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0fworksheet.proto"j\n\tWorksheet\x12\x14\n\x0cworksheet_id\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x10\n\x08problems\x18\x03 \x03(\t\x12\x0f\n\x07\x61nswers\x18\x04 \x03(\t\x12\x13\n\x0btemplate_id\x18\x05 \x01(\t"5\n\x03ROI\x12\n\n\x02x1\x18\x01 \x01(\x05\x12\n\n\x02y1\x18\x02 \x01(\x05\x12\n\n\x02x2\x18\x03 \x01(\x05\x12\n\n\x02y2\x18\x04 \x01(\x05"-\n\x0bROITemplate\x12\n\n\x02id\x18\x01 \x01(\t\x12\x12\n\x04rois\x18\x02 \x03(\x0b\x32\x04.ROIb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'worksheet_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "worksheet_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_WORKSHEET']._serialized_start=19
-  _globals['_WORKSHEET']._serialized_end=125
-  _globals['_ROI']._serialized_start=127
-  _globals['_ROI']._serialized_end=180
-  _globals['_ROITEMPLATE']._serialized_start=182
-  _globals['_ROITEMPLATE']._serialized_end=227
+    DESCRIPTOR._loaded_options = None
+    _globals["_WORKSHEET"]._serialized_start = 19
+    _globals["_WORKSHEET"]._serialized_end = 125
+    _globals["_ROI"]._serialized_start = 127
+    _globals["_ROI"]._serialized_end = 180
+    _globals["_ROITEMPLATE"]._serialized_start = 182
+    _globals["_ROITEMPLATE"]._serialized_end = 227
 # @@protoc_insertion_point(module_scope)

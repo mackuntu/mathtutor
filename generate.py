@@ -1,9 +1,10 @@
 import os
-from reportlab.lib.pagesizes import letter, portrait
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from datetime import datetime
 import random
+from datetime import datetime
+
+from reportlab.lib.pagesizes import letter, portrait
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
 NUM_PROBLEMS = 30
 

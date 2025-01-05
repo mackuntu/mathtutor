@@ -1,5 +1,6 @@
 import sqlite3
-from worksheet_pb2 import Worksheet, ROITemplate
+
+from worksheet_pb2 import ROITemplate, Worksheet
 
 
 class DatabaseHandler:

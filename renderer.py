@@ -1,9 +1,15 @@
-from reportlab.lib.pagesizes import letter, portrait
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
 from datetime import datetime
-import qrcode
 from io import BytesIO
+
+import cv2
+import numpy as np
+import qrcode
+from PIL import Image
+from reportlab.lib.pagesizes import letter, portrait
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
+
+from marker_utils import MarkerUtils
 from roi_template_manager import ROITemplateManager
 
 
@@ -16,24 +22,6 @@ class WorksheetRenderer:
         "assets/planet.png",
         "assets/galaxy.png",
     ]
-
-    @staticmethod
-    def add_alignment_markers(pdf):
-        """Add small alignment markers to the worksheet."""
-        marker_size = 10
-
-        # Four corners for alignment markers
-        corners = [
-            (10, 10),  # Bottom-left
-            (10, 770),  # Top-left
-            (590, 10),  # Bottom-right
-            (590, 770),  # Top-right
-        ]
-
-        for x, y in corners:
-            pdf.setFillColorRGB(0, 0, 0)
-            pdf.setLineWidth(0.5)
-            pdf.rect(x, y, marker_size, marker_size, fill=0)
 
     @staticmethod
     def create_qr_code(worksheet_id, version):
@@ -50,13 +38,11 @@ class WorksheetRenderer:
         return byte_stream
 
     @staticmethod
-    def create_math_worksheet(
-        filename, problems, worksheet_id, version, qr_code_stream
-    ):
+    def create_math_worksheet(filename, problems, qr_code_stream):
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
         pdf.setFont("Helvetica", 18)
 
-        WorksheetRenderer.add_alignment_markers(pdf)  # Add markers to the page
+        MarkerUtils.draw_alignment_markers(pdf)  # Add markers to the page
 
         # Render worksheet header
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -77,7 +63,7 @@ class WorksheetRenderer:
 
         decoration_index = 0
 
-        def draw_problem(pdf, column, y, x, problem, index):
+        def draw_problem_and_calculate_roi(pdf, column, y, x, problem, index):
             nonlocal decoration_index
             try:
                 decoration_path = WorksheetRenderer.SPACE_DECORATIONS[decoration_index]
@@ -95,6 +81,18 @@ class WorksheetRenderer:
                 pdf.setFont("Helvetica", 12)
                 pdf.drawString(x + 20, y, problem)
 
+            # Calculate ROI for this problem
+            x1 = x + 20
+            y1 = y - (answer_height // 2)
+            x2 = x1 + answer_width
+            y2 = y1 + answer_height
+            # Render the bounding box for debugging
+            pdf.setStrokeColorRGB(1, 0, 0)  # Red color for debugging
+            pdf.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)
+
+            return (x1, y1, x2, y2)
+
+        rois = []
         for column, problems_list in columns.items():
             for i, problem in enumerate(problems_list):
                 y = y_positions[column]
@@ -103,18 +101,14 @@ class WorksheetRenderer:
 
                 if y < 50:
                     pdf.showPage()
-                    WorksheetRenderer.add_alignment_markers(pdf)
-                    y_positions[column] = 750
+                    MarkerUtils.draw_alignment_markers(pdf)
+                    y_positions[column] = 680
                     y = y_positions[column]
 
-                draw_problem(pdf, column, y, x, problem, index)
+                roi = draw_problem_and_calculate_roi(pdf, column, y, x, problem, index)
+                rois.append(roi)
 
                 y_positions[column] -= row_spacing
-
-        # Calculate ROIs dynamically
-        rois = ROITemplateManager.calculate_rois(
-            columns, x_positions, y_positions, row_spacing, answer_width, answer_height
-        )
 
         # Find or create ROI template
         template_id = ROITemplateManager.find_or_create_template(rois)
@@ -124,9 +118,7 @@ class WorksheetRenderer:
         return template_id
 
     @staticmethod
-    def create_answer_key(
-        filename, problems, answers, worksheet_id, version, qr_code_stream
-    ):
+    def create_answer_key(filename, problems, answers, qr_code_stream):
         """
         Create a PDF answer key for the given math problems.
         """

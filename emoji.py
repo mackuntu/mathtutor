@@ -1,4 +1,5 @@
 import os
+
 from PIL import Image, ImageDraw, ImageFont
 
 # Directory to store the assets
