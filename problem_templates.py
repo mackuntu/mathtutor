@@ -13,22 +13,22 @@ class ProblemTemplates:
 
         def addition():
             a, b = random.randint(1, max_value), random.randint(1, max_value)
-            return f"{a} + {b} = _______", a + b
+            return f"{a} + {b}", a + b
 
         def subtraction():
             a, b = random.randint(1, max_value), random.randint(1, max_value)
             if a > b:
-                return f"{a} - {b} = _______", a - b
-            return f"{b} - {a} = _______", b - a
+                return f"{a} - {b}", a - b
+            return f"{b} - {a}", b - a
 
         def multiplication():
             a, b = random.randint(1, max_value // 2), random.randint(1, 10)
-            return f"{a} × {b} = _______", a * b
+            return f"{a} × {b}", a * b
 
         def division():
             b = random.randint(1, 10)
             a = b * random.randint(1, max_value // b)
-            return f"{a} ÷ {b} = _______", a // b
+            return f"{a} ÷ {b}", a // b
 
         operations = {
             1: [addition, subtraction],
