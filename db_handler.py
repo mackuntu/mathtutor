@@ -14,8 +14,8 @@ class DatabaseHandler:
         # Create worksheets table
         c.execute(
             """CREATE TABLE IF NOT EXISTS worksheets (
-                id TEXT PRIMARY KEY, 
-                version TEXT, 
+                id TEXT PRIMARY KEY,
+                version TEXT,
                 data BLOB
             )"""
         )
