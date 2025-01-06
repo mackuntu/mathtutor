@@ -6,6 +6,14 @@ from reportlab.lib.pagesizes import letter, portrait
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from layout_utils import (
+    ANSWER_BOX_DIMENSIONS,
+    LAYOUT_CONFIGS,
+    ROW_SPACING,
+    X_POSITIONS,
+    Y_START,
+    LayoutChoice,
+)
 from marker_utils import MarkerUtils
 from roi_template_manager import ROITemplateManager
 
@@ -35,39 +43,72 @@ class WorksheetRenderer:
         return byte_stream
 
     @staticmethod
-    def calculate_layout(problems, x_positions, y_start, row_spacing):
-        """Precompute positions and ROIs."""
+    def calculate_layout(problems, layout_choice):
+        """
+        Precompute positions and ROIs based on a flexible layout choice.
+
+        Args:
+            problems (list): List of problems.
+            layout_choice (str): Layout type (e.g., "2_column", "1_column", "mixed").
+
+        Returns:
+            tuple: Positions of problems [(x_problem, y, x_answer)] and ROIs [(x1, y1, x2, y2)].
+        """
+        # Fetch layout configuration
+        layout_config = LAYOUT_CONFIGS[layout_choice]
+        columns = layout_config["columns"]
+        column_limits = layout_config["column_limits"]
+
         positions = []
         rois = []
-        y_position = y_start
-        half = len(problems) // 2
+        y_positions = {col: Y_START for col in columns}
+        problem_index = 0
 
-        for i, problem in enumerate(problems):
-            # Determine column based on index
-            if i < half:
-                x_problem = x_positions["column_1_problem"]
-                x_answer = x_positions["column_1_answer"]
-            else:
-                x_problem = x_positions["column_2_problem"]
-                x_answer = x_positions["column_2_answer"]
-                if i == half:  # Reset y_position when switching to the second column
-                    y_position = y_start
+        for col_index, column in enumerate(columns):
+            x_problem = X_POSITIONS[f"{column}_problem"]
+            x_answer = X_POSITIONS[f"{column}_answer"]
+            limit = column_limits[col_index]
 
-            # Append positions and ROIs
-            positions.append((x_problem, y_position, x_answer))
-            rois.append((x_answer, y_position - 10, x_answer + 100, y_position + 10))
+            for _ in range(limit):
+                if problem_index >= len(problems):
+                    break
 
-            # Update y_position
-            y_position -= row_spacing
+                y_position = y_positions[column]
+
+                # Add problem and ROI positions
+                positions.append((x_problem, y_position, x_answer))
+                x1, y1_offset, x2, y2_offset = ANSWER_BOX_DIMENSIONS
+                rois.append(
+                    (
+                        x_answer,
+                        y_position + y1_offset,
+                        x_answer + x2,
+                        y_position + y2_offset,
+                    )
+                )
+
+                # Update y_position
+                y_positions[column] -= ROW_SPACING
+                problem_index += 1
 
         return positions, rois
 
     @staticmethod
-    def render_text(pdf, positions, problems, answers=None, render_answers=False):
-        """Render problems and optionally answers into the PDF."""
+    def render_text(pdf, positions, rois, problems, answers=None, render_answers=False):
+        """
+        Render problems and optionally answers into the PDF.
+
+        Args:
+            pdf (Canvas): The PDF canvas.
+            positions (list): Precomputed positions for problems [(x_problem, y, x_answer), ...].
+            rois (list): Precomputed ROIs [(x1, y1, x2, y2), ...].
+            problems (list): List of problems.
+            answers (list, optional): List of answers. Defaults to None.
+            render_answers (bool, optional): Whether to render answers. Defaults to False.
+        """
         decoration_index = 0
 
-        for i, (x_problem, y, x_answer) in enumerate(positions):
+        for i, ((x_problem, y, x_answer), roi) in enumerate(zip(positions, rois)):
             problem = problems[i]
             answer = answers[i] if render_answers and answers else None
 
@@ -87,12 +128,13 @@ class WorksheetRenderer:
             pdf.setFont("Helvetica", 12)
             pdf.drawString(x_problem + 20, y, problem)
 
-            if render_answers and answer:
+            if render_answers:
                 pdf.drawString(x_answer, y, f"{answer}")
 
-            # Debug bounding box for answers
-            pdf.setStrokeColorRGB(1, 0, 0)
-            pdf.rect(x_answer, y - 10, 100, 20, stroke=1, fill=0)
+            # Use ROI for bounding box (debugging or highlighting)
+            x1, y1, x2, y2 = roi
+            pdf.setStrokeColorRGB(1, 0, 0)  # Red color for debugging
+            pdf.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)
 
     @staticmethod
     def create_math_worksheet(filename, problems, qr_code_stream):
@@ -106,21 +148,12 @@ class WorksheetRenderer:
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
         pdf.drawImage(ImageReader(qr_code_stream), 550, 700, width=40, height=40)
 
-        x_positions = {
-            "column_1_problem": 50,
-            "column_1_answer": 150,
-            "column_2_problem": 300,
-            "column_2_answer": 400,
-        }
-        y_start = 680
-        row_spacing = 30
-
         positions, rois = WorksheetRenderer.calculate_layout(
-            problems, x_positions, y_start, row_spacing
+            problems, LayoutChoice.TWO_COLUMN
         )
         template_id = ROITemplateManager.find_or_create_template(rois)
 
-        WorksheetRenderer.render_text(pdf, positions, problems)
+        WorksheetRenderer.render_text(pdf, positions, rois, problems)
 
         pdf.save()
         return template_id
@@ -134,21 +167,12 @@ class WorksheetRenderer:
         pdf.drawString(200, 750, "Math Worksheet Answer Key")
         pdf.drawImage(ImageReader(qr_code_stream), 550, 700, width=40, height=40)
 
-        x_positions = {
-            "column_1_problem": 50,
-            "column_1_answer": 150,
-            "column_2_problem": 300,
-            "column_2_answer": 400,
-        }
-        y_start = 680
-        row_spacing = 30
-
-        positions, _ = WorksheetRenderer.calculate_layout(
-            problems, x_positions, y_start, row_spacing
+        positions, rois = WorksheetRenderer.calculate_layout(
+            problems, LayoutChoice.TWO_COLUMN
         )
 
         WorksheetRenderer.render_text(
-            pdf, positions, problems, answers, render_answers=True
+            pdf, positions, rois, problems, answers, render_answers=True
         )
 
         pdf.save()
