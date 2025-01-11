@@ -5,6 +5,33 @@ The MathTutor system automates the creation, rendering, distribution, and gradin
 
 ---
 
+## Installation
+
+To set up the MathTutor system and its dependencies:
+
+1. **Clone the Repository**:
+   ```bash
+   git clone git@github.com:mackuntu/mathtutor.git
+   cd mathtutor
+   ```
+
+2. **Set Up a Virtual Environment (Optional but Recommended)**:
+   ```bash
+   pyenv install 3.12
+   pyenv local 3.12
+   ```
+
+3. **Install Dependencies**:
+   Use the provided `requirements.txt` file to install all necessary Python packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the Application**:
+   Follow the instructions in the user guide to generate worksheets, grade submissions, and manage data.
+
+---
+
 ### Goals
 1. **Personalized Education**: Generate customized worksheets based on student age and proficiency.
 2. **Automated Workflow**: Streamline the process from worksheet creation to grading.

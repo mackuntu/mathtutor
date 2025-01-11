@@ -33,4 +33,4 @@ Y_START = 680
 ROW_SPACING = 40
 
 # Dimensions of the answer bounding box: (x1_offset, y1_offset, x2_offset, y2_offset)
-ANSWER_BOX_DIMENSIONS = (0, -20, 100, 20)
+ANSWER_BOX_DIMENSIONS = (0, 20, 100, -20)
