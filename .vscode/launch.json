@@ -6,16 +6,17 @@
     "configurations": [
 
         {
-            "name": "run grader",
+            "name": "debug grader",
             "type": "debugpy",
             "request": "launch",
             "module": "src.grader"
         },
         {
-            "name": "run main",
+            "name": "debug main",
             "type": "debugpy",
             "request": "launch",
             "module": "src.main"
-        }
+        },
+        
     ]
 }
