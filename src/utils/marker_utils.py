@@ -67,8 +67,6 @@ class MarkerUtils:
             )
 
         image_width, image_height = image_dimensions
-        # Letter size PDF height in points
-        pdf_height = 792
 
         # Ensure MarkerUtils.PDF_MARKERS is a numpy array
         pdf_points = MarkerUtils.PDF_MARKERS

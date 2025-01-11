@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 
-from db_handler import DatabaseHandler
-from problem_generator import ProblemGenerator
-from renderer import WorksheetRenderer
+from src.db_handler import DatabaseHandler
+from src.problem_generator import ProblemGenerator
+from src.renderer import WorksheetRenderer
 
 
 def main():
@@ -21,8 +21,8 @@ def main():
     today = datetime.now().strftime("%Y-%m-%d")
     worksheet_id = str(uuid.uuid4())
     version = "v1"
-    worksheet_filename = f"math_worksheet_{today}.pdf"
-    answer_key_filename = f"math_answer_key_{today}.pdf"
+    worksheet_filename = f"data/worksheets/math_worksheet_{today}.pdf"
+    answer_key_filename = f"data/answer_keys/math_answer_key_{today}.pdf"
     qr_code_stream = WorksheetRenderer.create_qr_code(worksheet_id, version)
 
     # Step 3: Render worksheet and answer key, and retrieve template ID

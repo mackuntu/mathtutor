@@ -1,6 +1,6 @@
 import sqlite3
 
-from worksheet_pb2 import ROITemplate, Worksheet
+from data.worksheet_pb2 import ROITemplate, Worksheet
 
 
 class DatabaseHandler:
@@ -9,7 +9,7 @@ class DatabaseHandler:
         """
         Initialize the database and create tables if they don't exist.
         """
-        conn = sqlite3.connect("worksheets.db")
+        conn = sqlite3.connect("data/worksheets.db")
         c = conn.cursor()
 
         # Create worksheets table
@@ -37,7 +37,7 @@ class DatabaseHandler:
         """
         Save a worksheet as a serialized Protobuf object.
         """
-        conn = sqlite3.connect("worksheets.db")
+        conn = sqlite3.connect("data/worksheets.db")
         c = conn.cursor()
 
         # Create Protobuf object
@@ -68,7 +68,7 @@ class DatabaseHandler:
         """
         Fetch and deserialize a worksheet from the database.
         """
-        conn = sqlite3.connect("worksheets.db")
+        conn = sqlite3.connect("data/worksheets.db")
         c = conn.cursor()
 
         c.execute(
@@ -91,7 +91,7 @@ class DatabaseHandler:
         """
         Save an ROI template as a serialized Protobuf object.
         """
-        conn = sqlite3.connect("worksheets.db")
+        conn = sqlite3.connect("data/worksheets.db")
         c = conn.cursor()
 
         # Generate Protobuf object
@@ -123,7 +123,7 @@ class DatabaseHandler:
         """
         Fetch and deserialize an ROI template from the database.
         """
-        conn = sqlite3.connect("worksheets.db")
+        conn = sqlite3.connect("data/worksheets.db")
         c = conn.cursor()
 
         c.execute("SELECT data FROM roi_templates WHERE id = ?", (roi_hash,))

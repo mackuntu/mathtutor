@@ -6,7 +6,7 @@ from reportlab.lib.pagesizes import letter, portrait
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
-from layout_utils import (
+from utils.layout_utils import (
     ANSWER_BOX_DIMENSIONS,
     LAYOUT_CONFIGS,
     ROW_SPACING,
@@ -14,7 +14,7 @@ from layout_utils import (
     Y_START,
     LayoutChoice,
 )
-from marker_utils import MarkerUtils
+from utils.marker_utils import MarkerUtils
 from roi_template_manager import ROITemplateManager
 
 

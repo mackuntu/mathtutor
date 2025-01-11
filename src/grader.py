@@ -5,9 +5,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
+from data.worksheet_pb2 import Worksheet
 from db_handler import DatabaseHandler
-from marker_utils import MarkerUtils
-from worksheet_pb2 import Worksheet
+from utils.marker_utils import MarkerUtils
 
 
 class AnswerGrader:
@@ -154,10 +154,10 @@ class AnswerGrader:
             )  # Offset to the right of ROI
 
         # Save the annotated image
-        # annotated_image_path = image.filename.replace(".jpg", "_graded.jpg")
-        # image.save(annotated_image_path)
+        annotated_image_path = image.filename.replace(".jpg", "_graded.jpg")
+        image.save(annotated_image_path)
         image.show()
-        # return annotated_image_path
+        return annotated_image_path
 
     @staticmethod
     def grade_worksheet(image_path):
@@ -214,5 +214,7 @@ class AnswerGrader:
 
 
 if __name__ == "__main__":
-    result = AnswerGrader.grade_worksheet("math_worksheet_2025-01-11_filled.jpg")
+    result = AnswerGrader.grade_worksheet(
+        "filled_worksheets/math_worksheet_2025-01-11_filled.jpg"
+    )
     print(result)
