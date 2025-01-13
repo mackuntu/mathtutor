@@ -2,15 +2,29 @@ import sqlite3
 
 import cv2
 import numpy as np
+import torch
 from PIL import Image, ImageDraw, ImageFont
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 from data.worksheet_pb2 import Worksheet
 from db_handler import DatabaseHandler
+from src.model.train import HandwritingRecognitionModel
 from utils.marker_utils import MarkerUtils
 
 
 class AnswerGrader:
+    def __init__(self, model_path="src/model/trained_model/model.pth"):
+        self.model = HandwritingRecognitionModel(num_classes=10)
+        self.load_model(model_path)
+
+    def load_model(self, model_path):
+        try:
+            self.model.load_state_dict(torch.load(model_path))
+            self.model.eval()  # Set model to evaluation mode
+            print(f"Model loaded from {model_path}")
+        except FileNotFoundError:
+            raise ValueError(f"Trained model not found at {model_path}")
+
     GRADE_SCALE = {
         "A": 90,
         "B": 80,
@@ -54,12 +68,22 @@ class AnswerGrader:
             raise ValueError("Worksheet not found in database.")
 
     @staticmethod
-    def parse_student_answers(image_path, rois):
+    def parse_student_answers(
+        image_path, rois, model_path="src/model/trained_model/model.pth"
+    ):
         # Load model and processor
         processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
         model = VisionEncoderDecoderModel.from_pretrained(
             "microsoft/trocr-base-handwritten"
         )
+
+        # Load trained model weights
+        try:
+            model.load_state_dict(torch.load(model_path))
+            model.eval()  # Set the model to evaluation mode
+            print(f"Trained model loaded from {model_path}")
+        except FileNotFoundError:
+            raise ValueError(f"Trained model not found at {model_path}")
 
         """Extract handwritten student answers from the image with ROI visualization."""
         image = Image.open(image_path)
