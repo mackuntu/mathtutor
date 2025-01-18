@@ -5,6 +5,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore MNIST dataset files
+data/MNIST/
+
+# Ignore generated worksheets and data bases
+data/answer_leys/
+data/worksheets/
+data/filled_worksheets/
+data/worksheets.db
+data/worksheets_pb2.py
+
 # C extensions
 *.so
 
