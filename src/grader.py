@@ -8,23 +8,10 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 from data.worksheet_pb2 import Worksheet
 from db_handler import DatabaseHandler
-from src.model.train import HandwritingRecognitionModel
 from utils.marker_utils import MarkerUtils
 
 
 class AnswerGrader:
-    def __init__(self, model_path="src/model/trained_model/model.pth"):
-        self.model = HandwritingRecognitionModel(num_classes=10)
-        self.load_model(model_path)
-
-    def load_model(self, model_path):
-        try:
-            self.model.load_state_dict(torch.load(model_path))
-            self.model.eval()  # Set model to evaluation mode
-            print(f"Model loaded from {model_path}")
-        except FileNotFoundError:
-            raise ValueError(f"Trained model not found at {model_path}")
-
     GRADE_SCALE = {
         "A": 90,
         "B": 80,
@@ -68,23 +55,14 @@ class AnswerGrader:
             raise ValueError("Worksheet not found in database.")
 
     @staticmethod
-    def parse_student_answers(
-        image_path, rois, model_path="src/model/trained_model/model.pth"
-    ):
-        # Load model and processor
-        processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
-        model = VisionEncoderDecoderModel.from_pretrained(
-            "microsoft/trocr-base-handwritten"
-        )
+    def parse_student_answers(image_path, rois, model_dir="src/model/trained_model"):
+        # Load model and processor from the saved directory
+        processor = TrOCRProcessor.from_pretrained(model_dir)
+        model = VisionEncoderDecoderModel.from_pretrained(model_dir)
 
-        # Load trained model weights
-        try:
-            model.load_state_dict(torch.load(model_path))
-            model.eval()  # Set the model to evaluation mode
-            print(f"Trained model loaded from {model_path}")
-        except FileNotFoundError:
-            raise ValueError(f"Trained model not found at {model_path}")
-
+        # Set the model to evaluation mode
+        model.eval()
+        print(f"Trained model and processor loaded from {model_dir}")
         """Extract handwritten student answers from the image with ROI visualization."""
         image = Image.open(image_path)
         student_answers = []
@@ -239,6 +217,6 @@ class AnswerGrader:
 
 if __name__ == "__main__":
     result = AnswerGrader.grade_worksheet(
-        "filled_worksheets/math_worksheet_2025-01-11_filled.jpg"
+        "data/filled_worksheets/math_worksheet_2025-01-11_filled.jpg"
     )
     print(result)

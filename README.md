@@ -28,7 +28,19 @@ To set up the MathTutor system and its dependencies:
    ```
 
 4. **Run the Application**:
-   Follow the instructions in the user guide to generate worksheets, grade submissions, and manage data.
+   You can run the project modules from the command line as follows:
+
+   - **Run the main module**:
+     ```bash
+     PYTHONPATH=./src python -m src.main
+     ```
+
+   - **Run the grader module**:
+     ```bash
+     PYTHONPATH=./src python -m src.grader
+     ```
+
+   These commands will launch the respective parts of the MathTutor system.
 
 ---
 

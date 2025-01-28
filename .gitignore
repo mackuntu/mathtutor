@@ -9,11 +9,15 @@ __pycache__/
 data/MNIST/
 
 # Ignore generated worksheets and data bases
-data/answer_leys/
+data/answer_keys/
 data/worksheets/
 data/filled_worksheets/
 data/worksheets.db
 data/worksheets_pb2.py
+
+# Ignore model training checkpoints
+src/model/trained_model/checkpoint*
+src/model/trained_model/
 
 # C extensions
 *.so
