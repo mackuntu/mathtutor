@@ -8,15 +8,15 @@ class LayoutChoice(Enum):
 
 
 LAYOUT_CONFIGS = {
-    LayoutChoice.TWO_COLUMN: {
+    "2_column": {
         "columns": ["column_1", "column_2"],
         "column_limits": [15, 15],
     },
-    LayoutChoice.ONE_COLUMN: {
+    "1_column": {
         "columns": ["column_1"],
         "column_limits": [30],
     },
-    LayoutChoice.MIXED: {
+    "mixed": {
         "columns": ["column_1", "column_2"],
         "column_limits": [20, 10],
     },
