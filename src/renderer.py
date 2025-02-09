@@ -6,7 +6,6 @@ from reportlab.lib.pagesizes import letter, portrait
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
-from roi_template_manager import ROITemplateManager
 from utils.layout_utils import (
     ANSWER_BOX_DIMENSIONS,
     LAYOUT_CONFIGS,
@@ -16,6 +15,7 @@ from utils.layout_utils import (
     LayoutChoice,
 )
 from utils.marker_utils import MarkerUtils
+from roi_template_manager import ROITemplateManager
 
 
 class WorksheetRenderer:
@@ -49,13 +49,13 @@ class WorksheetRenderer:
 
         Args:
             problems (list): List of problems.
-            layout_choice (LayoutChoice): Layout type (e.g., TWO_COLUMN, ONE_COLUMN, MIXED).
+            layout_choice (str): Layout type (e.g., "2_column", "1_column", "mixed").
 
         Returns:
             tuple: Positions of problems [(x_problem, y, x_answer)] and ROIs [(x1, y1, x2, y2)].
         """
-        # Fetch layout configuration using the enum value
-        layout_config = LAYOUT_CONFIGS[layout_choice.value]
+        # Fetch layout configuration
+        layout_config = LAYOUT_CONFIGS[layout_choice]
         columns = layout_config["columns"]
         column_limits = layout_config["column_limits"]
 

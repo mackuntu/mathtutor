@@ -185,3 +185,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+*.log
+debug_*.png
+debug_*.jpg

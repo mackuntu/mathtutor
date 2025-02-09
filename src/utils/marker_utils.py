@@ -9,65 +9,188 @@ from reportlab.lib.utils import ImageReader
 
 
 class MarkerUtils:
+    # Marker positions in points (72 DPI)
     PDF_MARKERS = np.array(
         [
-            (15, 15),  # Bottom-left
-            (15, 765),  # Top-left
-            (585, 15),  # Bottom-right
-            (585, 765),  # Top-right
+            (40 * 300 / 72, 40 * 300 / 72),  # Bottom-left
+            (40 * 300 / 72, 740 * 300 / 72),  # Top-left
+            (560 * 300 / 72, 40 * 300 / 72),  # Bottom-right
+            (560 * 300 / 72, 740 * 300 / 72),  # Top-right
         ],
         dtype=np.float32,
     )
-    REQUIRED_MARKER_IDS = [0, 1, 2, 3]  # IDs for the alignment markers
+
+    REQUIRED_MARKER_IDS = [0, 1, 2, 3]  # IDs for the four corner markers
 
     @staticmethod
-    def is_valid_quadrilateral(points):
-        """
-        Ensure the points form a valid quadrilateral by checking if any three consecutive
-        points are collinear using the 2D determinant method.
-        """
-        if len(points) != 4:
-            return False
+    def create_corner_pattern(size=20):
+        """Create a unique corner pattern with nested squares and diagonal lines."""
+        # Create a white image with padding to avoid edge artifacts
+        padded_size = size + 4
+        pattern = Image.new("L", (padded_size, padded_size), 255)
+        draw = ImageDraw.Draw(pattern)
 
-        # Calculate vectors between points
-        vec1 = points[1] - points[0]
-        vec2 = points[2] - points[1]
-        vec3 = points[3] - points[2]
-        vec4 = points[0] - points[3]
+        # Calculate actual pattern size within padding
+        pattern_size = size
+        offset = 2  # Padding offset
 
-        # Calculate 2D determinants (cross product magnitude for 2D vectors)
-        def det2d(v1, v2):
-            return v1[0] * v2[1] - v1[1] * v2[0]
-
-        # Check if any three consecutive points are collinear
-        det1 = det2d(vec1, vec2)
-        det2 = det2d(vec2, vec3)
-        det3 = det2d(vec3, vec4)
-        det4 = det2d(vec4, vec1)
-
-        return not (
-            np.isclose(det1, 0)
-            or np.isclose(det2, 0)
-            or np.isclose(det3, 0)
-            or np.isclose(det4, 0)
+        # Draw outer square
+        margin = 2
+        draw.rectangle(
+            [
+                offset + margin,
+                offset + margin,
+                offset + pattern_size - margin - 1,
+                offset + pattern_size - margin - 1,
+            ],
+            outline=0,
+            width=2,
         )
+
+        # Draw inner filled square
+        inner_size = pattern_size // 3
+        inner_offset = offset + (pattern_size - inner_size) // 2
+        draw.rectangle(
+            [
+                inner_offset,
+                inner_offset,
+                inner_offset + inner_size - 1,
+                inner_offset + inner_size - 1,
+            ],
+            fill=0,
+        )
+
+        # Draw diagonal lines from corners to inner square
+        # Top-left to inner square
+        draw.line(
+            [(offset + margin, offset + margin), (inner_offset, inner_offset)],
+            fill=0,
+            width=2,
+        )
+        # Top-right to inner square
+        draw.line(
+            [
+                (offset + pattern_size - margin - 1, offset + margin),
+                (inner_offset + inner_size - 1, inner_offset),
+            ],
+            fill=0,
+            width=2,
+        )
+        # Bottom-left to inner square
+        draw.line(
+            [
+                (offset + margin, offset + pattern_size - margin - 1),
+                (inner_offset, inner_offset + inner_size - 1),
+            ],
+            fill=0,
+            width=2,
+        )
+        # Bottom-right to inner square
+        draw.line(
+            [
+                (
+                    offset + pattern_size - margin - 1,
+                    offset + pattern_size - margin - 1,
+                ),
+                (inner_offset + inner_size - 1, inner_offset + inner_size - 1),
+            ],
+            fill=0,
+            width=2,
+        )
+
+        # Convert to numpy array and crop to remove padding
+        pattern_np = np.array(pattern)
+        pattern_np = pattern_np[2:-2, 2:-2]  # Remove padding
+        return pattern_np
+
+    @staticmethod
+    def draw_alignment_markers(pdf, width=None, height=None, marker_size=20):
+        """Draw ArUco markers on the PDF."""
+        # Create ArUco dictionary
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+
+        # Convert marker positions from 300 DPI to 72 DPI for PDF
+        pdf_positions = MarkerUtils.PDF_MARKERS * 72 / 300
+
+        for marker_id, (x, y) in zip(MarkerUtils.REQUIRED_MARKER_IDS, pdf_positions):
+            # Generate marker image
+            marker_img = cv2.aruco.generateImageMarker(
+                aruco_dict, marker_id, marker_size
+            )
+
+            # Convert to PIL Image
+            marker_pil = Image.fromarray(marker_img)
+
+            # Convert to bytes for ReportLab
+            marker_stream = BytesIO()
+            marker_pil.save(marker_stream, format="PNG")
+            marker_stream.seek(0)
+
+            # Create ImageReader object
+            marker_reader = ImageReader(marker_stream)
+
+            # Draw the marker at the specified position
+            # Note: ReportLab coordinates are from bottom-left
+            pdf.drawImage(
+                marker_reader,
+                x - marker_size / 2,
+                y - marker_size / 2,
+                width=marker_size,
+                height=marker_size,
+            )
+
+    @staticmethod
+    def detect_alignment_markers(image_path):
+        """Detect ArUco markers in the image and ensure all required markers are present."""
+        # Read the image
+        image = cv2.imread(image_path)
+        if image is None:
+            raise FileNotFoundError(f"Could not load image: {image_path}")
+
+        # Convert to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Create ArUco dictionary
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        aruco_params = cv2.aruco.DetectorParameters()
+
+        # Detect markers
+        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
+        corners, ids, rejected = detector.detectMarkers(gray)
+
+        # Save debug image
+        debug_img = cv2.cvtColor(gray.copy(), cv2.COLOR_GRAY2BGR)
+        if ids is not None:
+            cv2.aruco.drawDetectedMarkers(debug_img, corners, ids)
+        cv2.imwrite("debug_template_match.png", debug_img)
+
+        if ids is None:
+            raise ValueError("No markers detected")
+
+        # Convert ids to list for easier handling
+        ids = ids.flatten().tolist()
+
+        # Check if all required markers are present
+        if not all(marker_id in ids for marker_id in MarkerUtils.REQUIRED_MARKER_IDS):
+            raise ValueError("Not all alignment markers detected")
+
+        # Extract corners in the correct order
+        marker_points = []
+        for required_id in MarkerUtils.REQUIRED_MARKER_IDS:
+            idx = ids.index(required_id)
+            # Get center point of the marker
+            corner = corners[idx][0]
+            center_x = int(np.mean(corner[:, 0]))
+            center_y = int(np.mean(corner[:, 1]))
+            marker_points.append((center_x, center_y))
+
+        return marker_points  # Return points in image space (300 DPI)
 
     @staticmethod
     def map_pdf_to_image_space(
         pdf_rois, image_markers, image_dimensions, visualize=False
     ):
-        """
-        Map ROIs from PDF coordinate space to image space using alignment markers.
-
-        Args:
-            pdf_rois (list of tuples): ROIs in PDF coordinate space [(x1, y1, x2, y2), ...].
-            image_markers (list of tuples): ArUco marker positions in image space [(x, y), ...].
-            image_dimensions (tuple): Dimensions of the image as (width, height).
-            visualize (bool): Whether to visualize the transformation.
-
-        Returns:
-            list of tuples: Validated and transformed ROIs in image space.
-        """
+        """Map ROIs from PDF coordinate space to image space using corner patterns."""
         if len(MarkerUtils.PDF_MARKERS) != len(image_markers):
             raise ValueError(
                 "Mismatch between number of PDF markers and image markers."
@@ -75,13 +198,17 @@ class MarkerUtils:
 
         image_width, image_height = image_dimensions
 
-        # Ensure MarkerUtils.PDF_MARKERS is a numpy array
-        pdf_points = MarkerUtils.PDF_MARKERS
-        logging.warning(f"PDF Points: {pdf_points}")
+        # Convert PDF ROIs from 72 DPI to 300 DPI
+        scaled_pdf_rois = []
+        for roi in pdf_rois:
+            x1, y1, x2, y2 = roi
+            scaled_pdf_rois.append(
+                (x1 * 300 / 72, y1 * 300 / 72, x2 * 300 / 72, y2 * 300 / 72)
+            )
 
-        # pdf_points[:, 1] = pdf_height - pdf_points[:, 1]
-        image_points = np.array(image_markers, dtype=np.float32)
-        logging.warning(f"Image Points: {image_points}")
+        # Ensure markers are numpy arrays
+        pdf_points = MarkerUtils.PDF_MARKERS  # Already in 300 DPI
+        image_points = np.array(image_markers, dtype=np.float32)  # Already in 300 DPI
 
         if not MarkerUtils.is_valid_quadrilateral(
             pdf_points
@@ -93,68 +220,60 @@ class MarkerUtils:
         # Compute transformation matrix
         try:
             matrix = cv2.getPerspectiveTransform(pdf_points, image_points)
-            logging.warning(f"Transformation Matrix: {matrix}")
-            # Validate the matrix by transforming pdf_points and comparing to image_points
-            transformed_pdf_points = cv2.perspectiveTransform(
-                np.array([pdf_points], dtype=np.float32), matrix
-            )
-            for i, (transformed, expected) in enumerate(
-                zip(transformed_pdf_points[0], image_points)
-            ):
-                if not np.allclose(transformed, expected, atol=1e-2):
-                    logging.error(
-                        f"Matrix validation failed for point {i}: {transformed} != {expected}"
-                    )
-                    raise ValueError(
-                        "Transformation matrix does not map points correctly."
-                    )
+            # Transform ROIs
+            transformed_rois = []
+            for roi in scaled_pdf_rois:  # Use scaled ROIs
+                roi_points = np.array(
+                    [[[roi[0], roi[1]], [roi[2], roi[3]]]], dtype=np.float32
+                )
+                transformed_points = cv2.perspectiveTransform(roi_points, matrix)
+
+                # Clip and convert to integers
+                clipped_points = np.clip(
+                    transformed_points[0], [0, 0], [image_width, image_height]
+                ).astype(int)
+                x1, y1 = clipped_points[0]
+                x2, y2 = clipped_points[1]
+
+                if x2 > x1 and y2 > y1:
+                    transformed_rois.append((x1, y1, x2, y2))
+
+            if visualize:
+                MarkerUtils.visualize_rois(image_dimensions, pdf_rois, transformed_rois)
+
+            return transformed_rois
+
         except cv2.error as e:
             raise ValueError(f"Error computing perspective transform: {e}")
 
-        # Transform ROIs
-        transformed_rois = []
-        for roi in pdf_rois:
-            # Modify ROI transformation to avoid manual reversal:
-            roi_points = np.array(
-                [[[roi[0], roi[1]], [roi[2], roi[3]]]], dtype=np.float32
-            )
+    @staticmethod
+    def is_valid_quadrilateral(points):
+        """Ensure the points form a valid quadrilateral."""
+        if len(points) != 4:
+            return False
 
-            try:
-                transformed_points = cv2.perspectiveTransform(roi_points, matrix)
-            except cv2.error as e:
-                logging.error(f"Failed to transform ROI {roi}: {e}")
-                continue
+        # Calculate vectors between points
+        vec1 = points[1] - points[0]
+        vec2 = points[2] - points[1]
+        vec3 = points[3] - points[2]
+        vec4 = points[0] - points[3]
 
-            # Vectorized clipping and conversion
-            clipped_points = np.clip(
-                transformed_points[0], [0, 0], [image_width, image_height]
-            ).astype(int)
-            x1, y1 = clipped_points[0]
-            x2, y2 = clipped_points[1]
+        # Ensure determinant is not zero (not collinear)
+        det1 = np.cross(vec1, vec2)
+        det2 = np.cross(vec2, vec3)
+        det3 = np.cross(vec3, vec4)
+        det4 = np.cross(vec4, vec1)
 
-            # Validate and append ROIs
-            if x2 > x1 and y2 > y1:
-                transformed_rois.append((x1, y1, x2, y2))
-            else:
-                logging.warning(
-                    f"Invalid transformed ROI: {(x1, y1, x2, y2)} from original ROI {roi}"
-                )
-
-        if visualize:
-            MarkerUtils.visualize_rois(image_dimensions, pdf_rois, transformed_rois)
-
-        return transformed_rois
+        return not (
+            np.isclose(det1, 0)
+            or np.isclose(det2, 0)
+            or np.isclose(det3, 0)
+            or np.isclose(det4, 0)
+        )
 
     @staticmethod
     def visualize_rois(image_dimensions, pdf_rois, transformed_rois):
-        """
-        Visualize the ROIs in PDF space and transformed image space, with corner annotations.
-
-        Args:
-            image_dimensions (tuple): Dimensions of the image as (width, height).
-            pdf_rois (list of tuples): ROIs in PDF coordinate space.
-            transformed_rois (list of tuples): Transformed ROIs in image space.
-        """
+        """Visualize the ROIs in PDF space and transformed image space."""
         pdf_canvas_width = 600
         pdf_canvas_height = 800
         pdf_height = 800  # Letter size PDF height in points
@@ -205,60 +324,3 @@ class MarkerUtils:
         plt.imshow(scanned_image)
         plt.axis("on")
         plt.show()
-
-    @staticmethod
-    def detect_alignment_markers(image_path):
-        """Detect ArUco markers in the scanned image and align to the PDF reference corner."""
-        image = cv2.imread(image_path)
-        if image is None:
-            raise FileNotFoundError(f"Could not load image: {image_path}")
-
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # Load predefined dictionary
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        aruco_params = cv2.aruco.DetectorParameters()
-        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-
-        # Detect markers
-        corners, ids, _ = detector.detectMarkers(gray)
-
-        if ids is None or len(ids) < 4:
-            raise ValueError("Not all alignment markers detected.")
-
-        # Map detected marker IDs to their top-left corners
-        markers = {}
-        for corner, marker_id in zip(corners, ids.flatten()):
-            # Use the bottom-left corner (consistent with PDF drawing)
-            bottom_left_corner = corner[0][3]  # Bottom-left corner of the marker
-            bottom_left_x = int(bottom_left_corner[0])
-            bottom_left_y = int(bottom_left_corner[1])
-            markers[marker_id] = (bottom_left_x, bottom_left_y)
-
-        # Ensure all required markers are detected
-        for marker_id in MarkerUtils.REQUIRED_MARKER_IDS:
-            if marker_id not in markers:
-                raise ValueError(f"Marker ID {marker_id} not found in the image.")
-
-        return [markers[marker_id] for marker_id in MarkerUtils.REQUIRED_MARKER_IDS]
-
-    @staticmethod
-    def draw_alignment_markers(pdf, marker_size=10):
-        """Draw ArUco alignment markers on the PDF."""
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        for (x, y), marker_id in zip(
-            MarkerUtils.PDF_MARKERS, MarkerUtils.REQUIRED_MARKER_IDS
-        ):
-            marker_image = cv2.aruco.generateImageMarker(
-                aruco_dict, marker_id, marker_size
-            )
-            _, buffer = cv2.imencode(".png", marker_image)
-            marker_image_stream = BytesIO(buffer.tobytes())
-            marker_image_reader = ImageReader(marker_image_stream)
-            pdf.drawImage(
-                marker_image_reader,
-                x,
-                y,
-                width=marker_size,
-                height=marker_size,
-            )
