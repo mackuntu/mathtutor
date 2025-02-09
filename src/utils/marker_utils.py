@@ -22,7 +22,10 @@ class MarkerUtils:
 
     @staticmethod
     def is_valid_quadrilateral(points):
-        """Ensure the points form a valid quadrilateral."""
+        """
+        Ensure the points form a valid quadrilateral by checking if any three consecutive
+        points are collinear using the 2D determinant method.
+        """
         if len(points) != 4:
             return False
 
@@ -32,11 +35,15 @@ class MarkerUtils:
         vec3 = points[3] - points[2]
         vec4 = points[0] - points[3]
 
-        # Ensure determinant is not zero (not collinear)
-        det1 = np.cross(vec1, vec2)
-        det2 = np.cross(vec2, vec3)
-        det3 = np.cross(vec3, vec4)
-        det4 = np.cross(vec4, vec1)
+        # Calculate 2D determinants (cross product magnitude for 2D vectors)
+        def det2d(v1, v2):
+            return v1[0] * v2[1] - v1[1] * v2[0]
+
+        # Check if any three consecutive points are collinear
+        det1 = det2d(vec1, vec2)
+        det2 = det2d(vec2, vec3)
+        det3 = det2d(vec3, vec4)
+        det4 = det2d(vec4, vec1)
 
         return not (
             np.isclose(det1, 0)
