@@ -22,17 +22,23 @@ class AnswerGrader:
 
     @staticmethod
     def extract_qr_code(image_path):
-        """Extract and decode QR code from an image using OpenCV."""
+        """Extract QR code data from the image."""
         image = cv2.imread(image_path)
-        qr_code_detector = cv2.QRCodeDetector()
+        if image is None:
+            raise FileNotFoundError(f"Could not load image: {image_path}")
 
-        # Detect and decode the QR code
-        data, _, _ = qr_code_detector.detectAndDecode(image)
+        # Convert to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        if data:
-            return eval(data)  # Assuming QR code contains a dictionary
-        else:
-            raise ValueError("QR Code not found in image.")
+        # Try to detect QR code
+        detector = cv2.QRCodeDetector()
+        data, bbox, _ = detector.detectAndDecode(gray)
+
+        if not data:
+            raise ValueError("No QR code found in image")
+
+        # Return the worksheet ID directly
+        return data
 
     @staticmethod
     def fetch_answer_key(worksheet_id, version):
@@ -163,55 +169,53 @@ class AnswerGrader:
 
     @staticmethod
     def grade_worksheet(image_path):
-        """Main grading function with annotation."""
-        # Extract QR Code
-        qr_data = AnswerGrader.extract_qr_code(image_path)
-        worksheet_id, version = qr_data["worksheet_id"], qr_data["version"]
+        """Grade a filled worksheet image."""
+        # Extract worksheet ID from QR code
+        worksheet_id = AnswerGrader.extract_qr_code(image_path)
 
-        # Fetch worksheet metadata
-        worksheet_metadata = DatabaseHandler.fetch_worksheet(worksheet_id, version)
-        template_id = worksheet_metadata.template_id
-        correct_answers = worksheet_metadata.answers
+        # Fetch worksheet data from database
+        worksheet = DatabaseHandler.fetch_worksheet(worksheet_id, "1.0")
+        if not worksheet:
+            raise ValueError(f"Worksheet {worksheet_id} not found in database")
 
-        # Fetch ROIs and alignment markers
-        rois = DatabaseHandler.fetch_roi_template(template_id)
-        image_markers = MarkerUtils.detect_alignment_markers(image_path)
+        # Get ROI template
+        rois = DatabaseHandler.fetch_roi_template(worksheet.template_id)
+        if not rois:
+            raise ValueError(f"ROI template {worksheet.template_id} not found")
+
+        # Detect alignment markers
+        try:
+            image_markers = MarkerUtils.detect_alignment_markers(image_path)
+        except Exception as e:
+            print(f"Debug: Failed to detect markers: {str(e)}")
+            raise
 
         # Get image dimensions
-        image = Image.open(image_path)
-        image_width, image_height = image.size
+        image = cv2.imread(image_path)
+        image_height, image_width = image.shape[:2]
 
-        # Map ROIs to image space
+        # Transform ROIs from PDF to image space
         transformed_rois = MarkerUtils.map_pdf_to_image_space(
-            rois, image_markers, (image_width, image_height)
+            rois, image_markers, (image_width, image_height), visualize=True
         )
 
-        # Parse student answers
+        # Extract student answers from ROIs
         student_answers = AnswerGrader.parse_student_answers(
             image_path, transformed_rois
         )
 
-        # Grade answers
+        # Grade the answers
         total_correct, total_questions, grade = AnswerGrader.grade_answers(
-            student_answers, correct_answers
-        )
-
-        # Annotate the image
-        annotated_image_path = AnswerGrader.annotate_image(
-            image,
-            transformed_rois,
-            student_answers,
-            correct_answers,
-            total_correct,
-            total_questions,
-            grade,
+            student_answers, worksheet.answers
         )
 
         return {
+            "worksheet_id": worksheet_id,
             "total_correct": total_correct,
             "total_questions": total_questions,
             "grade": grade,
-            "annotated_image_path": annotated_image_path,
+            "student_answers": student_answers,
+            "correct_answers": worksheet.answers,
         }
 
 

@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter, portrait
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from roi_template_manager import ROITemplateManager
 from utils.layout_utils import (
     ANSWER_BOX_DIMENSIONS,
     LAYOUT_CONFIGS,
@@ -15,7 +16,6 @@ from utils.layout_utils import (
     LayoutChoice,
 )
 from utils.marker_utils import MarkerUtils
-from roi_template_manager import ROITemplateManager
 
 
 class WorksheetRenderer:
@@ -34,7 +34,7 @@ class WorksheetRenderer:
         Generate a QR code for the worksheet ID and version.
         """
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data({"worksheet_id": worksheet_id, "version": version})
+        qr.add_data(worksheet_id)  # Just store the ID, not a dictionary
         qr.make(fit=True)
         qr_image = qr.make_image(fill_color="black", back_color="white")
         byte_stream = BytesIO()
@@ -49,13 +49,13 @@ class WorksheetRenderer:
 
         Args:
             problems (list): List of problems.
-            layout_choice (str): Layout type (e.g., "2_column", "1_column", "mixed").
+            layout_choice (LayoutChoice): Layout type (e.g., TWO_COLUMN, ONE_COLUMN, MIXED).
 
         Returns:
             tuple: Positions of problems [(x_problem, y, x_answer)] and ROIs [(x1, y1, x2, y2)].
         """
         # Fetch layout configuration
-        layout_config = LAYOUT_CONFIGS[layout_choice]
+        layout_config = LAYOUT_CONFIGS[layout_choice.value]
         columns = layout_config["columns"]
         column_limits = layout_config["column_limits"]
 
@@ -140,13 +140,15 @@ class WorksheetRenderer:
     def create_math_worksheet(filename, problems, qr_code_stream):
         """Generate a math worksheet."""
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
+        width, height = letter
         pdf.setFont("Helvetica", 18)
 
-        MarkerUtils.draw_alignment_markers(pdf)
+        MarkerUtils.draw_alignment_markers(pdf, width, height)
         pdf.drawString(200, 750, "Math Worksheet")
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
-        pdf.drawImage(ImageReader(qr_code_stream), 550, 700, width=40, height=40)
+        # Move QR code lower on the page to avoid interfering with corner marker
+        pdf.drawImage(ImageReader(qr_code_stream), 550, 400, width=40, height=40)
 
         positions, rois = WorksheetRenderer.calculate_layout(
             problems, LayoutChoice.TWO_COLUMN
@@ -162,6 +164,7 @@ class WorksheetRenderer:
     def create_answer_key(filename, problems, answers, qr_code_stream):
         """Generate an answer key."""
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
+        width, height = letter
         pdf.setFont("Helvetica", 18)
 
         pdf.drawString(200, 750, "Math Worksheet Answer Key")
