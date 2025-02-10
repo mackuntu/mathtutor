@@ -132,8 +132,8 @@ terminado==0.18.1
 tinycss2==1.4.0
 tokenizers==0.21.0
 torch>=2.0.1
+torchvision>=0.15.0
 torchaudio==2.6.0.dev20250120
-torchvision==0.22.0.dev20250120
 tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.3

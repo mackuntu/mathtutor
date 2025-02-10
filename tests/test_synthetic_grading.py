@@ -1,24 +1,81 @@
+"""Test synthetic worksheet grading."""
+
 import os
 import tempfile
-from datetime import datetime
-from io import BytesIO
+from pathlib import Path
 
-import cv2
-import numpy as np
 import pytest
 from pdf2image import convert_from_path
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
-from src.db_handler import DatabaseHandler
-from src.grader import AnswerGrader
-from src.problem_generator import ProblemGenerator
-from src.renderer import WorksheetRenderer
-from src.utils.marker_utils import MarkerUtils
+from src.core.grading import GradingService
+from src.core.handwriting import HandwritingSimulator
+from src.core.ocr import OCRConfig
+from src.core.worksheet import Worksheet
+from src.document.renderer import DocumentRenderer
+from src.document.template import LayoutChoice, TemplateManager
+
+
+@pytest.fixture
+def sample_worksheet():
+    """Create a sample worksheet with problems and answers."""
+    # Create temporary files for worksheet and answer key
+    worksheet_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    answer_key_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+
+    # Generate problems and answers
+    problems = [
+        ("5 + 7", "12", (50, 680, 150, 720)),
+        ("12 - 4", "8", (50, 640, 150, 680)),
+        ("3 × 5", "15", (50, 600, 150, 640)),
+        ("8 + 3", "11", (50, 560, 150, 600)),
+        ("9 - 5", "4", (300, 680, 400, 720)),
+        ("2 × 6", "12", (300, 640, 400, 680)),
+        ("15 - 8", "7", (300, 600, 400, 640)),
+        ("4 + 9", "13", (300, 560, 400, 600)),
+        ("10 - 3", "7", (300, 520, 400, 560)),
+        ("7 × 2", "14", (300, 480, 400, 520)),
+    ]
+
+    # Create worksheet
+    renderer = DocumentRenderer()
+    template_id = renderer.create_worksheet(
+        worksheet_file.name,
+        [p[0] for p in problems],
+        worksheet_id="test_synthetic",
+        layout=LayoutChoice.TWO_COLUMN,
+    )
+    renderer.create_answer_key(
+        answer_key_file.name,
+        [p[0] for p in problems],
+        [p[1] for p in problems],
+        worksheet_id="test_synthetic",
+        layout=LayoutChoice.TWO_COLUMN,
+    )
+
+    # Create worksheet object with ROIs
+    worksheet = Worksheet(
+        id="test_synthetic",
+        version="1.0",
+        template_id=template_id,
+    )
+    for question, answer, roi in problems:
+        worksheet.add_problem(question=question, answer=answer, roi=roi)
+
+    return {
+        "worksheet_path": worksheet_file.name,
+        "answer_key_path": answer_key_file.name,
+        "problems": [p[0] for p in problems],
+        "answers": [p[1] for p in problems],
+        "rois": [p[2] for p in problems],
+        "template_id": template_id,
+        "worksheet": worksheet,
+    }
 
 
 @pytest.fixture
 def handwriting_fonts():
-    """Fixture providing a list of handwriting-like fonts."""
+    """Get list of available handwriting fonts."""
     return [
         "data/fonts/Childrens-Handwriting.ttf",
         "data/fonts/KidsHandwriting.ttf",
@@ -26,150 +83,60 @@ def handwriting_fonts():
     ]
 
 
-@pytest.fixture
-def sample_worksheet():
-    """Generate a sample worksheet with known problems and answers."""
-    generator = ProblemGenerator()
-    problems, answers = generator.generate_math_problems(age=6)
+def create_synthetic_filled_worksheet(worksheet_data, font_path, accuracy=1.0):
+    """Create a synthetic filled worksheet using handwriting simulation.
 
-    # Create temporary files for worksheet and answer key
-    with tempfile.NamedTemporaryFile(
-        suffix=".pdf", delete=False
-    ) as worksheet_file, tempfile.NamedTemporaryFile(
-        suffix=".pdf", delete=False
-    ) as answer_key_file:
+    Args:
+        worksheet_data: Dictionary containing worksheet information.
+        font_path: Path to font file for handwriting simulation.
+        accuracy: Probability of writing correct answers (0.0 to 1.0).
 
-        # Create QR code
-        worksheet_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        qr_code = WorksheetRenderer.create_qr_code(worksheet_id, "1.0")
-
-        # Generate worksheet and answer key
-        template_id = WorksheetRenderer.create_math_worksheet(
-            worksheet_file.name, problems, qr_code
-        )
-        WorksheetRenderer.create_answer_key(
-            answer_key_file.name, problems, answers, qr_code
-        )
-
-        # Save worksheet data to database
-        DatabaseHandler.save_worksheet(
-            worksheet_id, "1.0", problems, answers, template_id
-        )
-
-        yield {
-            "worksheet_path": worksheet_file.name,
-            "answer_key_path": answer_key_file.name,
-            "problems": problems,
-            "answers": answers,
-            "worksheet_id": worksheet_id,
-            "version": "1.0",
-            "template_id": template_id,
-        }
-
-        # Cleanup
-        os.unlink(worksheet_file.name)
-        os.unlink(answer_key_file.name)
-
-
-def create_synthetic_filled_worksheet(worksheet_info, font_path, accuracy=1.0):
+    Returns:
+        Path to filled worksheet image.
     """
-    Create a synthetic filled worksheet using a handwriting-like font.
-    """
-    # Convert PDF to image with high DPI for better QR code and marker recognition
-    pdf_path = worksheet_info["worksheet_path"]
-    images = convert_from_path(
-        pdf_path,
-        dpi=300,
-        fmt="png",
-        size=(2550, 3300),  # Letter size at 300 DPI (8.5x11 inches)
-        use_cropbox=False,  # Use MediaBox instead of CropBox
-        transparent=False,  # Disable transparency
-        grayscale=False,  # Keep color information
-        thread_count=1,  # Single thread for better consistency
-        first_page=1,
-        last_page=1,
-        strict=True,  # Strict PDF parsing
-        poppler_path=None,  # Use system poppler
-        output_folder=None,  # No output folder needed
-        use_pdftocairo=True,  # Use pdftocairo for better quality
-        output_file=None,  # No output file needed
-        paths_only=False,  # Return PIL images
+    # Create handwriting simulator with specified font
+    simulator = HandwritingSimulator(font_paths=[font_path])
+
+    # Create grading service
+    config = OCRConfig(
+        model_name="microsoft/trocr-small-handwritten",
+        device="cpu",
+        min_confidence=-20,
+        max_new_tokens=5,
+    )
+    grading_service = GradingService(ocr_config=config)
+
+    # Generate synthetic answers
+    answer_images = grading_service.simulate_student_answers(
+        worksheet_data["worksheet"], accuracy=accuracy, simulator=simulator
     )
 
-    if not images:
-        raise ValueError("Failed to convert PDF to image")
+    # Convert PDF to image
+    worksheet_images = convert_from_path(worksheet_data["worksheet_path"])
+    worksheet_image = worksheet_images[0]  # Get first page
 
-    # We only need the first page
-    image = images[0]
+    # Create output image
+    output_path = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False).name
 
-    # Create a temporary file for the filled worksheet
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as img_file:
-        draw = ImageDraw.Draw(image)
+    # Composite answer images onto worksheet
+    for i, answer_image in enumerate(answer_images):
+        x, y = worksheet_data["rois"][i][:2]  # Get position from ROI
+        worksheet_image.paste(answer_image, (int(x), int(y)), answer_image)
 
-        # Load handwriting font
-        try:
-            font = ImageFont.truetype(font_path, size=36)  # Larger font size
-        except OSError:
-            print(f"Warning: Could not load font {font_path}, using default")
-            font = ImageFont.load_default()
-
-        # Get ROIs from template
-        rois = DatabaseHandler.fetch_roi_template(worksheet_info["template_id"])
-
-        # Fill in answers with some randomization
-        for roi, answer in zip(rois, worksheet_info["answers"]):
-            x1, y1, x2, y2 = roi
-
-            # Scale ROI coordinates for higher DPI
-            x1, y1, x2, y2 = [int(coord * 300 / 72) for coord in [x1, y1, x2, y2]]
-
-            # Randomly decide whether to write the correct answer based on accuracy
-            if np.random.random() < accuracy:
-                text = str(answer)
-            else:
-                # Write an incorrect answer (within reasonable range)
-                text = str(int(answer) + np.random.randint(1, 5))
-
-            # Add some random offset to simulate messy handwriting
-            x_offset = np.random.randint(
-                -10, 10
-            )  # Reduced range for better readability
-            y_offset = np.random.randint(-10, 10)
-
-            # Calculate center position for text
-            text_width = draw.textlength(text, font=font)
-            text_x = x1 + (x2 - x1 - text_width) / 2 + x_offset
-            text_y = y1 + (y2 - y1 - font.size) / 2 + y_offset
-
-            # Draw the text
-            draw.text((text_x, text_y), text, font=font, fill="black")
-
-        # Save the image with high quality
-        image.save(img_file.name, "PNG", dpi=(300, 300), quality=95)
-
-        # Debug: Save a copy of the image for inspection
-        debug_path = "debug_worksheet.png"
-        image.save(debug_path, "PNG", dpi=(300, 300), quality=95)
-        print(f"Debug: Saved worksheet image to {debug_path}")
-
-        # Debug: Save a grayscale version for marker detection testing
-        gray_image = image.convert("L")
-        gray_image.save("debug_worksheet_gray.png", "PNG", dpi=(300, 300), quality=95)
-        print("Debug: Saved grayscale version to debug_worksheet_gray.png")
-
-        # Debug: Try to detect markers in the saved image
-        try:
-            markers = MarkerUtils.detect_alignment_markers(img_file.name)
-            print(f"Debug: Successfully detected {len(markers)} markers")
-            print(f"Debug: Marker positions: {markers}")
-        except Exception as e:
-            print(f"Debug: Failed to detect markers: {str(e)}")
-
-        return img_file.name
+    worksheet_image.save(output_path)
+    return output_path
 
 
 def test_synthetic_grading_perfect(sample_worksheet, handwriting_fonts):
     """Test grading with synthetic perfectly filled worksheets."""
+    config = OCRConfig(
+        model_name="microsoft/trocr-small-handwritten",
+        device="cpu",
+        min_confidence=-20,
+        max_new_tokens=5,
+    )
+    grading_service = GradingService(ocr_config=config)
+
     for font_path in handwriting_fonts:
         # Create synthetic filled worksheet with perfect accuracy
         filled_worksheet_path = create_synthetic_filled_worksheet(
@@ -177,11 +144,13 @@ def test_synthetic_grading_perfect(sample_worksheet, handwriting_fonts):
         )
 
         # Grade the worksheet
-        result = AnswerGrader.grade_worksheet(filled_worksheet_path)
+        worksheet = sample_worksheet["worksheet"]
+        filled_image = Image.open(filled_worksheet_path)
+        grading_service.grade_worksheet(worksheet, [filled_image])
 
         # Check results
-        assert result["grade"] == "A"
-        assert result["total_correct"] == result["total_questions"]
+        assert worksheet.grade == "A"
+        assert worksheet.total_correct == len(sample_worksheet["problems"])
 
         # Cleanup
         os.unlink(filled_worksheet_path)
@@ -189,6 +158,14 @@ def test_synthetic_grading_perfect(sample_worksheet, handwriting_fonts):
 
 def test_synthetic_grading_partial(sample_worksheet, handwriting_fonts):
     """Test grading with synthetic partially correct worksheets."""
+    config = OCRConfig(
+        model_name="microsoft/trocr-small-handwritten",
+        device="cpu",
+        min_confidence=-20,
+        max_new_tokens=5,
+    )
+    grading_service = GradingService(ocr_config=config)
+
     accuracies = [0.8, 0.7, 0.6]  # Should result in B, C, D grades
     expected_grades = ["B", "C", "D"]
 
@@ -200,11 +177,14 @@ def test_synthetic_grading_partial(sample_worksheet, handwriting_fonts):
             )
 
             # Grade the worksheet
-            result = AnswerGrader.grade_worksheet(filled_worksheet_path)
+            worksheet = sample_worksheet["worksheet"]
+            filled_image = Image.open(filled_worksheet_path)
+            grading_service.grade_worksheet(worksheet, [filled_image])
 
             # Check results
-            assert result["grade"] == expected_grade
-            assert result["total_correct"] < result["total_questions"]
+            assert worksheet.grade == expected_grade
+            expected_correct = int(accuracy * len(sample_worksheet["problems"]))
+            assert abs(worksheet.total_correct - expected_correct) <= 1
 
             # Cleanup
             os.unlink(filled_worksheet_path)
@@ -212,6 +192,14 @@ def test_synthetic_grading_partial(sample_worksheet, handwriting_fonts):
 
 def test_synthetic_grading_messy_placement(sample_worksheet, handwriting_fonts):
     """Test grading with synthetic worksheets where answers are messily placed."""
+    config = OCRConfig(
+        model_name="microsoft/trocr-small-handwritten",
+        device="cpu",
+        min_confidence=-20,
+        max_new_tokens=5,
+    )
+    grading_service = GradingService(ocr_config=config)
+
     for font_path in handwriting_fonts:
         # Create synthetic filled worksheet with random placement offsets
         filled_worksheet_path = create_synthetic_filled_worksheet(
@@ -219,10 +207,13 @@ def test_synthetic_grading_messy_placement(sample_worksheet, handwriting_fonts):
         )
 
         # Grade the worksheet
-        result = AnswerGrader.grade_worksheet(filled_worksheet_path)
+        worksheet = sample_worksheet["worksheet"]
+        filled_image = Image.open(filled_worksheet_path)
+        grading_service.grade_worksheet(worksheet, [filled_image])
 
         # Even with messy placement, OCR should still work
-        assert result["total_correct"] > 0
+        assert worksheet.total_correct > 0
+        assert worksheet.grade is not None
 
         # Cleanup
         os.unlink(filled_worksheet_path)

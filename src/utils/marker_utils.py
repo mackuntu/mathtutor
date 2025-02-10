@@ -202,9 +202,17 @@ class MarkerUtils:
         scaled_pdf_rois = []
         for roi in pdf_rois:
             x1, y1, x2, y2 = roi
+            # Check for invalid ROI dimensions
+            if x1 >= x2 or y1 >= y2:
+                logging.warning(f"Invalid ROI dimensions: {roi}")
+                continue
             scaled_pdf_rois.append(
                 (x1 * 300 / 72, y1 * 300 / 72, x2 * 300 / 72, y2 * 300 / 72)
             )
+
+        # If no valid ROIs, return empty list
+        if not scaled_pdf_rois:
+            return []
 
         # Ensure markers are numpy arrays
         pdf_points = MarkerUtils.PDF_MARKERS  # Already in 300 DPI
@@ -237,6 +245,10 @@ class MarkerUtils:
 
                 if x2 > x1 and y2 > y1:
                     transformed_rois.append((x1, y1, x2, y2))
+                else:
+                    logging.warning(
+                        f"Invalid transformed ROI dimensions: ({x1}, {y1}, {x2}, {y2})"
+                    )
 
             if visualize:
                 MarkerUtils.visualize_rois(image_dimensions, pdf_rois, transformed_rois)
