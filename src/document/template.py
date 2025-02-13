@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from ..storage.db import DatabaseConnection
+from src.storage.db import DatabaseConnection
 
 logger = logging.getLogger(__name__)
 

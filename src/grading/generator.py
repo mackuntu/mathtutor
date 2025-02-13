@@ -14,12 +14,12 @@ class ProblemGenerator:
     # Problem types by age group
     PROBLEM_TYPES = {
         6: {  # First grade
-            "addition": (1, 10),  # Numbers from 1 to 10
-            "subtraction": (1, 10),
+            "addition": (1, 20),  # Numbers up to 20
+            "subtraction": (1, 20),  # Numbers up to 20
         },
         7: {  # Second grade
-            "addition": (1, 20),
-            "subtraction": (1, 20),
+            "addition": (1, 50),
+            "subtraction": (1, 50),
             "multiplication": (1, 5),
         },
         8: {  # Third grade
@@ -40,26 +40,16 @@ class ProblemGenerator:
     # Operators for each problem type
     OPERATORS = {
         "addition": "+",
-        "multiplication": "×",
         "subtraction": "-",
-        "division": "÷",
     }
 
     def __init__(self, seed: Optional[int] = None):
-        """Initialize problem generator.
-
-        Args:
-            seed: Optional random seed for reproducibility.
-        """
+        """Initialize problem generator."""
         if seed is not None:
             random.seed(seed)
 
     def get_school_year_month(self) -> int:
-        """Calculate current month in school year (1-10).
-
-        Returns:
-            Month number in school year (1 = August, 10 = May).
-        """
+        """Calculate current month in school year (1-10)."""
         current_month = datetime.now().month
         if current_month >= 8:  # August to December
             return current_month - 7
@@ -69,88 +59,44 @@ class ProblemGenerator:
     def _generate_number_range(
         self, min_val: int, max_val: int, month: int
     ) -> Tuple[int, int]:
-        """Calculate number range based on school year progress.
-
-        Args:
-            min_val: Minimum value for range.
-            max_val: Maximum value for range.
-            month: Current month in school year (1-10).
-
-        Returns:
-            Tuple of (adjusted_min, adjusted_max).
-        """
-        # Scale max value based on progress through school year
+        """Calculate number range based on school year progress."""
         progress = month / 10  # 0.1 to 1.0
-        adjusted_max = min_val + int((max_val - min_val) * progress)
+        adjusted_max = max(min_val + 1, min_val + int((max_val - min_val) * progress))
         return min_val, adjusted_max
 
     def _generate_problem(
         self, problem_type: str, range_tuple: Tuple[int, int], month: int
     ) -> Tuple[str, str]:
-        """Generate a single problem of specified type.
-
-        Args:
-            problem_type: Type of problem to generate.
-            range_tuple: Tuple of (min_val, max_val).
-            month: Current month in school year.
-
-        Returns:
-            Tuple of (problem_string, answer_string).
-
-        Raises:
-            ValueError: If problem type is invalid.
-        """
+        """Generate a single problem of specified type."""
         min_val, max_val = self._generate_number_range(*range_tuple, month)
 
-        if problem_type == "fractions":
-            denominator = random.randint(2, max_val)
-            numerator = random.randint(1, denominator)
-            return f"{numerator}/{denominator}", str(numerator / denominator)
+        # Generate numbers for addition/subtraction
+        if problem_type in ["addition", "subtraction"]:
+            # Ensure at least one number is double digit
+            num1 = random.randint(min_val, max_val)
+            num2 = random.randint(min_val, max_val)
 
-        num1 = random.randint(min_val, max_val)
-        num2 = random.randint(min_val, max_val)
+            # For subtraction, ensure first number is larger
+            if problem_type == "subtraction":
+                num1, num2 = max(num1, num2), min(num1, num2)
 
-        if problem_type not in self.OPERATORS:
-            raise ValueError(f"Invalid problem type: {problem_type}")
+            # Create problem string and calculate answer
+            operator = self.OPERATORS[problem_type]
+            problem = f"{num1} {operator} {num2}"
 
-        operator = self.OPERATORS[problem_type]
+            if problem_type == "addition":
+                answer = num1 + num2
+            else:  # subtraction
+                answer = num1 - num2
 
-        # Ensure subtraction and division problems have valid answers
-        if problem_type == "subtraction":
-            num1, num2 = max(num1, num2), min(num1, num2)
-        elif problem_type == "division":
-            answer = random.randint(1, max_val)
-            num1 = num2 * answer
+            return problem, str(answer)
 
-        # Create problem string and calculate answer
-        problem = f"{num1} {operator} {num2}"
-        if problem_type == "addition":
-            answer = num1 + num2
-        elif problem_type == "subtraction":
-            answer = num1 - num2
-        elif problem_type == "multiplication":
-            answer = num1 * num2
-        elif problem_type == "division":
-            answer = num1 // num2
-
-        return problem, str(answer)
+        raise ValueError(f"Invalid problem type: {problem_type}")
 
     def generate_math_problems(
         self, age: int, count: Optional[int] = None
     ) -> Tuple[List[str], List[str]]:
-        """Generate age-appropriate math problems.
-
-        Args:
-            age: Age of student.
-            count: Optional number of problems to generate.
-                If None, generates based on age and progress.
-
-        Returns:
-            Tuple of (problems, answers) lists.
-
-        Raises:
-            ValueError: If age group is not supported.
-        """
+        """Generate age-appropriate math problems."""
         if age not in self.PROBLEM_TYPES:
             raise ValueError(
                 f"Age {age} not supported. Supported ages: {list(self.PROBLEM_TYPES.keys())}"
@@ -159,24 +105,27 @@ class ProblemGenerator:
         # Get available problem types and ranges for age
         problem_types = self.PROBLEM_TYPES[age]
 
+        # For first grade, only use addition and subtraction
+        if age == 6:
+            problem_types = {
+                k: v
+                for k, v in problem_types.items()
+                if k in ["addition", "subtraction"]
+            }
+
         # Calculate school year progress
         month = self.get_school_year_month()
 
-        # Determine number of problems if not specified
-        if count is None:
-            base_count = 10 + (age - 6) * 2  # More problems for older students
-            count = base_count + month  # More problems later in year
-
-        # Generate problems
+        # Generate problems with alternating addition and subtraction
         problems = []
         answers = []
+        types_list = ["addition", "subtraction"]  # Alternate between these
 
         while len(problems) < count:
-            # Select random problem type
-            problem_type = random.choice(list(problem_types.keys()))
+            # Alternate between addition and subtraction
+            problem_type = types_list[len(problems) % 2]
             range_tuple = problem_types[problem_type]
 
-            # Generate problem
             try:
                 problem, answer = self._generate_problem(
                     problem_type, range_tuple, month

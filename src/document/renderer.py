@@ -13,23 +13,14 @@ from reportlab.lib.pagesizes import letter, portrait
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
-from .template import LayoutChoice, TemplateManager
+from src.document.template import LayoutChoice, TemplateManager
+from src.utils.marker_utils import MarkerUtils
 
 logger = logging.getLogger(__name__)
 
 
 class DocumentRenderer:
     """Renders worksheets and answer keys as PDFs."""
-
-    # Space-themed decorations for problems
-    DECORATIONS = [
-        "assets/rocket.png",
-        "assets/moon.png",
-        "assets/star.png",
-        "assets/shining_star.png",
-        "assets/planet.png",
-        "assets/galaxy.png",
-    ]
 
     def __init__(self, template_manager: Optional[TemplateManager] = None):
         """Initialize document renderer.
@@ -65,22 +56,6 @@ class DocumentRenderer:
 
         return byte_stream
 
-    def _load_decoration(self, index: int) -> Optional[ImageReader]:
-        """Load a decoration image.
-
-        Args:
-            index: Index of decoration to load.
-
-        Returns:
-            ImageReader for decoration or None if loading fails.
-        """
-        try:
-            decoration_path = self.DECORATIONS[index % len(self.DECORATIONS)]
-            return ImageReader(decoration_path)
-        except Exception as e:
-            logger.warning(f"Failed to load decoration: {e}")
-            return None
-
     def _render_text(
         self,
         pdf: canvas.Canvas,
@@ -100,29 +75,16 @@ class DocumentRenderer:
             answers: Optional list of answer strings.
             render_answers: Whether to render answers.
         """
-        decoration_index = 0
-
         for i, ((x_problem, y, x_answer), roi) in enumerate(zip(positions, rois)):
             problem = problems[i]
             answer = answers[i] if render_answers and answers else None
 
-            # Add decoration
-            decoration = self._load_decoration(decoration_index)
-            if decoration:
-                pdf.drawImage(
-                    decoration,
-                    x_problem - 30,
-                    y - 3,
-                    width=18,
-                    height=18,
-                )
-                decoration_index += 1
-
-            # Render problem number and text
+            # Render problem number and text with more spacing
             pdf.setFont("Helvetica-Bold", 12)
             pdf.drawString(x_problem, y, f"{i + 1}.")
             pdf.setFont("Helvetica", 12)
-            pdf.drawString(x_problem + 20, y, problem)
+            # Increased spacing from 20 to 35 pixels after the problem number
+            pdf.drawString(x_problem + 35, y, problem)
 
             # Render answer if needed
             if render_answers and answer:
