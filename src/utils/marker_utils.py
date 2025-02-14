@@ -17,6 +17,17 @@ class MarkerUtils:
     MARKER_SIZE = 20  # Size of each marker in points
     MARGIN = 40  # Margin from page edges in points
 
+    # PDF marker positions (in 300 DPI)
+    PDF_MARKERS = np.array(
+        [
+            (MARGIN * 300 / 72, MARGIN * 300 / 72),  # Bottom-left
+            (MARGIN * 300 / 72, 740 * 300 / 72),  # Top-left
+            (560 * 300 / 72, MARGIN * 300 / 72),  # Bottom-right
+            (560 * 300 / 72, 740 * 300 / 72),  # Top-right
+        ],
+        dtype=np.float32,
+    )
+
     REQUIRED_MARKER_IDS = [0, 1, 2, 3]  # IDs for the four corner markers
 
     @staticmethod
