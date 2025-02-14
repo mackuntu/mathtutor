@@ -7,18 +7,15 @@ import numpy as np
 from PIL import Image, ImageDraw
 from reportlab.lib.utils import ImageReader
 
+logger = logging.getLogger(__name__)
+
 
 class MarkerUtils:
+    """Utility class for handling alignment markers."""
+
     # Marker positions in points (72 DPI)
-    PDF_MARKERS = np.array(
-        [
-            (40 * 300 / 72, 40 * 300 / 72),  # Bottom-left
-            (40 * 300 / 72, 740 * 300 / 72),  # Top-left
-            (560 * 300 / 72, 40 * 300 / 72),  # Bottom-right
-            (560 * 300 / 72, 740 * 300 / 72),  # Top-right
-        ],
-        dtype=np.float32,
-    )
+    MARKER_SIZE = 20  # Size of each marker in points
+    MARGIN = 40  # Margin from page edges in points
 
     REQUIRED_MARKER_IDS = [0, 1, 2, 3]  # IDs for the four corner markers
 
@@ -104,18 +101,29 @@ class MarkerUtils:
         return pattern_np
 
     @staticmethod
-    def draw_alignment_markers(pdf, width=None, height=None, marker_size=20):
-        """Draw ArUco markers on the PDF."""
+    def draw_alignment_markers(pdf, width: float, height: float) -> None:
+        """Draw ArUco markers in the corners of the page.
+
+        Args:
+            pdf: ReportLab canvas to draw on.
+            width: Page width in points.
+            height: Page height in points.
+        """
         # Create ArUco dictionary
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 
-        # Convert marker positions from 300 DPI to 72 DPI for PDF
-        pdf_positions = MarkerUtils.PDF_MARKERS * 72 / 300
+        # Generate markers for each corner
+        marker_positions = [
+            (MarkerUtils.MARGIN, MarkerUtils.MARGIN),  # Bottom-left
+            (MarkerUtils.MARGIN, height - MarkerUtils.MARGIN),  # Top-left
+            (width - MarkerUtils.MARGIN, MarkerUtils.MARGIN),  # Bottom-right
+            (width - MarkerUtils.MARGIN, height - MarkerUtils.MARGIN),  # Top-right
+        ]
 
-        for marker_id, (x, y) in zip(MarkerUtils.REQUIRED_MARKER_IDS, pdf_positions):
+        for marker_id, (x, y) in enumerate(marker_positions):
             # Generate marker image
             marker_img = cv2.aruco.generateImageMarker(
-                aruco_dict, marker_id, marker_size
+                aruco_dict, marker_id, MarkerUtils.MARKER_SIZE
             )
 
             # Convert to PIL Image
@@ -133,10 +141,10 @@ class MarkerUtils:
             # Note: ReportLab coordinates are from bottom-left
             pdf.drawImage(
                 marker_reader,
-                x - marker_size / 2,
-                y - marker_size / 2,
-                width=marker_size,
-                height=marker_size,
+                x - MarkerUtils.MARKER_SIZE / 2,
+                y - MarkerUtils.MARKER_SIZE / 2,
+                width=MarkerUtils.MARKER_SIZE,
+                height=MarkerUtils.MARKER_SIZE,
             )
 
     @staticmethod

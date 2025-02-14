@@ -99,7 +99,7 @@ class DocumentRenderer:
         self,
         filename: str,
         problems: List[str],
-        worksheet_id: Optional[str] = None,
+        worksheet_id: str,
         layout: LayoutChoice = LayoutChoice.TWO_COLUMN,
     ) -> str:
         """Generate a math worksheet PDF.
@@ -112,14 +112,7 @@ class DocumentRenderer:
 
         Returns:
             Template ID string for the worksheet.
-
-        Raises:
-            ValueError: If layout cannot accommodate problems.
         """
-        # Generate worksheet ID if not provided
-        if worksheet_id is None:
-            worksheet_id = f"ws_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
         # Create PDF
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
         width, height = letter
@@ -129,6 +122,9 @@ class DocumentRenderer:
         pdf.drawString(200, 750, "Math Worksheet")
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
+
+        # Add alignment markers in corners
+        MarkerUtils.draw_alignment_markers(pdf, width, height)
 
         # Add QR code
         qr_code = self._create_qr_code(worksheet_id)
