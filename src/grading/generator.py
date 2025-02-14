@@ -72,13 +72,16 @@ class ProblemGenerator:
 
         # Generate numbers for addition/subtraction
         if problem_type in ["addition", "subtraction"]:
-            # Ensure at least one number is double digit
-            num1 = random.randint(min_val, max_val)
-            num2 = random.randint(min_val, max_val)
+            # For first number, ensure it's double digit but avoid repeating the same number too often
+            num1 = random.randint(10, max_val)
+            # For second number, use single digit but try to use different numbers
+            num2 = random.randint(min_val, 9)
 
-            # For subtraction, ensure first number is larger
+            # For subtraction, ensure first number is larger and result is positive
             if problem_type == "subtraction":
-                num1, num2 = max(num1, num2), min(num1, num2)
+                if num1 <= num2:
+                    # Swap and add some padding to ensure a non-trivial difference
+                    num1, num2 = num2 + random.randint(2, 5), num1
 
             # Create problem string and calculate answer
             operator = self.OPERATORS[problem_type]
@@ -120,8 +123,13 @@ class ProblemGenerator:
         problems = []
         answers = []
         types_list = ["addition", "subtraction"]  # Alternate between these
+        used_problems = set()  # Keep track of problems we've already generated
 
-        while len(problems) < count:
+        attempts = 0
+        max_attempts = count * 10  # Allow some retries to find unique problems
+
+        while len(problems) < count and attempts < max_attempts:
+            attempts += 1
             # Alternate between addition and subtraction
             problem_type = types_list[len(problems) % 2]
             range_tuple = problem_types[problem_type]
@@ -130,10 +138,18 @@ class ProblemGenerator:
                 problem, answer = self._generate_problem(
                     problem_type, range_tuple, month
                 )
-                problems.append(problem)
-                answers.append(answer)
+                # Only add if we haven't seen this problem before
+                if problem not in used_problems:
+                    problems.append(problem)
+                    answers.append(answer)
+                    used_problems.add(problem)
             except ValueError as e:
                 logger.warning(f"Failed to generate problem: {e}")
                 continue
+
+        if len(problems) < count:
+            logger.warning(
+                f"Could only generate {len(problems)} unique problems out of {count} requested"
+            )
 
         return problems, answers
