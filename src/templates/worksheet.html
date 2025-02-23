@@ -5,92 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Worksheet</title>
     <style>
-        /* Preview-only styles - these won't affect the PDF */
-        @media screen {
-            body {
-                max-width: 800px;
-                margin: 20px auto;
-                padding: 20px;
-                font-family: Arial, sans-serif;
-            }
-            .preview-problems {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            .preview-problem {
-                padding: 10px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
+        @page {
+            size: letter portrait;
+            margin: 0.5in;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 12pt;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+        h1 {
+            font-size: 14pt;
+            margin: 0;
+        }
+        .name-field {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        .name-field .underline {
+            border-bottom: 1px solid black;
+            width: 200px;
+        }
+        .qr-code {
+            width: 32px;
+            height: 32px;
+        }
+        footer {
+            position: fixed;
+            bottom: 0.02in;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10pt;
+            padding: 1rem;
+            background: white;
         }
     </style>
-    <!-- PDF styles are loaded from worksheet.css -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/worksheet.css') }}" media="print">
 </head>
-<body class="worksheet">
+<body>
     <header>
         <h1>Math Worksheet</h1>
-        <div class="student-info">
-            <div class="name-field">Name: <span class="underline"></span></div>
-            <div class="date-field">Date: {{ date }}</div>
-        </div>
+        <div class="name-field">Name:<span class="underline"></span></div>
         {% if qr_code %}
         <img class="qr-code" src="data:image/png;base64,{{ qr_code }}" alt="Worksheet QR Code">
         {% endif %}
     </header>
 
-    {% if request.endpoint == 'preview_problems' %}
-    <!-- Simple preview layout -->
-    <div class="preview-problems">
-        {% for problem in problems %}
-        <div class="preview-problem">
-            <strong>{{ loop.index }}.</strong> {{ problem.text }}
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <!-- PDF layout -->
-    <main class="problems-container">
-        {# Calculate rows per column for regular problems #}
-        {% set problems_per_column = (problems|length + 1) // 2 %}
-        
-        {# Left column #}
-        <div class="column">
-            {% for i in range(problems_per_column) %}
-                {% set problem = problems[i] %}
-                <div class="problem">
-                    <div class="problem-number">{{ i + 1 }}.</div>
-                    <div class="problem-content">
-                        <div class="problem-text">{{ problem.text }}</div>
-                        {% if is_answer_key %}
-                        <div class="answer">{{ answers[loop.index0] }}</div>
-                        {% else %}
-                        <div class="answer-box"></div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+    {% include 'problem_grid.html' %}
 
-        {# Right column #}
-        <div class="column">
-            {% for i in range(problems_per_column, problems|length) %}
-                {% set problem = problems[i] %}
-                <div class="problem">
-                    <div class="problem-number">{{ i + 1 }}.</div>
-                    <div class="problem-content">
-                        <div class="problem-text">{{ problem.text }}</div>
-                        {% if is_answer_key %}
-                        <div class="answer">{{ answers[loop.index0] }}</div>
-                        {% else %}
-                        <div class="answer-box"></div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    </main>
-    {% endif %}
+    <footer>
+        <div class="date-field">Date: {{ date }}</div>
+    </footer>
 </body>
 </html> 

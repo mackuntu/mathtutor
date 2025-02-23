@@ -3,10 +3,11 @@
 import base64
 import os
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import weasyprint
-from flask import Flask, jsonify, render_template, request, send_file, url_for
+from flask import Flask, Response, jsonify, render_template, request, send_file, url_for
 from werkzeug.utils import safe_join, secure_filename
 
 from src.document.template import LayoutChoice
@@ -53,24 +54,24 @@ def index():
 def preview_problems():
     """Generate a preview of problems based on current settings."""
     try:
+        # Get form data
         age = int(request.form["age"])
-        count = min(
-            5, int(request.form.get("count", 30))
-        )  # Limit preview to 5 problems
+        count = int(request.form.get("count", 30))
         difficulty = float(
             request.form.get("difficulty", generator.get_school_year_progress())
         )
 
-        # Generate problems
-        problems, answers = generator.generate_math_problems(
+        # Generate problems but only use first 5 for preview
+        problems, _ = generator.generate_math_problems(
             age=age,
             count=count,
             difficulty=difficulty,
         )
+        preview_problems = problems[:5]  # Only show first 5 problems
 
         # Convert problems to dictionary format with metadata
         problem_list = []
-        for problem in problems:
+        for problem in preview_problems:
             is_word_problem = len(problem) > 30 or "?" in problem
             problem_list.append(
                 {
@@ -79,18 +80,15 @@ def preview_problems():
                 }
             )
 
-        # Render preview template
-        html = render_template(
-            "worksheet.html",
-            problems=problem_list,
-            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            qr_code="",  # No QR code needed for preview
+        # Generate preview HTML using the same template as worksheet
+        preview_html = render_template(
+            "problem_grid.html", problems=problem_list, is_preview=True
         )
 
         return jsonify(
             {
                 "success": True,
-                "html": html,
+                "html": preview_html,
             }
         )
 
@@ -100,7 +98,7 @@ def preview_problems():
 
 @app.route("/generate", methods=["POST"])
 def generate_worksheet():
-    """Generate a worksheet based on form data."""
+    """Generate a worksheet or answer key based on form data."""
     try:
         # Get form data
         age = int(request.form["age"])
@@ -108,12 +106,10 @@ def generate_worksheet():
         difficulty = float(
             request.form.get("difficulty", generator.get_school_year_progress())
         )
+        pdf_type = request.form.get("type", "worksheet")  # 'worksheet' or 'answer_key'
 
-        # Generate unique ID
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        worksheet_id = f"math_worksheet_{timestamp}"
-
-        # Generate problems
+        # Generate unique ID and problems
+        worksheet_id = f"math_worksheet_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}"
         problems, answers = generator.generate_math_problems(
             age=age,
             count=count,
@@ -135,87 +131,36 @@ def generate_worksheet():
         qr_code = generator.create_qr_code(worksheet_id)
         qr_code_b64 = base64.b64encode(qr_code.getvalue()).decode()
 
-        # Generate worksheet PDF
-        worksheet_html = render_template(
+        # Generate HTML
+        is_answer_key = pdf_type == "answer_key"
+        html_content = render_template(
             "worksheet.html",
             problems=problem_list,
+            answers=answers if is_answer_key else None,
             date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             qr_code=qr_code_b64,
+            is_answer_key=is_answer_key,
+            is_preview=False,
         )
 
-        # Use absolute paths for files
-        worksheet_path = os.path.join(
-            app.config["WORKSHEET_FOLDER"], f"{worksheet_id}.pdf"
-        )
-        css_path = os.path.join(app.config["BASE_DIR"], "static/css/worksheet.css")
+        # Generate PDF in memory
+        html = weasyprint.HTML(string=html_content)
+        pdf_bytes = html.write_pdf()
 
-        # Generate PDF with WeasyPrint
-        html = weasyprint.HTML(string=worksheet_html)
-        html.write_pdf(worksheet_path, stylesheets=[weasyprint.CSS(css_path)])
+        # Get current timestamp for filename
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        filename = f"{pdf_type}_{timestamp}.pdf"
 
-        # Generate answer key PDF
-        answer_key_html = render_template(
-            "worksheet.html",
-            problems=problem_list,
-            answers=answers,
-            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            qr_code=qr_code_b64,
-            is_answer_key=True,
-        )
-
-        answer_key_path = os.path.join(
-            app.config["ANSWER_KEY_FOLDER"], f"{worksheet_id}_key.pdf"
-        )
-        html = weasyprint.HTML(string=answer_key_html)
-        html.write_pdf(answer_key_path, stylesheets=[weasyprint.CSS(css_path)])
-
-        # Return file paths
-        return jsonify(
-            {
-                "success": True,
-                "worksheet": url_for("download_file", filename=f"{worksheet_id}.pdf"),
-                "answer_key": url_for(
-                    "download_file", filename=f"{worksheet_id}_key.pdf"
-                ),
-            }
+        # Return PDF directly
+        return Response(
+            pdf_bytes,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except Exception as e:
         app.logger.error(f"Error generating worksheet: {str(e)}")
-        return jsonify({"error": str(e), "success": False})
-
-
-@app.route("/download/<filename>")
-def download_file(filename):
-    """Download a generated file."""
-    try:
-        # Secure the filename
-        filename = secure_filename(filename)
-
-        # Determine which directory to look in based on filename
-        if filename.endswith("_key.pdf"):
-            directory = app.config["ANSWER_KEY_FOLDER"]
-        else:
-            directory = app.config["WORKSHEET_FOLDER"]
-
-        # Use safe_join to prevent directory traversal
-        file_path = safe_join(directory, filename)
-
-        if not file_path or not os.path.isfile(file_path):
-            app.logger.error(f"File not found: {file_path}")
-            return "File not found", 404
-
-        # Send file with explicit PDF mimetype
-        return send_file(
-            file_path,
-            mimetype="application/pdf",
-            as_attachment=True,
-            download_name=filename,
-        )
-
-    except Exception as e:
-        app.logger.error(f"Error downloading file: {str(e)}")
-        return f"Error downloading file: {str(e)}", 500
+        return {"error": str(e)}, 500
 
 
 if __name__ == "__main__":

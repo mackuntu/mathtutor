@@ -84,13 +84,20 @@
                         </div>
                     </div>
 
-                    <!-- Preview Button -->
-                    <button type="button" class="btn btn-secondary w-100 mb-3" id="previewButton">
-                        Preview Problems
-                    </button>
-
-                    <!-- Generate Button -->
-                    <button type="submit" class="btn btn-primary w-100">Generate Worksheet</button>
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-success" id="downloadWorksheetBtn">
+                                Download Worksheet
+                            </button>
+                            <button type="button" class="btn btn-info" id="downloadKeyBtn">
+                                Download Answer Key
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="previewBtn">
+                            Preview (First 5 Problems)
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -98,22 +105,7 @@
         <!-- Problem Preview -->
         <div id="previewBox" class="preview-box">
             <h5 class="mb-3">Preview:</h5>
-            <iframe id="previewFrame"></iframe>
-        </div>
-
-        <!-- Download Links -->
-        <div id="downloadLinks" class="download-links card">
-            <div class="card-body text-center">
-                <h5 class="card-title">Your worksheets are ready!</h5>
-                <div class="d-grid gap-2">
-                    <a id="worksheetLink" href="#" class="btn btn-success mb-2" download>
-                        Download Worksheet
-                    </a>
-                    <a id="answerKeyLink" href="#" class="btn btn-info" download>
-                        Download Answer Key
-                    </a>
-                </div>
-            </div>
+            <div id="previewContent"></div>
         </div>
 
         <!-- Loading Spinner -->
@@ -131,7 +123,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        document.getElementById('previewButton').addEventListener('click', async function() {
+        async function previewWorksheet() {
             const form = document.getElementById('worksheetForm');
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
@@ -148,62 +140,75 @@
                     method: 'POST',
                     body: formData
                 });
-                const data = await response.json();
 
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
                 if (data.success) {
-                    // Display preview in iframe
-                    const previewFrame = document.getElementById('previewFrame');
-                    previewFrame.srcdoc = data.html;
+                    // Display preview
+                    document.getElementById('previewContent').innerHTML = data.html;
                     document.getElementById('previewBox').style.display = 'block';
                 } else {
-                    alert('Error: ' + data.error);
+                    throw new Error(data.error);
                 }
             } catch (error) {
                 alert('Error generating preview: ' + error);
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
-        });
+        }
 
-        document.getElementById('worksheetForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Form validation
-            if (!this.checkValidity()) {
-                e.stopPropagation();
-                this.classList.add('was-validated');
+        async function generatePDF(type) {
+            const form = document.getElementById('worksheetForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
                 return;
             }
 
-            // Show loading spinner
+            // Show loading state
             document.getElementById('loading').style.display = 'block';
-            document.getElementById('downloadLinks').style.display = 'none';
-            document.getElementById('previewBox').style.display = 'none';
 
             try {
-                // Send form data
-                const formData = new FormData(this);
+                const formData = new FormData(form);
+                formData.append('type', type);
                 const response = await fetch('/generate', {
                     method: 'POST',
                     body: formData
                 });
-                const data = await response.json();
 
-                if (data.success) {
-                    // Update download links
-                    document.getElementById('worksheetLink').href = data.worksheet;
-                    document.getElementById('answerKeyLink').href = data.answer_key;
-                    document.getElementById('downloadLinks').style.display = 'block';
-                } else {
-                    alert('Error: ' + data.error);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
+
+                // Get the PDF blob
+                const blob = await response.blob();
+                
+                // Get the filename from the Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const filename = contentDisposition.match(/filename=(.+)$/)[1];
+                
+                // Create a download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
             } catch (error) {
-                alert('Error generating worksheet: ' + error);
+                alert('Error generating PDF: ' + error);
             } finally {
-                // Hide loading spinner
                 document.getElementById('loading').style.display = 'none';
             }
-        });
+        }
+
+        // Event Listeners
+        document.getElementById('previewBtn').addEventListener('click', previewWorksheet);
+        document.getElementById('downloadWorksheetBtn').addEventListener('click', () => generatePDF('worksheet'));
+        document.getElementById('downloadKeyBtn').addEventListener('click', () => generatePDF('answer_key'));
     </script>
 </body>
 </html> 

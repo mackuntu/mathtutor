@@ -1,0 +1,69 @@
+<style>
+.problem-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 2in; /* Space for footer */
+}
+
+.problem {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.problem.word-problem {
+    grid-column: 1 / -1;
+}
+
+.problem-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.problem-number {
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.problem-text {
+    flex: 1;
+}
+
+.answer {
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+}
+
+.answer-box {
+    border: 1px solid #000;
+    width: 60px;
+    height: 20px;
+    flex-shrink: 0;
+}
+</style>
+
+<!-- Problem Grid Layout -->
+<div class="problem-grid">
+    {% for problem in problems %}
+    <div class="problem {% if problem.is_word_problem %}word-problem{% endif %}">
+        <div class="problem-content">
+            <span class="problem-number">{{ loop.index }}.</span>
+            <span class="problem-text">{{ problem.text }}</span>
+            {% if not is_preview %}
+                {% if is_answer_key %}
+                <div class="answer">{{ answers[loop.index0] }}</div>
+                {% else %}
+                <div class="answer-box"></div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div> 
