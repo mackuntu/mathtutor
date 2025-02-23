@@ -57,17 +57,6 @@
                         <div class="invalid-feedback">Please enter a number between 5 and 50.</div>
                     </div>
 
-                    <!-- Layout Choice -->
-                    <div class="mb-3">
-                        <label for="layout" class="form-label">Layout Style</label>
-                        <select class="form-select" id="layout" name="layout" required>
-                            {% for layout in layouts %}
-                            <option value="{{ layout }}">{{ layout|replace('_', ' ')|title }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Please select a layout.</div>
-                    </div>
-
                     <!-- Generate Button -->
                     <button type="submit" class="btn btn-primary w-100">Generate Worksheet</button>
                 </form>

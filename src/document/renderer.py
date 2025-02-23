@@ -97,7 +97,7 @@ class DocumentRenderer:
         filename: str,
         problems: List[str],
         worksheet_id: str,
-        layout: LayoutChoice = LayoutChoice.TWO_COLUMN,
+        layout: Optional[LayoutChoice] = None,
     ) -> None:
         """Generate a math worksheet PDF.
 
@@ -105,7 +105,7 @@ class DocumentRenderer:
             filename: Output PDF path.
             problems: List of problem strings.
             worksheet_id: Worksheet ID.
-            layout: Desired layout configuration.
+            layout: Optional layout choice. If None, automatically chosen.
         """
         # Create PDF
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
@@ -122,7 +122,9 @@ class DocumentRenderer:
         pdf.drawImage(ImageReader(qr_code), 550, 400, width=40, height=40)
 
         # Calculate layout
-        positions, rois = self.template_manager.calculate_layout(len(problems), layout)
+        positions, rois = self.template_manager.calculate_layout(
+            len(problems), problems, layout
+        )
 
         # Render problems
         self._render_text(pdf, positions, rois, problems)
@@ -135,7 +137,7 @@ class DocumentRenderer:
         problems: List[str],
         answers: List[str],
         worksheet_id: str,
-        layout: LayoutChoice = LayoutChoice.TWO_COLUMN,
+        layout: Optional[LayoutChoice] = None,
     ) -> None:
         """Generate an answer key PDF.
 
@@ -144,7 +146,7 @@ class DocumentRenderer:
             problems: List of problem strings.
             answers: List of answer strings.
             worksheet_id: Worksheet ID.
-            layout: Desired layout configuration.
+            layout: Optional layout choice. If None, automatically chosen.
 
         Raises:
             ValueError: If number of problems and answers don't match.
@@ -168,7 +170,9 @@ class DocumentRenderer:
         pdf.drawImage(ImageReader(qr_code), 550, 700, width=40, height=40)
 
         # Calculate layout
-        positions, rois = self.template_manager.calculate_layout(len(problems), layout)
+        positions, rois = self.template_manager.calculate_layout(
+            len(problems), problems, layout
+        )
 
         # Render problems and answers
         self._render_text(pdf, positions, rois, problems, answers, render_answers=True)

@@ -63,16 +63,60 @@ class TemplateManager:
         ),
     }
 
+    # Character width thresholds for layout decisions
+    CHAR_WIDTH_THRESHOLDS = {
+        "short": 15,  # e.g., "12 + 5"
+        "medium": 25,  # e.g., "Which number is greater: 12 or 15?"
+        "long": 40,  # e.g., longer word problems
+    }
+
+    @staticmethod
+    def choose_layout(problems: List[str]) -> LayoutChoice:
+        """Choose the best layout based on problem lengths.
+
+        Args:
+            problems: List of problem strings.
+
+        Returns:
+            The most appropriate layout choice.
+        """
+        # Calculate problem lengths
+        lengths = [len(problem) for problem in problems]
+        max_length = max(lengths)
+        avg_length = sum(lengths) / len(lengths)
+
+        # Count problems by length category
+        long_problems = sum(
+            1 for l in lengths if l > TemplateManager.CHAR_WIDTH_THRESHOLDS["long"]
+        )
+        medium_problems = sum(
+            1
+            for l in lengths
+            if TemplateManager.CHAR_WIDTH_THRESHOLDS["medium"]
+            < l
+            <= TemplateManager.CHAR_WIDTH_THRESHOLDS["long"]
+        )
+
+        # Decision logic
+        if long_problems > len(problems) * 0.2:  # If more than 20% are long
+            return LayoutChoice.ONE_COLUMN
+        elif medium_problems > len(problems) * 0.5:  # If more than 50% are medium
+            return LayoutChoice.MIXED
+        else:  # Most problems are short
+            return LayoutChoice.TWO_COLUMN
+
     def calculate_layout(
         self,
         num_problems: int,
-        layout_choice: LayoutChoice = LayoutChoice.TWO_COLUMN,
+        problems: List[str],
+        layout_choice: Optional[LayoutChoice] = None,
     ) -> Tuple[List[Tuple[int, int, int]], List[Tuple[int, int, int, int]]]:
         """Calculate positions and ROIs for problems based on layout choice.
 
         Args:
             num_problems: Number of problems to layout.
-            layout_choice: Desired layout configuration.
+            problems: List of problem strings.
+            layout_choice: Optional layout choice. If None, automatically chosen.
 
         Returns:
             Tuple of (positions, ROIs) where:
@@ -82,6 +126,10 @@ class TemplateManager:
         Raises:
             ValueError: If layout cannot accommodate number of problems.
         """
+        # Choose layout if not specified
+        if layout_choice is None:
+            layout_choice = self.choose_layout(problems)
+
         config = self.LAYOUT_CONFIGS[layout_choice]
         total_capacity = sum(config.column_limits)
 

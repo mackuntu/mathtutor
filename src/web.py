@@ -13,9 +13,13 @@ from src.main import MathTutor
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "data/uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+app.config["WORKSHEET_FOLDER"] = "data/worksheets"
+app.config["ANSWER_KEY_FOLDER"] = "data/answer_keys"
 
 # Ensure upload directory exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+os.makedirs(app.config["WORKSHEET_FOLDER"], exist_ok=True)
+os.makedirs(app.config["ANSWER_KEY_FOLDER"], exist_ok=True)
 
 # Initialize MathTutor
 tutor = MathTutor()
@@ -27,7 +31,6 @@ def index():
     return render_template(
         "index.html",
         ages=list(range(6, 10)),  # Ages 6-9
-        layouts=[layout.value for layout in LayoutChoice],
     )
 
 
@@ -38,13 +41,11 @@ def generate_worksheet():
         # Get form data
         age = int(request.form["age"])
         count = int(request.form.get("count", 30))
-        layout = LayoutChoice(request.form.get("layout", LayoutChoice.TWO_COLUMN.value))
 
         # Generate worksheet
         worksheet_path, answer_key_path = tutor.generate_worksheet(
             age=age,
             count=count,
-            layout=layout,
         )
 
         # Return both files
@@ -63,16 +64,22 @@ def download_file(filename):
     """Download a generated file."""
     # Determine which directory to look in based on filename
     if filename.endswith("_key.pdf"):
-        directory = "data/answer_keys"
+        directory = app.config["ANSWER_KEY_FOLDER"]
     else:
-        directory = "data/worksheets"
+        directory = app.config["WORKSHEET_FOLDER"]
+
+    # Use absolute path by joining with project root
+    file_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), directory, filename
+    )
 
     return send_file(
-        Path(directory) / filename,
+        file_path,
         as_attachment=True,
         download_name=filename,
     )
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Run on all interfaces
+    app.run(host="0.0.0.0", port=8080, debug=True)
