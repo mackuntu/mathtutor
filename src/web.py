@@ -7,17 +7,24 @@ from pathlib import Path
 
 import weasyprint
 from flask import Flask, jsonify, render_template, request, send_file, url_for
-from werkzeug.utils import secure_filename
+from werkzeug.utils import safe_join, secure_filename
 
 from src.document.template import LayoutChoice
 from src.generator import ProblemGenerator
 from src.main import MathTutor
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "data/uploads"
+
+# Configure absolute paths
+app.config["BASE_DIR"] = os.path.abspath(os.path.dirname(__file__))
+app.config["UPLOAD_FOLDER"] = os.path.join(app.config["BASE_DIR"], "..", "data/uploads")
+app.config["WORKSHEET_FOLDER"] = os.path.join(
+    app.config["BASE_DIR"], "..", "data/worksheets"
+)
+app.config["ANSWER_KEY_FOLDER"] = os.path.join(
+    app.config["BASE_DIR"], "..", "data/answer_keys"
+)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
-app.config["WORKSHEET_FOLDER"] = "data/worksheets"
-app.config["ANSWER_KEY_FOLDER"] = "data/answer_keys"
 
 # Ensure directories exist
 for directory in [
@@ -37,6 +44,7 @@ def index():
     return render_template(
         "index.html",
         ages=list(range(6, 10)),  # Ages 6-9
+        default_age=6,  # Set default age to 6
         default_difficulty=generator.get_school_year_progress(),
     )
 
@@ -135,13 +143,15 @@ def generate_worksheet():
             qr_code=qr_code_b64,
         )
 
+        # Use absolute paths for files
         worksheet_path = os.path.join(
             app.config["WORKSHEET_FOLDER"], f"{worksheet_id}.pdf"
         )
-        weasyprint.HTML(string=worksheet_html).write_pdf(
-            worksheet_path,
-            stylesheets=[os.path.join(app.static_folder, "css/worksheet.css")],
-        )
+        css_path = os.path.join(app.config["BASE_DIR"], "static/css/worksheet.css")
+
+        # Generate PDF with WeasyPrint
+        html = weasyprint.HTML(string=worksheet_html)
+        html.write_pdf(worksheet_path, stylesheets=[weasyprint.CSS(css_path)])
 
         # Generate answer key PDF
         answer_key_html = render_template(
@@ -156,10 +166,8 @@ def generate_worksheet():
         answer_key_path = os.path.join(
             app.config["ANSWER_KEY_FOLDER"], f"{worksheet_id}_key.pdf"
         )
-        weasyprint.HTML(string=answer_key_html).write_pdf(
-            answer_key_path,
-            stylesheets=[os.path.join(app.static_folder, "css/worksheet.css")],
-        )
+        html = weasyprint.HTML(string=answer_key_html)
+        html.write_pdf(answer_key_path, stylesheets=[weasyprint.CSS(css_path)])
 
         # Return file paths
         return jsonify(
@@ -173,24 +181,41 @@ def generate_worksheet():
         )
 
     except Exception as e:
+        app.logger.error(f"Error generating worksheet: {str(e)}")
         return jsonify({"error": str(e), "success": False})
 
 
 @app.route("/download/<filename>")
 def download_file(filename):
     """Download a generated file."""
-    # Determine which directory to look in based on filename
-    if filename.endswith("_key.pdf"):
-        directory = app.config["ANSWER_KEY_FOLDER"]
-    else:
-        directory = app.config["WORKSHEET_FOLDER"]
+    try:
+        # Secure the filename
+        filename = secure_filename(filename)
 
-    file_path = os.path.join(directory, filename)
-    return send_file(
-        file_path,
-        as_attachment=True,
-        download_name=filename,
-    )
+        # Determine which directory to look in based on filename
+        if filename.endswith("_key.pdf"):
+            directory = app.config["ANSWER_KEY_FOLDER"]
+        else:
+            directory = app.config["WORKSHEET_FOLDER"]
+
+        # Use safe_join to prevent directory traversal
+        file_path = safe_join(directory, filename)
+
+        if not file_path or not os.path.isfile(file_path):
+            app.logger.error(f"File not found: {file_path}")
+            return "File not found", 404
+
+        # Send file with explicit PDF mimetype
+        return send_file(
+            file_path,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=filename,
+        )
+
+    except Exception as e:
+        app.logger.error(f"Error downloading file: {str(e)}")
+        return f"Error downloading file: {str(e)}", 500
 
 
 if __name__ == "__main__":

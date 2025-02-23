@@ -56,7 +56,7 @@
                         <select class="form-select" id="age" name="age" required>
                             <option value="">Select age...</option>
                             {% for age in ages %}
-                            <option value="{{ age }}">{{ age }} years old</option>
+                            <option value="{{ age }}" {% if age == default_age %}selected{% endif %}>{{ age }} years old</option>
                             {% endfor %}
                         </select>
                         <div class="invalid-feedback">Please select an age.</div>

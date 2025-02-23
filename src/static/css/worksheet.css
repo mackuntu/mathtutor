@@ -7,7 +7,7 @@
 /* General styles */
 body.worksheet {
     font-family: 'Helvetica', 'Arial', sans-serif;
-    line-height: 1.5;
+    line-height: 1.4;
     margin: 0;
     padding: 0;
     font-size: 12pt;
@@ -17,79 +17,117 @@ body.worksheet {
 header {
     margin-bottom: 2rem;
     position: relative;
+    min-height: 100px;  /* Ensure space for QR code */
 }
 
 h1 {
     text-align: center;
-    font-size: 18pt;
+    font-size: 20pt;
     margin: 0 0 1rem 0;
 }
 
 .student-info {
     display: flex;
     justify-content: space-between;
-    margin: 1rem 0;
+    align-items: baseline;
+    margin: 0.5rem 0 1rem;
+    padding-right: 100px;  /* Space for QR code */
+}
+
+.name-field {
+    font-size: 14pt;
 }
 
 .name-field .underline {
+    display: inline-block;
     border-bottom: 1px solid black;
-    padding: 0 100px;
+    min-width: 300px;
+    margin-left: 10px;
 }
 
 .qr-code {
     position: absolute;
     top: 0;
     right: 0;
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
 }
 
 /* Problems container */
 .problems-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem 3rem;
-    margin: 2rem 0;
+    gap: 0;
+    align-items: start;
+}
+
+/* Column styles */
+.column {
+    padding: 0 2rem;
 }
 
 /* Problem styles */
 .problem {
     display: flex;
-    gap: 1rem;
-    page-break-inside: avoid;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    min-height: 1.5rem;
 }
 
 .problem-number {
     font-weight: bold;
-    min-width: 1.5rem;
+    width: 2.5rem;
+    text-align: right;
+    margin-right: 1rem;
+    flex-shrink: 0;
 }
 
 .problem-content {
     flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
 }
 
 .problem-text {
-    margin-bottom: 0.5rem;
+    min-width: 5rem;
 }
 
 .answer-box {
     border: 1px solid #000;
     height: 1.5rem;
-    width: 5rem;
+    width: 6rem;
+    margin-left: auto;
+}
+
+.answer {
+    font-weight: bold;
+    width: 6rem;
+    text-align: center;
 }
 
 /* Word problem specific styles */
 .word-problem {
-    grid-column: 1 / -1;  /* Span full width */
+    grid-column: 1 / -1;
+    margin: 0.75rem 1rem;
+    padding-right: 1rem;
+}
+
+.word-problem .problem-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 
 .word-problem .problem-text {
-    max-width: 80%;
-    margin-bottom: 1rem;
+    margin-right: 4rem;
 }
 
-.word-problem .answer-box {
-    margin-top: 1rem;
+.word-problem .answer-box,
+.word-problem .answer {
+    align-self: flex-start;
+    margin-left: 2rem;
 }
 
 /* Footer styles */
@@ -102,15 +140,10 @@ footer {
 /* Print optimizations */
 @media print {
     body.worksheet {
-        width: 8.5in;
-        height: 11in;
+        margin: 0;
+        padding: 0;
     }
 
-    .problems-container {
-        height: calc(11in - 2in);  /* Account for margins and header/footer */
-    }
-
-    /* Ensure clean breaks */
     .problem {
         break-inside: avoid;
     }
