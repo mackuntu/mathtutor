@@ -1,13 +1,9 @@
 """Module for managing worksheet templates and layouts."""
 
-import hashlib
-import json
 import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
-
-from src.storage.db import DatabaseConnection
 
 logger = logging.getLogger(__name__)
 
@@ -66,27 +62,6 @@ class TemplateManager:
             },
         ),
     }
-
-    def __init__(self, db: Optional[DatabaseConnection] = None):
-        """Initialize template manager.
-
-        Args:
-            db: Optional database connection. If None, creates a new one.
-        """
-        self.db = db or DatabaseConnection()
-
-    def _hash_rois(self, rois: List[Tuple[int, int, int, int]]) -> str:
-        """Generate a unique hash for a list of ROIs.
-
-        Args:
-            rois: List of ROI tuples (x1, y1, x2, y2).
-
-        Returns:
-            Hash string uniquely identifying the ROI configuration.
-        """
-        # Convert ROIs to a JSON string for consistent hashing
-        rois_json = json.dumps(rois, sort_keys=True)
-        return hashlib.sha256(rois_json.encode()).hexdigest()
 
     def calculate_layout(
         self,
@@ -149,46 +124,3 @@ class TemplateManager:
                 problem_index += 1
 
         return positions, rois
-
-    def find_or_create_template(self, rois: List[Tuple[int, int, int, int]]) -> str:
-        """Find an existing ROI template or create a new one.
-
-        Args:
-            rois: List of ROI tuples (x1, y1, x2, y2).
-
-        Returns:
-            Template ID string.
-        """
-        template_id = self._hash_rois(rois)
-
-        try:
-            # Try to fetch existing template
-            if not self.db.fetch_roi_template(template_id):
-                # Template doesn't exist, create new one
-                self.db.save_roi_template(template_id, json.dumps(rois).encode())
-                logger.info(f"Created new ROI template: {template_id}")
-            else:
-                logger.debug(f"Found existing ROI template: {template_id}")
-        except Exception as e:
-            logger.error(f"Error handling ROI template: {e}")
-            raise
-
-        return template_id
-
-    def get_template_rois(self, template_id: str) -> List[Tuple[int, int, int, int]]:
-        """Get ROIs for a template.
-
-        Args:
-            template_id: Template identifier.
-
-        Returns:
-            List of ROI tuples.
-
-        Raises:
-            ValueError: If template not found.
-        """
-        rois_data = self.db.fetch_roi_template(template_id)
-        if not rois_data:
-            raise ValueError(f"Template {template_id} not found")
-
-        return json.loads(rois_data.decode())

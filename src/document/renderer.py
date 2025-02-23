@@ -1,7 +1,6 @@
 """Module for rendering worksheets and answer keys."""
 
 import logging
-import random
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -14,7 +13,6 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from src.document.template import LayoutChoice, TemplateManager
-from src.utils.marker_utils import MarkerUtils
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +28,11 @@ class DocumentRenderer:
         """
         self.template_manager = template_manager or TemplateManager()
 
-    def _create_qr_code(self, worksheet_id: str, version: str = "1.0") -> BytesIO:
+    def _create_qr_code(self, worksheet_id: str) -> BytesIO:
         """Generate a QR code for worksheet identification.
 
         Args:
             worksheet_id: Unique identifier for worksheet.
-            version: Version string.
 
         Returns:
             BytesIO containing QR code image.
@@ -101,17 +98,14 @@ class DocumentRenderer:
         problems: List[str],
         worksheet_id: str,
         layout: LayoutChoice = LayoutChoice.TWO_COLUMN,
-    ) -> str:
+    ) -> None:
         """Generate a math worksheet PDF.
 
         Args:
             filename: Output PDF path.
             problems: List of problem strings.
-            worksheet_id: Optional worksheet ID. If None, generates one.
+            worksheet_id: Worksheet ID.
             layout: Desired layout configuration.
-
-        Returns:
-            Template ID string for the worksheet.
         """
         # Create PDF
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
@@ -123,9 +117,6 @@ class DocumentRenderer:
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
 
-        # Add alignment markers in corners
-        MarkerUtils.draw_alignment_markers(pdf, width, height)
-
         # Add QR code
         qr_code = self._create_qr_code(worksheet_id)
         pdf.drawImage(ImageReader(qr_code), 550, 400, width=40, height=40)
@@ -133,14 +124,10 @@ class DocumentRenderer:
         # Calculate layout
         positions, rois = self.template_manager.calculate_layout(len(problems), layout)
 
-        # Find or create template
-        template_id = self.template_manager.find_or_create_template(rois)
-
         # Render problems
         self._render_text(pdf, positions, rois, problems)
 
         pdf.save()
-        return template_id
 
     def create_answer_key(
         self,
@@ -170,6 +157,7 @@ class DocumentRenderer:
 
         # Create PDF
         pdf = canvas.Canvas(filename, pagesize=portrait(letter))
+        width, height = letter
 
         # Add header
         pdf.setFont("Helvetica", 18)
