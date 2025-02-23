@@ -1,0 +1,117 @@
+/* Print-specific styles */
+@page {
+    size: letter portrait;
+    margin: 0.5in;
+}
+
+/* General styles */
+body.worksheet {
+    font-family: 'Helvetica', 'Arial', sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    font-size: 12pt;
+}
+
+/* Header styles */
+header {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+h1 {
+    text-align: center;
+    font-size: 18pt;
+    margin: 0 0 1rem 0;
+}
+
+.student-info {
+    display: flex;
+    justify-content: space-between;
+    margin: 1rem 0;
+}
+
+.name-field .underline {
+    border-bottom: 1px solid black;
+    padding: 0 100px;
+}
+
+.qr-code {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+}
+
+/* Problems container */
+.problems-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem 3rem;
+    margin: 2rem 0;
+}
+
+/* Problem styles */
+.problem {
+    display: flex;
+    gap: 1rem;
+    page-break-inside: avoid;
+}
+
+.problem-number {
+    font-weight: bold;
+    min-width: 1.5rem;
+}
+
+.problem-content {
+    flex: 1;
+}
+
+.problem-text {
+    margin-bottom: 0.5rem;
+}
+
+.answer-box {
+    border: 1px solid #000;
+    height: 1.5rem;
+    width: 5rem;
+}
+
+/* Word problem specific styles */
+.word-problem {
+    grid-column: 1 / -1;  /* Span full width */
+}
+
+.word-problem .problem-text {
+    max-width: 80%;
+    margin-bottom: 1rem;
+}
+
+.word-problem .answer-box {
+    margin-top: 1rem;
+}
+
+/* Footer styles */
+footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 10pt;
+}
+
+/* Print optimizations */
+@media print {
+    body.worksheet {
+        width: 8.5in;
+        height: 11in;
+    }
+
+    .problems-container {
+        height: calc(11in - 2in);  /* Account for margins and header/footer */
+    }
+
+    /* Ensure clean breaks */
+    .problem {
+        break-inside: avoid;
+    }
+} 

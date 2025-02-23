@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Worksheet</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/worksheet.css') }}">
+</head>
+<body class="worksheet">
+    <header>
+        <h1>Math Worksheet</h1>
+        <div class="student-info">
+            <div class="name-field">
+                Name: <span class="underline">_______________</span>
+            </div>
+            <div class="date-field">
+                Date: {{ date }}
+            </div>
+        </div>
+        <img class="qr-code" src="data:image/png;base64,{{ qr_code }}" alt="Worksheet QR Code">
+    </header>
+
+    <main class="problems-container">
+        {% for problem in problems %}
+            <div class="problem {% if problem.is_word_problem %}word-problem{% endif %}" data-problem-id="{{ loop.index }}">
+                <div class="problem-number">{{ loop.index }}.</div>
+                <div class="problem-content">
+                    <div class="problem-text">{{ problem.text }}</div>
+                    <div class="answer-box"></div>
+                </div>
+            </div>
+        {% endfor %}
+    </main>
+
+    <footer>
+        <div class="page-number">Page 1</div>
+    </footer>
+</body>
+</html> 

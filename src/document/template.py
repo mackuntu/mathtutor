@@ -13,7 +13,6 @@ class LayoutChoice(Enum):
 
     TWO_COLUMN = "2_column"
     ONE_COLUMN = "1_column"
-    MIXED = "mixed"
 
 
 @dataclass
@@ -25,7 +24,8 @@ class LayoutConfig:
     x_positions: Dict[str, int]
     y_start: int = 680
     row_spacing: int = 40
-    answer_box_dimensions: Tuple[int, int, int, int] = (0, 20, 100, -20)
+    word_problem_spacing: int = 80  # Extra space for word problems
+    answer_box_dimensions: Tuple[int, int, int, int] = (0, -10, 80, 20)
 
 
 class TemplateManager:
@@ -38,9 +38,9 @@ class TemplateManager:
             column_limits=[15, 15],
             x_positions={
                 "column_1_problem": 50,
-                "column_1_answer": 150,
-                "column_2_problem": 300,
-                "column_2_answer": 400,
+                "column_1_answer": 180,
+                "column_2_problem": 350,
+                "column_2_answer": 480,
             },
         ),
         LayoutChoice.ONE_COLUMN: LayoutConfig(
@@ -48,26 +48,9 @@ class TemplateManager:
             column_limits=[30],
             x_positions={
                 "column_1_problem": 50,
-                "column_1_answer": 150,
+                "column_1_answer": 480,
             },
         ),
-        LayoutChoice.MIXED: LayoutConfig(
-            columns=["column_1", "column_2"],
-            column_limits=[20, 10],
-            x_positions={
-                "column_1_problem": 50,
-                "column_1_answer": 150,
-                "column_2_problem": 300,
-                "column_2_answer": 400,
-            },
-        ),
-    }
-
-    # Character width thresholds for layout decisions
-    CHAR_WIDTH_THRESHOLDS = {
-        "short": 15,  # e.g., "12 + 5"
-        "medium": 25,  # e.g., "Which number is greater: 12 or 15?"
-        "long": 40,  # e.g., longer word problems
     }
 
     @staticmethod
@@ -80,30 +63,13 @@ class TemplateManager:
         Returns:
             The most appropriate layout choice.
         """
-        # Calculate problem lengths
-        lengths = [len(problem) for problem in problems]
-        max_length = max(lengths)
-        avg_length = sum(lengths) / len(lengths)
+        # Count word problems
+        word_problems = sum(1 for p in problems if len(p) > 30 or "?" in p)
 
-        # Count problems by length category
-        long_problems = sum(
-            1 for l in lengths if l > TemplateManager.CHAR_WIDTH_THRESHOLDS["long"]
-        )
-        medium_problems = sum(
-            1
-            for l in lengths
-            if TemplateManager.CHAR_WIDTH_THRESHOLDS["medium"]
-            < l
-            <= TemplateManager.CHAR_WIDTH_THRESHOLDS["long"]
-        )
-
-        # Decision logic
-        if long_problems > len(problems) * 0.2:  # If more than 20% are long
+        # Use one column if there are too many word problems
+        if word_problems > len(problems) * 0.3:  # More than 30% are word problems
             return LayoutChoice.ONE_COLUMN
-        elif medium_problems > len(problems) * 0.5:  # If more than 50% are medium
-            return LayoutChoice.MIXED
-        else:  # Most problems are short
-            return LayoutChoice.TWO_COLUMN
+        return LayoutChoice.TWO_COLUMN
 
     def calculate_layout(
         self,
@@ -122,53 +88,51 @@ class TemplateManager:
             Tuple of (positions, ROIs) where:
                 positions is a list of (x_problem, y, x_answer) tuples
                 ROIs is a list of (x1, y1, x2, y2) tuples
-
-        Raises:
-            ValueError: If layout cannot accommodate number of problems.
         """
         # Choose layout if not specified
         if layout_choice is None:
             layout_choice = self.choose_layout(problems)
 
         config = self.LAYOUT_CONFIGS[layout_choice]
-        total_capacity = sum(config.column_limits)
-
-        if num_problems > total_capacity:
-            raise ValueError(
-                f"Layout {layout_choice.value} cannot fit {num_problems} problems "
-                f"(maximum {total_capacity})"
-            )
-
         positions = []
         rois = []
-        y_positions = {col: config.y_start for col in config.columns}
-        problem_index = 0
 
-        for col_index, column in enumerate(config.columns):
+        # Track y-position for each column
+        y_positions = {col: config.y_start for col in config.columns}
+
+        # Calculate positions column by column
+        for i in range(num_problems):
+            # Determine which column to use
+            col_idx = i % len(config.columns)
+            column = config.columns[col_idx]
+
+            # Get x-positions for this column
             x_problem = config.x_positions[f"{column}_problem"]
             x_answer = config.x_positions[f"{column}_answer"]
-            limit = config.column_limits[col_index]
 
-            for _ in range(limit):
-                if problem_index >= num_problems:
-                    break
+            # Get current y-position for this column
+            y = y_positions[column]
 
-                y_position = y_positions[column]
+            # Add position
+            positions.append((x_problem, y, x_answer))
 
-                # Add problem and ROI positions
-                positions.append((x_problem, y_position, x_answer))
-                x1, y1_offset, x2, y2_offset = config.answer_box_dimensions
-                rois.append(
-                    (
-                        x_answer + x1,
-                        y_position + y1_offset,
-                        x_answer + x2,
-                        y_position + y2_offset,
-                    )
+            # Calculate ROI
+            x1, y1_offset, x2, y2_offset = config.answer_box_dimensions
+            rois.append(
+                (
+                    x_answer + x1,
+                    y + y1_offset,
+                    x_answer + x2,
+                    y + y2_offset,
                 )
+            )
 
-                # Update y_position
-                y_positions[column] -= config.row_spacing
-                problem_index += 1
+            # Update y-position for next problem in this column
+            # Use extra spacing for word problems
+            is_word_problem = len(problems[i]) > 30 or "?" in problems[i]
+            spacing = (
+                config.word_problem_spacing if is_word_problem else config.row_spacing
+            )
+            y_positions[column] -= spacing
 
         return positions, rois

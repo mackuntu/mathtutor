@@ -39,6 +39,7 @@ class MathTutor:
         age: int,
         count: Optional[int] = 30,
         layout: LayoutChoice = LayoutChoice.TWO_COLUMN,
+        difficulty: Optional[float] = None,
     ) -> Tuple[str, str]:
         """Generate a new worksheet and answer key.
 
@@ -46,15 +47,21 @@ class MathTutor:
             age: Age of student.
             count: Number of problems (defaults to 30).
             layout: Desired layout configuration.
+            difficulty: Optional difficulty level from 0.0 to 1.0.
+                      If None, uses current school year progress.
 
         Returns:
             Tuple of (worksheet_path, answer_key_path).
 
         Raises:
-            ValueError: If age is not supported.
+            ValueError: If age is not supported or difficulty is invalid.
         """
         # Generate problems
-        problems, answers = self.generator.generate_math_problems(age, count)
+        problems, answers = self.generator.generate_math_problems(
+            age=age,
+            count=count,
+            difficulty=difficulty,
+        )
 
         # Generate unique ID and paths
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")

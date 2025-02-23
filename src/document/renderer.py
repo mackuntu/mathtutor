@@ -76,21 +76,56 @@ class DocumentRenderer:
             problem = problems[i]
             answer = answers[i] if render_answers and answers else None
 
-            # Render problem number and text with more spacing
+            # Render problem number
             pdf.setFont("Helvetica-Bold", 12)
             pdf.drawString(x_problem, y, f"{i + 1}.")
             pdf.setFont("Helvetica", 12)
-            # Increased spacing from 20 to 35 pixels after the problem number
-            pdf.drawString(x_problem + 35, y, problem)
 
-            # Render answer if needed
-            if render_answers and answer:
-                pdf.drawString(x_answer, y, str(answer))
+            # Handle word problems
+            is_word_problem = len(problem) > 30 or "?" in problem
+            if is_word_problem:
+                # Split into words and wrap text
+                words = problem.split()
+                lines = []
+                current_line = []
+                current_width = 0
+                max_width = 250  # Width for word problems
 
-            # Draw answer box
-            x1, y1, x2, y2 = roi
-            pdf.setStrokeColorRGB(0.8, 0.8, 0.8)  # Light gray
-            pdf.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)
+                for word in words:
+                    word_width = pdf.stringWidth(word, "Helvetica", 12)
+                    space_width = pdf.stringWidth(" ", "Helvetica", 12)
+                    if current_width + word_width <= max_width:
+                        current_line.append(word)
+                        current_width += word_width + space_width
+                    else:
+                        lines.append(" ".join(current_line))
+                        current_line = [word]
+                        current_width = word_width
+
+                if current_line:
+                    lines.append(" ".join(current_line))
+
+                # Draw wrapped text
+                for j, line in enumerate(lines):
+                    pdf.drawString(x_problem + 35, y - j * 15, line)
+
+                # Draw answer box below the text
+                x1, y1, x2, y2 = roi
+                box_y = y - (len(lines) * 15) - 10  # Position box below text
+                pdf.rect(x1, box_y, x2 - x1, y2 - y1, stroke=1, fill=0)
+
+                # Render answer if needed
+                if render_answers and answer:
+                    pdf.drawString(x_answer, box_y + 5, str(answer))
+            else:
+                # Regular single-line problem
+                pdf.drawString(x_problem + 35, y, problem)
+                x1, y1, x2, y2 = roi
+                pdf.rect(x1, y1, x2 - x1, y2 - y1, stroke=1, fill=0)
+
+                # Render answer if needed
+                if render_answers and answer:
+                    pdf.drawString(x_answer, y, str(answer))
 
     def create_worksheet(
         self,
@@ -117,9 +152,9 @@ class DocumentRenderer:
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
 
-        # Add QR code
+        # Add QR code in the top-right corner
         qr_code = self._create_qr_code(worksheet_id)
-        pdf.drawImage(ImageReader(qr_code), 550, 400, width=40, height=40)
+        pdf.drawImage(ImageReader(qr_code), 500, 730, width=40, height=40)
 
         # Calculate layout
         positions, rois = self.template_manager.calculate_layout(
@@ -165,9 +200,9 @@ class DocumentRenderer:
         pdf.setFont("Helvetica", 18)
         pdf.drawString(200, 750, "Math Worksheet - Answer Key")
 
-        # Add QR code
+        # Add QR code in the top-right corner
         qr_code = self._create_qr_code(worksheet_id)
-        pdf.drawImage(ImageReader(qr_code), 550, 700, width=40, height=40)
+        pdf.drawImage(ImageReader(qr_code), 500, 730, width=40, height=40)
 
         # Calculate layout
         positions, rois = self.template_manager.calculate_layout(

@@ -1,13 +1,16 @@
 """Web interface for math worksheet generation."""
 
+import base64
 import os
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, render_template, request, send_file, url_for
+import weasyprint
+from flask import Flask, jsonify, render_template, request, send_file, url_for
 from werkzeug.utils import secure_filename
 
 from src.document.template import LayoutChoice
+from src.generator import ProblemGenerator
 from src.main import MathTutor
 
 app = Flask(__name__)
@@ -16,13 +19,16 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 app.config["WORKSHEET_FOLDER"] = "data/worksheets"
 app.config["ANSWER_KEY_FOLDER"] = "data/answer_keys"
 
-# Ensure upload directory exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-os.makedirs(app.config["WORKSHEET_FOLDER"], exist_ok=True)
-os.makedirs(app.config["ANSWER_KEY_FOLDER"], exist_ok=True)
+# Ensure directories exist
+for directory in [
+    app.config["UPLOAD_FOLDER"],
+    app.config["WORKSHEET_FOLDER"],
+    app.config["ANSWER_KEY_FOLDER"],
+]:
+    os.makedirs(directory, exist_ok=True)
 
-# Initialize MathTutor
-tutor = MathTutor()
+# Initialize components
+generator = ProblemGenerator()
 
 
 @app.route("/")
@@ -31,7 +37,57 @@ def index():
     return render_template(
         "index.html",
         ages=list(range(6, 10)),  # Ages 6-9
+        default_difficulty=generator.get_school_year_progress(),
     )
+
+
+@app.route("/preview", methods=["POST"])
+def preview_problems():
+    """Generate a preview of problems based on current settings."""
+    try:
+        age = int(request.form["age"])
+        count = min(
+            5, int(request.form.get("count", 30))
+        )  # Limit preview to 5 problems
+        difficulty = float(
+            request.form.get("difficulty", generator.get_school_year_progress())
+        )
+
+        # Generate problems
+        problems, answers = generator.generate_math_problems(
+            age=age,
+            count=count,
+            difficulty=difficulty,
+        )
+
+        # Convert problems to dictionary format with metadata
+        problem_list = []
+        for problem in problems:
+            is_word_problem = len(problem) > 30 or "?" in problem
+            problem_list.append(
+                {
+                    "text": problem,
+                    "is_word_problem": is_word_problem,
+                }
+            )
+
+        # Render preview template
+        html = render_template(
+            "worksheet.html",
+            problems=problem_list,
+            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            qr_code="",  # No QR code needed for preview
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "html": html,
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"error": str(e), "success": False})
 
 
 @app.route("/generate", methods=["POST"])
@@ -41,22 +97,83 @@ def generate_worksheet():
         # Get form data
         age = int(request.form["age"])
         count = int(request.form.get("count", 30))
-
-        # Generate worksheet
-        worksheet_path, answer_key_path = tutor.generate_worksheet(
-            age=age,
-            count=count,
+        difficulty = float(
+            request.form.get("difficulty", generator.get_school_year_progress())
         )
 
-        # Return both files
-        return {
-            "worksheet": url_for("download_file", filename=Path(worksheet_path).name),
-            "answer_key": url_for("download_file", filename=Path(answer_key_path).name),
-            "success": True,
-        }
+        # Generate unique ID
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        worksheet_id = f"math_worksheet_{timestamp}"
+
+        # Generate problems
+        problems, answers = generator.generate_math_problems(
+            age=age,
+            count=count,
+            difficulty=difficulty,
+        )
+
+        # Convert problems to dictionary format with metadata
+        problem_list = []
+        for problem in problems:
+            is_word_problem = len(problem) > 30 or "?" in problem
+            problem_list.append(
+                {
+                    "text": problem,
+                    "is_word_problem": is_word_problem,
+                }
+            )
+
+        # Create QR code
+        qr_code = generator.create_qr_code(worksheet_id)
+        qr_code_b64 = base64.b64encode(qr_code.getvalue()).decode()
+
+        # Generate worksheet PDF
+        worksheet_html = render_template(
+            "worksheet.html",
+            problems=problem_list,
+            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            qr_code=qr_code_b64,
+        )
+
+        worksheet_path = os.path.join(
+            app.config["WORKSHEET_FOLDER"], f"{worksheet_id}.pdf"
+        )
+        weasyprint.HTML(string=worksheet_html).write_pdf(
+            worksheet_path,
+            stylesheets=[os.path.join(app.static_folder, "css/worksheet.css")],
+        )
+
+        # Generate answer key PDF
+        answer_key_html = render_template(
+            "worksheet.html",
+            problems=problem_list,
+            answers=answers,
+            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            qr_code=qr_code_b64,
+            is_answer_key=True,
+        )
+
+        answer_key_path = os.path.join(
+            app.config["ANSWER_KEY_FOLDER"], f"{worksheet_id}_key.pdf"
+        )
+        weasyprint.HTML(string=answer_key_html).write_pdf(
+            answer_key_path,
+            stylesheets=[os.path.join(app.static_folder, "css/worksheet.css")],
+        )
+
+        # Return file paths
+        return jsonify(
+            {
+                "success": True,
+                "worksheet": url_for("download_file", filename=f"{worksheet_id}.pdf"),
+                "answer_key": url_for(
+                    "download_file", filename=f"{worksheet_id}_key.pdf"
+                ),
+            }
+        )
 
     except Exception as e:
-        return {"error": str(e), "success": False}
+        return jsonify({"error": str(e), "success": False})
 
 
 @app.route("/download/<filename>")
@@ -68,11 +185,7 @@ def download_file(filename):
     else:
         directory = app.config["WORKSHEET_FOLDER"]
 
-    # Use absolute path by joining with project root
-    file_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), directory, filename
-    )
-
+    file_path = os.path.join(directory, filename)
     return send_file(
         file_path,
         as_attachment=True,
@@ -81,5 +194,4 @@ def download_file(filename):
 
 
 if __name__ == "__main__":
-    # Run on all interfaces
     app.run(host="0.0.0.0", port=8080, debug=True)
