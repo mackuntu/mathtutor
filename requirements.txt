@@ -2,6 +2,7 @@
 Pillow>=10.0.0  # For image handling
 reportlab>=4.0.4  # For PDF generation
 qrcode>=7.4.2  # For QR code generation
+Flask>=3.0.0  # For web interface
 
 # Development dependencies
 pytest>=7.4.0  # For testing

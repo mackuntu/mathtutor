@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathTutor - Worksheet Generator</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+        }
+        .loading-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .download-links {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <h1 class="text-center mb-4">MathTutor Worksheet Generator</h1>
+        
+        <!-- Configuration Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="worksheetForm" class="needs-validation" novalidate>
+                    <!-- Student Age -->
+                    <div class="mb-3">
+                        <label for="age" class="form-label">Student Age</label>
+                        <select class="form-select" id="age" name="age" required>
+                            <option value="">Select age...</option>
+                            {% for age in ages %}
+                            <option value="{{ age }}">{{ age }} years old</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Please select an age.</div>
+                    </div>
+
+                    <!-- Number of Problems -->
+                    <div class="mb-3">
+                        <label for="count" class="form-label">Number of Problems</label>
+                        <input type="number" class="form-control" id="count" name="count" 
+                               value="30" min="5" max="50" required>
+                        <div class="invalid-feedback">Please enter a number between 5 and 50.</div>
+                    </div>
+
+                    <!-- Layout Choice -->
+                    <div class="mb-3">
+                        <label for="layout" class="form-label">Layout Style</label>
+                        <select class="form-select" id="layout" name="layout" required>
+                            {% for layout in layouts %}
+                            <option value="{{ layout }}">{{ layout|replace('_', ' ')|title }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Please select a layout.</div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button type="submit" class="btn btn-primary w-100">Generate Worksheet</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Download Links -->
+        <div id="downloadLinks" class="download-links card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Your worksheets are ready!</h5>
+                <div class="d-grid gap-2">
+                    <a id="worksheetLink" href="#" class="btn btn-success mb-2" download>
+                        Download Worksheet
+                    </a>
+                    <a id="answerKeyLink" href="#" class="btn btn-info" download>
+                        Download Answer Key
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="loading">
+            <div class="loading-content">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Generating worksheet...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.getElementById('worksheetForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Form validation
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return;
+            }
+
+            // Show loading spinner
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('downloadLinks').style.display = 'none';
+
+            try {
+                // Send form data
+                const formData = new FormData(this);
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update download links
+                    document.getElementById('worksheetLink').href = data.worksheet;
+                    document.getElementById('answerKeyLink').href = data.answer_key;
+                    document.getElementById('downloadLinks').style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error generating worksheet: ' + error);
+            } finally {
+                // Hide loading spinner
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
