@@ -72,9 +72,10 @@ class ProblemGenerator:
 
         # Generate numbers for addition/subtraction
         if problem_type in ["addition", "subtraction"]:
-            # Generate both numbers in the full range
-            num1 = random.randint(min_val, max_val)
-            num2 = random.randint(min_val, max_val)
+            # For first number, ensure it's double digit but avoid repeating the same number too often
+            num1 = random.randint(10, max_val)
+            # For second number, use single digit but try to use different numbers
+            num2 = random.randint(min_val, 9)
 
             # For subtraction, ensure first number is larger and result is positive
             if problem_type == "subtraction":

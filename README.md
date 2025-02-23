@@ -1,7 +1,7 @@
 ### Product Requirements Document: MathTutor System
 
 #### Overview
-The MathTutor system automates the creation, rendering, distribution, and grading of personalized math worksheets for students, enabling teachers and parents to customize learning experiences effectively. The system includes features for worksheet generation, answer key creation, grading automation, and data storage for tracking performance.
+The MathTutor system simplifies the creation and distribution of personalized math worksheets for families, enabling parents to provide consistent, quality math practice for their children. The system focuses on paper-based learning with efficient parent-guided feedback mechanisms.
 
 ---
 
@@ -28,83 +28,92 @@ To set up the MathTutor system and its dependencies:
    ```
 
 4. **Run the Application**:
-   You can run the project modules from the command line as follows:
+   You can run the project in two ways:
 
-   - **Run the main module**:
+   - **Web Interface** (Recommended):
      ```bash
-     PYTHONPATH=./src python -m src.main
+     python -m src.web
      ```
 
-   - **Run the grader module**:
+   - **Command Line**:
      ```bash
-     PYTHONPATH=./src python -m src.grader
+     python -m src.main
      ```
-
-   These commands will launch the respective parts of the MathTutor system.
 
 ---
 
 ### Goals
-1. **Personalized Education**: Generate customized worksheets based on student age and proficiency.
-2. **Automated Workflow**: Streamline the process from worksheet creation to grading.
-3. **Data-driven Insights**: Store and analyze data to monitor and enhance student learning outcomes.
-4. **Mistake-Centric Learning**: Ensure mistakes are treated as learning opportunities to enhance student understanding and resilience.
+1. **Efficient Practice**: Generate daily customized worksheets with minimal parent effort.
+2. **Paper-Based Learning**: Keep children engaged without screen time.
+3. **Quick Feedback**: Enable immediate parent-guided feedback through answer overlays.
+4. **Family-Friendly**: Support multiple children at different learning levels.
 
 ---
 
 ### Features
 
 #### P1: Essential Features
-1. **Highlight Mistakes**:
-   - Clearly indicate incorrect answers without revealing the correct answer immediately.
-   - Provide immediate visual feedback for errors.
+1. **Simple Web Interface**:
+   - One-click worksheet generation
+   - Mobile-friendly design
+   - Optional scheduled auto-generation
+   - Basic configuration settings
 
-2. **Encourage Reflection**:
-   - Prompt students to reconsider their answers with a hint or suggestion.
-   - Example: “Check your subtraction here. Did you carry over correctly?”
+2. **Enhanced Parent Guide**:
+   - Clear answer overlay system
+   - Common mistake indicators
+   - Suggested hints for typical errors
+   - Weekly progress checklist
 
-3. **Explanations After Multiple Attempts**:
-   - Provide step-by-step solutions for problems after several incorrect tries.
-   - Offer concise written explanations for better comprehension.
+3. **Core Worksheet Generation**:
+   - Dynamic problem creation
+   - Grade-appropriate content
+   - Customizable difficulty levels
+   - Print-ready formatting
 
-4. **Target Weak Areas**:
-   - Identify patterns in mistakes (e.g., subtraction errors) and focus future practice sessions on those areas.
-   - Customize practice worksheets dynamically based on common errors.
+4. **Multi-Child Support**:
+   - Individual student profiles
+   - Color-coded worksheets per child
+   - Batch printing options
+   - Progress tracking per student
 
-5. **Positive Reinforcement**:
-   - Reward effort and improvement to encourage persistence.
-   - Example: “You solved 10% more problems correctly than last week. Keep it up!”
+5. **Educational Enhancements**:
+   - Mini-tutorials on worksheets
+   - Visual guides for concepts
+   - Reference sections
+   - Progressive difficulty system
 
 #### P2: Important Features
-1. **Hints for Incorrect Answers**:
-   - Offer hints like breaking down the problem into smaller steps or providing visual aids for complex problems.
+1. **Basic Achievement System**:
+   - Weekly tracker
+   - Designated sticker spots
+   - Challenge problems
+   - Progress visualization
 
-2. **Dynamic Problem Adjustments**:
-   - Generate simpler or related problems to reinforce foundational concepts for struggling students.
-   - Gradually increase complexity once confidence is built.
+2. **Simplified Distribution**:
+   - Single-file executable
+   - Desktop shortcuts
+   - Auto-update mechanism
+   - Configuration persistence
 
-3. **Encourage Self-Correction**:
-   - Provide opportunities for students to retry problems before revealing the solution.
-   - Example: “Would you like to try solving this again?”
-
-4. **Customized Reports for Teachers and Parents**:
-   - Generate detailed mistake analyses and practice suggestions for educators and parents.
-   - Include progress tracking with visual charts and improvement metrics.
-
-5. **Celebrate Progress**:
-   - Highlight improvement percentages over time to build confidence and motivation.
+3. **Resource Management**:
+   - Organized worksheet storage
+   - Print history tracking
+   - Content reuse optimization
+   - Batch processing options
 
 #### P3: Nice-to-Have Features
-1. **Gamify Learning**:
-   - Add badges, points, or unlocking hints for retrying and solving problems.
-   - Example: “You earned a star for retrying all your mistakes!”
+1. **Advanced Analytics**:
+   - Learning pattern recognition
+   - Progress reporting
+   - Difficulty adjustment algorithms
+   - Performance insights
 
-2. **Emotional Support Features**:
-   - Use friendly messages, emojis, or animated characters to create a supportive environment.
-   - Example: “Mistakes help us learn! Let’s try again.”
-
-3. **Interactive Walkthroughs**:
-   - Provide animated or interactive problem-solving explanations for deeper engagement.
+2. **Content Expansion**:
+   - Additional subject areas
+   - Seasonal/themed content
+   - Custom problem templates
+   - Parent-created content support
 
 ---
 
@@ -112,76 +121,87 @@ To set up the MathTutor system and its dependencies:
 
 #### Core Requirements
 1. **Worksheet Creation**:
-   - Allow dynamic generation of math problems based on student attributes.
-   - Include decorative elements for engagement.
+   - Dynamic generation of age-appropriate problems
+   - Clean, print-ready formatting
+   - Parent guide overlay generation
 
-2. **Answer Key Generation**:
-   - Automate the creation of a corresponding answer key.
+2. **Web Interface**:
+   - Simple, mobile-friendly design
+   - One-click generation
+   - Basic configuration options
 
-3. **Grading System**:
-   - Support OCR-based recognition of handwritten answers.
-   - Enable grading with detailed breakdowns of correct and incorrect answers.
+3. **Multi-Child Support**:
+   - Profile management
+   - Individual progress tracking
+   - Batch worksheet generation
 
-4. **Mistake Handling**:
-   - Highlight mistakes and encourage retries with hints or suggestions.
-   - Provide step-by-step explanations for repeated mistakes.
-
-5. **Data Management**:
-   - Store metadata and content in an SQLite database for future reference.
-   - Maintain ROI templates for consistent answer extraction.
+4. **Content Management**:
+   - Problem difficulty progression
+   - Educational reference materials
+   - Weekly achievement tracking
 
 #### Secondary Requirements
-1. **Reports**:
-   - Generate customized reports for teachers and parents, including mistake patterns and progress tracking.
+1. **Distribution System**:
+   - Packaged executable
+   - Auto-update mechanism
+   - Configuration persistence
 
-2. **Adaptability**:
-   - Adjust problem difficulty dynamically based on student performance.
+2. **Resource Optimization**:
+   - Print history tracking
+   - Content reuse strategies
+   - Storage organization
 
 #### Non-Functional Requirements
 1. **Performance**:
-   - Handle up to 1,000 worksheets and answer keys per batch.
-   - OCR grading must process within 2 minutes per worksheet.
+   - Worksheet generation under 5 seconds
+   - Web interface response under 1 second
 
-2. **Scalability**:
-   - Database design should support the addition of new subjects and problem types.
+2. **Usability**:
+   - No technical knowledge required
+   - Intuitive interface
+   - Minimal setup process
 
-3. **Usability**:
-   - Provide a user-friendly interface for non-technical users to generate and grade worksheets.
-
-4. **Security**:
-   - Ensure QR code data is encrypted to prevent unauthorized access to worksheet metadata.
+3. **Reliability**:
+   - Consistent formatting
+   - Error-free content generation
+   - Stable web interface
 
 ---
 
 ### Roadmap
 
-#### Phase 1: Core System Development
-- Implement worksheet generation and answer key rendering.
-- Develop database schema and storage mechanisms.
+#### Phase 1: Core System Enhancement
+- Implement web interface
+- Create parent guide overlay system
+- Develop multi-child support
 
-#### Phase 2: Automation
-- Integrate OCR for answer extraction.
-- Develop grading algorithms.
+#### Phase 2: Distribution
+- Package as executable
+- Add configuration system
+- Create auto-update mechanism
 
-#### Phase 3: Mistake-Centric Features
-- Add mistake handling workflows, including hints, retries, and explanations.
-- Generate adaptive learning content based on weak areas.
+#### Phase 3: Content Expansion
+- Add mini-tutorials
+- Implement progressive difficulty
+- Create achievement system
 
-#### Phase 4: Optimization and Engagement
-- Enhance database queries for faster performance.
-- Introduce gamification and emotional support features to improve user experience.
+#### Phase 4: Optimization
+- Resource management
+- Print optimization
+- Storage organization
 
-#### Phase 5: User Feedback and Iteration
-- Release a beta version for educators.
-- Gather feedback to refine UI and features.
+#### Phase 5: Analytics
+- Progress tracking
+- Performance insights
+- Pattern recognition
 
 ---
 
 ### Deliverables
-1. **Math Worksheet Generator**: Fully functional worksheet creation system.
-2. **Answer Key Creator**: Automated answer key generation.
-3. **Grader**: OCR-based grading tool with mistake feedback.
-4. **Database**: Centralized storage for worksheets and answer keys.
-5. **Mistake-Centric Features**: Workflow for highlighting and resolving mistakes.
-6. **Documentation**: User guides and API references.
+1. **Web Interface**: Simple, mobile-friendly worksheet generation system
+2. **Worksheet Generator**: Enhanced content creation system
+3. **Parent Guide**: Clear overlay system for grading
+4. **Profile Manager**: Multi-child support system
+5. **Achievement System**: Basic progress tracking
+6. **Documentation**: User guides and setup instructions
 
