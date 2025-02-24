@@ -80,16 +80,15 @@ class TemplateManager:
         """Calculate positions and ROIs for problems based on layout choice.
 
         Args:
-            num_problems: Number of problems to layout.
-            problems: List of problem strings.
+            num_problems: Number of problems to layout
+            problems: List of problem strings
             layout_choice: Optional layout choice. If None, automatically chosen.
 
         Returns:
-            Tuple of (positions, ROIs) where:
-                positions is a list of (x_problem, y, x_answer) tuples
-                ROIs is a list of (x1, y1, x2, y2) tuples
+            Tuple of (positions, rois) where:
+            - positions is a list of (x_problem, y, x_answer) tuples
+            - rois is a list of (x1, y1, x2, y2) tuples for answer boxes
         """
-        # Choose layout if not specified
         if layout_choice is None:
             layout_choice = self.choose_layout(problems)
 
@@ -97,7 +96,7 @@ class TemplateManager:
         positions = []
         rois = []
 
-        # Track y-position for each column
+        # Initialize y-positions for each column
         y_positions = {col: config.y_start for col in config.columns}
 
         # Calculate positions column by column
@@ -128,11 +127,6 @@ class TemplateManager:
             )
 
             # Update y-position for next problem in this column
-            # Use extra spacing for word problems
-            is_word_problem = len(problems[i]) > 30 or "?" in problems[i]
-            spacing = (
-                config.word_problem_spacing if is_word_problem else config.row_spacing
-            )
-            y_positions[column] -= spacing
+            y_positions[column] -= config.row_spacing
 
         return positions, rois

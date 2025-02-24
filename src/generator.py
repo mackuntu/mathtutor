@@ -219,22 +219,8 @@ class ProblemGenerator:
             if problem_type == "subtraction":
                 num1, num2 = max(num1, num2), min(num1, num2)
 
-            # Add word problems for higher difficulties
-            if difficulty > 0.6 and random.random() < difficulty - 0.6:
-                if problem_type == "addition":
-                    templates = [
-                        f"You have {num1} apples and get {num2} more.\nHow many apples do you have?",
-                        f"There are {num1} red and {num2} blue balls.\nHow many balls in total?",
-                    ]
-                else:  # subtraction
-                    templates = [
-                        f"You have {num1} candies and give {num2} away.\nHow many remain?",
-                        f"There are {num1} students. {num2} leave.\nHow many stay?",
-                    ]
-                problem = random.choice(templates)
-            else:
-                operator = self.OPERATORS[problem_type]
-                problem = f"{num1} {operator} {num2}"
+            operator = self.OPERATORS[problem_type]
+            problem = f"{num1} {operator} {num2}"
 
             if problem_type == "addition":
                 answer = num1 + num2
@@ -247,16 +233,8 @@ class ProblemGenerator:
             num1 = random.randint(min_val, max_val)
             num2 = random.randint(min_val, max_val)
 
-            # Add word problems for higher difficulties
-            if difficulty > 0.6 and random.random() < difficulty - 0.6:
-                templates = [
-                    f"You have {num1} boxes with {num2} toys each.\nHow many toys total?",
-                    f"{num1} rows of chairs, {num2} chairs per row.\nHow many chairs total?",
-                ]
-                problem = random.choice(templates)
-            else:
-                operator = self.OPERATORS[problem_type]
-                problem = f"{num1} {operator} {num2}"
+            operator = self.OPERATORS[problem_type]
+            problem = f"{num1} {operator} {num2}"
 
             return problem, str(num1 * num2)
 
@@ -266,33 +244,15 @@ class ProblemGenerator:
             num2 = random.randint(min_val, max_val)
             num1 = answer * num2
 
-            # Add word problems for higher difficulties
-            if difficulty > 0.6 and random.random() < difficulty - 0.6:
-                templates = [
-                    f"Share {num1} candies among {num2} friends.\nHow many each?",
-                    f"Split {num1} students into {num2} equal teams.\nHow many per team?",
-                ]
-                problem = random.choice(templates)
-            else:
-                operator = self.OPERATORS[problem_type]
-                problem = f"{num1} {operator} {num2}"
+            operator = self.OPERATORS[problem_type]
+            problem = f"{num1} {operator} {num2}"
 
             return problem, str(answer)
 
         elif problem_type == "fractions":
             denominator = random.randint(2, max_val)
             numerator = random.randint(1, denominator)
-
-            # Add word problems for higher difficulties
-            if difficulty > 0.6 and random.random() < difficulty - 0.6:
-                templates = [
-                    f"What is {numerator}/{denominator} written as a decimal?",
-                    f"If you eat {numerator}/{denominator} of a pizza, what fraction of the pizza did you eat?",
-                ]
-                problem = random.choice(templates)
-            else:
-                problem = f"{numerator}/{denominator}"
-
+            problem = f"{numerator}/{denominator}"
             return problem, str(round(numerator / denominator, 3))
 
         raise ValueError(f"Invalid problem type: {problem_type}")

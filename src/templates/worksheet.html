@@ -6,27 +6,42 @@
     <title>Math Worksheet</title>
     <style>
         @page {
-            margin: 0in;
-
+            size: letter portrait;
+            margin: 0.4in;
         }
 
-        @media print {
-            @page {
-                margin: 0;
-            }
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                margin: 0.4em;
-            }
+        html {
+            min-height: 100%;
         }
 
         body {
             font-family: 'Times New Roman', serif;
             padding: 0;
             font-size: 12pt;
-            min-height: 11in;
+            margin: 0;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
         }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            @page {
+                size: letter;
+                margin: 0.4in;
+            }
+        }
+
         .title {
             text-align: center;
             font-size: 16pt;
@@ -60,15 +75,15 @@
     </style>
 </head>
 <body>
-    <div>
-        <div class="title">MathTutor Worksheet</div>
+    <div class="container">
+        <div class="title">{{ "Answer Key" if is_answer_key else "MathTutor Worksheet" }}</div>
         <div class="info-row">
             <div class="field">Name: <span class="underline"></span></div>
             <div class="field">Date: <span class="underline"></span></div>
             <div class="field">Score: <span class="underline"></span>/{{ problems|length }}</div>
         </div>
-    </div>
 
-    {% include 'problem_grid.html' %}
+        {% include 'problem_grid.html' %}
+    </div>
 </body>
 </html> 

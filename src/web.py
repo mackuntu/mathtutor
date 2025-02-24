@@ -69,16 +69,10 @@ def preview_problems():
         )
         preview_problems = problems[:5]  # Only show first 5 problems
 
-        # Convert problems to dictionary format with metadata
+        # Convert problems to dictionary format
         problem_list = []
         for problem in preview_problems:
-            is_word_problem = len(problem) > 30 or "?" in problem
-            problem_list.append(
-                {
-                    "text": problem,
-                    "is_word_problem": is_word_problem,
-                }
-            )
+            problem_list.append({"text": problem})
 
         # Generate preview HTML using the same template as worksheet
         preview_html = render_template(
@@ -116,16 +110,10 @@ def debug_view_worksheet():
             difficulty=difficulty,
         )
 
-        # Convert problems to dictionary format with metadata
+        # Convert problems to dictionary format
         problem_list = []
         for problem in problems:
-            is_word_problem = len(problem) > 30 or "?" in problem
-            problem_list.append(
-                {
-                    "text": problem,
-                    "is_word_problem": is_word_problem,
-                }
-            )
+            problem_list.append({"text": problem})
 
         # Create QR code
         qr_code = generator.create_qr_code(worksheet_id)
@@ -170,16 +158,10 @@ def generate_worksheet():
             difficulty=difficulty,
         )
 
-        # Convert problems to dictionary format with metadata
+        # Convert problems to dictionary format
         problem_list = []
         for problem in problems:
-            is_word_problem = len(problem) > 30 or "?" in problem
-            problem_list.append(
-                {
-                    "text": problem,
-                    "is_word_problem": is_word_problem,
-                }
-            )
+            problem_list.append({"text": problem})
 
         # Create QR code
         qr_code = generator.create_qr_code(worksheet_id)
