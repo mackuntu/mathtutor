@@ -87,15 +87,18 @@
                     <!-- Action Buttons -->
                     <div class="d-grid gap-2">
                         <div class="btn-group">
-                            <button type="button" class="btn btn-success" id="downloadWorksheetBtn">
-                                Download Worksheet
+                            <button type="button" class="btn btn-success" id="printWorksheetBtn">
+                                Print Worksheet
                             </button>
-                            <button type="button" class="btn btn-info" id="downloadKeyBtn">
-                                Download Answer Key
+                            <button type="button" class="btn btn-info" id="printKeyBtn">
+                                Print Answer Key
                             </button>
                         </div>
                         <button type="button" class="btn btn-secondary" id="previewBtn">
                             Preview (First 5 Problems)
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="debugViewBtn">
+                            Debug: View Full HTML
                         </button>
                     </div>
                 </form>
@@ -160,7 +163,7 @@
             }
         }
 
-        async function generatePDF(type) {
+        async function printWorksheet(type) {
             const form = document.getElementById('worksheetForm');
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
@@ -182,24 +185,22 @@
                     throw new Error('Network response was not ok');
                 }
 
-                // Get the PDF blob
-                const blob = await response.blob();
+                // Get the HTML content
+                const html = await response.text();
                 
-                // Get the filename from the Content-Disposition header
-                const contentDisposition = response.headers.get('Content-Disposition');
-                const filename = contentDisposition.match(/filename=(.+)$/)[1];
+                // Open in new window and print
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(html);
+                printWindow.document.close();
                 
-                // Create a download link
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                // Wait for resources to load then print
+                printWindow.onload = function() {
+                    printWindow.print();
+                    // Close the window after print dialog is closed (optional)
+                    // printWindow.close();
+                };
             } catch (error) {
-                alert('Error generating PDF: ' + error);
+                alert('Error preparing worksheet: ' + error);
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
@@ -207,8 +208,45 @@
 
         // Event Listeners
         document.getElementById('previewBtn').addEventListener('click', previewWorksheet);
-        document.getElementById('downloadWorksheetBtn').addEventListener('click', () => generatePDF('worksheet'));
-        document.getElementById('downloadKeyBtn').addEventListener('click', () => generatePDF('answer_key'));
+        document.getElementById('printWorksheetBtn').addEventListener('click', () => printWorksheet('worksheet'));
+        document.getElementById('printKeyBtn').addEventListener('click', () => printWorksheet('answer_key'));
+        
+        // Debug view handler
+        document.getElementById('debugViewBtn').addEventListener('click', async () => {
+            const form = document.getElementById('worksheetForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const formData = new FormData(form);
+                formData.append('type', 'worksheet');
+                const response = await fetch('/debug/view-worksheet', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                // Get the HTML content
+                const html = await response.text();
+                
+                // Open in new window/tab
+                const newWindow = window.open();
+                newWindow.document.write(html);
+                newWindow.document.close();
+            } catch (error) {
+                alert('Error viewing HTML: ' + error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html> 

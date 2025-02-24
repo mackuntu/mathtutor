@@ -1,67 +1,151 @@
+{% set cols = 5 %}
+{% if problems|length > 25 %}
+    {% set cols = 6 %}
+{% endif %}
+{% if problems|length > 30 %}
+    {% set cols = 7 %}
+{% endif %}
+{% if problems|length > 35 %}
+    {% set cols = 8 %}
+{% endif %}
+
 <style>
 .problem-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    padding: 1rem;
-    margin-bottom: 2in; /* Space for footer */
+    grid-template-columns: repeat(var(--cols, 5), 1fr);
+    gap: var(--gap, 2rem);
+    padding: 0;
+    margin: 0 auto;
+    max-width: 8.5in;
 }
 
 .problem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: var(--problem-font-size, 14pt);
+    line-height: 1.5;
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    break-inside: avoid;
-    page-break-inside: avoid;
 }
 
-.problem.word-problem {
-    grid-column: 1 / -1;
+.addition-line {
+    border-bottom: 1px solid black;
+    width: 100%;
+    margin: 0.25rem 0;
+}
+
+.answer-space {
+    height: 1.5rem;
+    width: 100%;
+}
+
+.number {
+    text-align: right;
+    width: 100%;
+    font-family: 'Times New Roman', serif;
+}
+
+.operator {
+    position: absolute;
+    left: -0.75rem;
 }
 
 .problem-content {
+    position: relative;
+    width: 3.5rem;
+}
+
+/* Division problem specific styles */
+.division-problem {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
 }
 
-.problem-number {
-    font-weight: bold;
-    margin-right: 0.5rem;
+.division-symbol {
+    display: flex;
+    align-items: center;
 }
 
-.problem-text {
-    flex: 1;
+.division-symbol .divisor {
+    margin-right: 0.25rem;
 }
 
-.answer {
-    font-weight: bold;
-    min-width: 60px;
-    text-align: center;
+.division-symbol .right-paren {
+    font-size: 1.5em;
+    line-height: 1;
 }
 
-.answer-box {
-    border: 1px solid #000;
-    width: 60px;
-    height: 20px;
-    flex-shrink: 0;
+.division-symbol .dividend {
+    margin-left: 0.25rem;
+}
+
+@media print {
+    @page {
+        margin: 0.4in;
+    }
+}
+
+@media screen {
+    .answer-space {
+        background-color: #f8f8f8;
+    }
 }
 </style>
 
-<!-- Problem Grid Layout -->
+<script>
+    // Dynamically adjust layout based on problem count
+    const problemCount = {{ problems|length }};
+    const root = document.documentElement;
+    
+    // Set columns based on problem count
+    let cols = 5;
+    if (problemCount > 25) cols = 6;
+    if (problemCount > 30) cols = 7;
+    if (problemCount > 35) cols = 8;
+    root.style.setProperty('--cols', cols);
+    
+    // Set gap
+    const gap = 3.0 - (problemCount / 20);
+    root.style.setProperty('--gap', `${gap}rem`);
+    
+    // Set font size
+    const fontSize = 16 - (problemCount / 10);
+    root.style.setProperty('--problem-font-size', `${fontSize}pt`);
+</script>
+
 <div class="problem-grid">
     {% for problem in problems %}
-    <div class="problem {% if problem.is_word_problem %}word-problem{% endif %}">
+    <div class="problem">
         <div class="problem-content">
-            <span class="problem-number">{{ loop.index }}.</span>
-            <span class="problem-text">{{ problem.text }}</span>
-            {% if not is_preview %}
-                {% if is_answer_key %}
-                <div class="answer">{{ answers[loop.index0] }}</div>
-                {% else %}
-                <div class="answer-box"></div>
-                {% endif %}
+            {% set parts = problem.text.replace(' ', '').replace('×', '*').replace('÷', '/') %}
+            {% if '+' in parts %}
+                {% set numbers = parts.split('+') %}
+                <div class="number">{{ numbers[0] }}</div>
+                <div class="number"><span class="operator">+</span>{{ numbers[1] }}</div>
+                <div class="addition-line"></div>
+                <div class="answer-space"></div>
+            {% elif '-' in parts %}
+                {% set numbers = parts.split('-') %}
+                <div class="number">{{ numbers[0] }}</div>
+                <div class="number"><span class="operator">−</span>{{ numbers[1] }}</div>
+                <div class="addition-line"></div>
+                <div class="answer-space"></div>
+            {% elif '*' in parts %}
+                {% set numbers = parts.split('*') %}
+                <div class="number">{{ numbers[0] }}</div>
+                <div class="number"><span class="operator">×</span>{{ numbers[1] }}</div>
+                <div class="addition-line"></div>
+                <div class="answer-space"></div>
+            {% elif '/' in parts %}
+                {% set numbers = parts.split('/') %}
+                <div class="division-problem">
+                    <div class="division-symbol">
+                        <span class="divisor">{{ numbers[1] }}</span>
+                        <span class="right-paren">)</span>
+                        <span class="dividend">{{ numbers[0] }}</span>
+                    </div>
+                </div>
+                <div class="answer-space"></div>
             {% endif %}
         </div>
     </div>
