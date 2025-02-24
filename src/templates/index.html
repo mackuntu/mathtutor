@@ -143,8 +143,24 @@
                 unit: 'in', 
                 format: 'letter', 
                 orientation: 'portrait'
-            }
+            },
+            // Don't auto-download
+            output: 'blob'
         };
+
+        async function openAndPrint(pdfBlob, shouldPrint = false) {
+            const url = URL.createObjectURL(pdfBlob);
+            const newWindow = window.open(url, '_blank');
+            
+            if (newWindow && shouldPrint) {
+                newWindow.addEventListener('load', () => {
+                    newWindow.print();
+                });
+            }
+
+            // Clean up the URL after a delay
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
 
         async function generatePDF(htmlContent, options) {
             const element = document.createElement('div');
@@ -152,7 +168,7 @@
             document.body.appendChild(element);
 
             try {
-                const pdf = await html2pdf().set(options).from(element).save();
+                const pdf = await html2pdf().set(options).from(element).outputPdf('blob');
                 return pdf;
             } finally {
                 document.body.removeChild(element);
@@ -219,13 +235,15 @@
 
                 const data = await response.json();
                 
-                // Generate worksheet PDF
+                // Generate worksheet PDF and send to print
                 const worksheetOptions = { ...pdfOptions, filename: 'worksheet.pdf' };
-                await generatePDF(data.worksheet, worksheetOptions);
+                const worksheetPdf = await generatePDF(data.worksheet, worksheetOptions);
+                await openAndPrint(worksheetPdf, true); // Open and print worksheet
 
-                // Generate answer key PDF
+                // Generate answer key PDF and just open it
                 const answerKeyOptions = { ...pdfOptions, filename: 'answer_key.pdf' };
-                await generatePDF(data.answer_key, answerKeyOptions);
+                const answerKeyPdf = await generatePDF(data.answer_key, answerKeyOptions);
+                await openAndPrint(answerKeyPdf, false); // Just open answer key
 
             } catch (error) {
                 alert('Error generating PDFs: ' + error);

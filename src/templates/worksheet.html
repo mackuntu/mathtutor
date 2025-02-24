@@ -64,10 +64,24 @@
             height: 1.2em;
             display: inline-block;
         }
+
+        /* Answer space styling for both preview and PDF */
+        .answer-space {
+            border: 2px dotted #999 !important;
+            border-radius: 4px;
+            background-color: transparent !important;
+        }
         
         @media screen {
             .print-only {
                 display: none !important;
+            }
+        }
+
+        @media print {
+            .answer-space {
+                border: 2px dotted #999 !important;
+                background-color: transparent !important;
             }
         }
     </style>
