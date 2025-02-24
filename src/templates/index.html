@@ -86,19 +86,11 @@
 
                     <!-- Action Buttons -->
                     <div class="d-grid gap-2">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-success" id="printWorksheetBtn">
-                                Print Worksheet
-                            </button>
-                            <button type="button" class="btn btn-info" id="printKeyBtn">
-                                Print Answer Key
-                            </button>
-                        </div>
+                        <button type="button" class="btn btn-success" id="generateBtn">
+                            Generate Worksheet & Key
+                        </button>
                         <button type="button" class="btn btn-secondary" id="previewBtn">
                             Preview (First 5 Problems)
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" id="debugViewBtn">
-                            Debug: View Full HTML
                         </button>
                     </div>
                 </form>
@@ -163,7 +155,7 @@
             }
         }
 
-        async function printWorksheet(type) {
+        async function generateAndPrint() {
             const form = document.getElementById('worksheetForm');
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
@@ -175,8 +167,7 @@
 
             try {
                 const formData = new FormData(form);
-                formData.append('type', type);
-                const response = await fetch('/generate', {
+                const response = await fetch('/generate_both', {
                     method: 'POST',
                     body: formData
                 });
@@ -185,67 +176,42 @@
                     throw new Error('Network response was not ok');
                 }
 
-                // Get the PDF blob
-                const pdfBlob = await response.blob();
+                const data = await response.json();
                 
-                // Create object URL for the PDF
-                const pdfUrl = URL.createObjectURL(pdfBlob);
+                // Create object URLs for both PDFs
+                const worksheetBlob = new Blob([Uint8Array.from(atob(data.worksheet), c => c.charCodeAt(0))], {type: 'application/pdf'});
+                const keyBlob = new Blob([Uint8Array.from(atob(data.answer_key), c => c.charCodeAt(0))], {type: 'application/pdf'});
                 
-                // Open PDF in new window
-                const printWindow = window.open(pdfUrl, '_blank');
-                
-                // Clean up the object URL after the window opens
-                if (printWindow) {
-                    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+                const worksheetUrl = URL.createObjectURL(worksheetBlob);
+                const keyUrl = URL.createObjectURL(keyBlob);
+
+                // Open and print worksheet
+                const worksheetWindow = window.open(worksheetUrl);
+                if (worksheetWindow) {
+                    worksheetWindow.onload = function() {
+                        worksheetWindow.print();
+                    };
                 }
+
+                // Open answer key in new tab (but don't print automatically)
+                window.open(keyUrl, '_blank');
+
+                // Clean up URLs after a delay
+                setTimeout(() => {
+                    URL.revokeObjectURL(worksheetUrl);
+                    URL.revokeObjectURL(keyUrl);
+                }, 1000);
+
             } catch (error) {
-                alert('Error preparing worksheet: ' + error);
+                alert('Error generating PDFs: ' + error);
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
         }
 
         // Event Listeners
+        document.getElementById('generateBtn').addEventListener('click', generateAndPrint);
         document.getElementById('previewBtn').addEventListener('click', previewWorksheet);
-        document.getElementById('printWorksheetBtn').addEventListener('click', () => printWorksheet('worksheet'));
-        document.getElementById('printKeyBtn').addEventListener('click', () => printWorksheet('answer_key'));
-        
-        // Debug view handler
-        document.getElementById('debugViewBtn').addEventListener('click', async () => {
-            const form = document.getElementById('worksheetForm');
-            if (!form.checkValidity()) {
-                form.classList.add('was-validated');
-                return;
-            }
-
-            // Show loading state
-            document.getElementById('loading').style.display = 'block';
-
-            try {
-                const formData = new FormData(form);
-                formData.append('type', 'worksheet');
-                const response = await fetch('/debug/view-worksheet', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                // Get the HTML content
-                const html = await response.text();
-                
-                // Open in new window/tab
-                const newWindow = window.open();
-                newWindow.document.write(html);
-                newWindow.document.close();
-            } catch (error) {
-                alert('Error viewing HTML: ' + error);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html> 
