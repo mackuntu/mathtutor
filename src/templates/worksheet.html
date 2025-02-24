@@ -6,12 +6,23 @@
     <title>Math Worksheet</title>
     <style>
         @page {
-            size: letter portrait;
-            margin: 0.4in;
+            margin: 0in;
+
         }
+
+        @media print {
+            @page {
+                margin: 0;
+            }
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                margin: 0.4em;
+            }
+        }
+
         body {
             font-family: 'Times New Roman', serif;
-            margin: 0;
             padding: 0;
             font-size: 12pt;
             min-height: 11in;
@@ -40,15 +51,7 @@
             height: 1.2em;
             display: inline-block;
         }
-        .instructions {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-        }
+        
         @media screen {
             .print-only {
                 display: none !important;
@@ -57,14 +60,13 @@
     </style>
 </head>
 <body>
-    <div class="no-print">
-        <div class="title">2-Digit Plus 2-Digit Addition (A)</div>
+    <div>
+        <div class="title">MathTutor Worksheet</div>
         <div class="info-row">
             <div class="field">Name: <span class="underline"></span></div>
             <div class="field">Date: <span class="underline"></span></div>
             <div class="field">Score: <span class="underline"></span>/{{ problems|length }}</div>
         </div>
-        <div class="instructions">Calculate each sum.</div>
     </div>
 
     {% include 'problem_grid.html' %}

@@ -12,9 +12,9 @@
 <style>
 .problem-grid {
     display: grid;
-    grid-template-columns: repeat(var(--cols, 5), 1fr);
-    gap: var(--gap, 2rem);
-    padding: 0;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4rem 6rem;  /* More vertical and horizontal spacing */
+    padding: 2rem;
     margin: 0 auto;
     max-width: 8.5in;
 }
@@ -23,36 +23,41 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: var(--problem-font-size, 14pt);
-    line-height: 1.5;
+    font-size: 24pt;  /* Larger font size */
+    line-height: 1.4;
     padding: 0.5rem;
 }
 
 .addition-line {
-    border-bottom: 1px solid black;
+    border-bottom: 1.5px solid black;  /* Slightly thicker line */
     width: 100%;
     margin: 0.25rem 0;
 }
 
 .answer-space {
-    height: 1.5rem;
+    height: 2rem;  /* Taller answer space */
     width: 100%;
+    min-width: 5rem;  /* Ensure minimum width */
 }
 
 .number {
     text-align: right;
     width: 100%;
+    min-width: 5rem;  /* Ensure minimum width for numbers */
     font-family: 'Times New Roman', serif;
+    padding: 0.1rem 0;  /* Consistent vertical spacing */
 }
 
 .operator {
     position: absolute;
-    left: -0.75rem;
+    left: -1.25rem;  /* More space for operator */
+    top: 50%;  /* Center vertically with second number */
+    transform: translateY(-50%);
 }
 
 .problem-content {
     position: relative;
-    width: 3.5rem;
+    width: 5rem;  /* Wider content area */
 }
 
 /* Division problem specific styles */
@@ -82,35 +87,37 @@
 @media print {
     @page {
         margin: 0.4in;
+        /* Remove browser-added headers and footers */
+        margin-header: 0;
+        margin-footer: 0;
+    }
+    
+    /* Ensure colors print correctly */
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Hide URL, title, and page numbers */
+    html {
+        height: 100%;
+    }
+    body {
+        height: 100%;
+        position: relative;
     }
 }
 
 @media screen {
     .answer-space {
-        background-color: #f8f8f8;
+        background-color: #f0f4ff;  /* Lighter blue background */
     }
 }
 </style>
 
 <script>
-    // Dynamically adjust layout based on problem count
-    const problemCount = {{ problems|length }};
+    // Remove dynamic adjustments to keep consistent sizing
     const root = document.documentElement;
-    
-    // Set columns based on problem count
-    let cols = 5;
-    if (problemCount > 25) cols = 6;
-    if (problemCount > 30) cols = 7;
-    if (problemCount > 35) cols = 8;
-    root.style.setProperty('--cols', cols);
-    
-    // Set gap
-    const gap = 3.0 - (problemCount / 20);
-    root.style.setProperty('--gap', `${gap}rem`);
-    
-    // Set font size
-    const fontSize = 16 - (problemCount / 10);
-    root.style.setProperty('--problem-font-size', `${fontSize}pt`);
 </script>
 
 <div class="problem-grid">
