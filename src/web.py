@@ -140,7 +140,7 @@ def debug_view_worksheet():
 
 @app.route("/generate", methods=["POST"])
 def generate_worksheet():
-    """Generate a worksheet or answer key HTML for printing."""
+    """Generate a worksheet or answer key PDF for printing."""
     try:
         # Get form data
         age = int(request.form["age"])
@@ -177,10 +177,16 @@ def generate_worksheet():
             qr_code=qr_code_b64,
             is_answer_key=is_answer_key,
             is_preview=False,
-            print_mode=True,
         )
 
-        return html_content
+        # Convert HTML to PDF using WeasyPrint
+        pdf = weasyprint.HTML(string=html_content).write_pdf()
+
+        # Create response with PDF
+        response = Response(pdf, mimetype="application/pdf")
+        filename = "answer_key.pdf" if is_answer_key else "worksheet.pdf"
+        response.headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        return response
 
     except Exception as e:
         app.logger.error(f"Error generating worksheet: {str(e)}")

@@ -185,20 +185,19 @@
                     throw new Error('Network response was not ok');
                 }
 
-                // Get the HTML content
-                const html = await response.text();
+                // Get the PDF blob
+                const pdfBlob = await response.blob();
                 
-                // Open in new window and print
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(html);
-                printWindow.document.close();
+                // Create object URL for the PDF
+                const pdfUrl = URL.createObjectURL(pdfBlob);
                 
-                // Wait for resources to load then print
-                printWindow.onload = function() {
-                    printWindow.print();
-                    // Close the window after print dialog is closed (optional)
-                    // printWindow.close();
-                };
+                // Open PDF in new window
+                const printWindow = window.open(pdfUrl, '_blank');
+                
+                // Clean up the object URL after the window opens
+                if (printWindow) {
+                    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+                }
             } catch (error) {
                 alert('Error preparing worksheet: ' + error);
             } finally {
