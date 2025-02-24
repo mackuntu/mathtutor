@@ -6,6 +6,8 @@
     <title>MathTutor - Worksheet Generator</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .loading {
             display: none;
@@ -39,6 +41,11 @@
             width: 100%;
             height: 600px;
             border: none;
+        }
+        .pdf-container {
+            display: none;
+            position: fixed;
+            left: -9999px;
         }
     </style>
 </head>
@@ -114,10 +121,44 @@
         </div>
     </div>
 
+    <!-- Hidden containers for PDF generation -->
+    <div id="worksheetContainer" class="pdf-container"></div>
+    <div id="answerKeyContainer" class="pdf-container"></div>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // PDF generation options
+        const pdfOptions = {
+            margin: [0.4, 0.4, 0.4, 0.4], // inches
+            filename: 'worksheet.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2,
+                letterRendering: true,
+                useCORS: true
+            },
+            jsPDF: { 
+                unit: 'in', 
+                format: 'letter', 
+                orientation: 'portrait'
+            }
+        };
+
+        async function generatePDF(htmlContent, options) {
+            const element = document.createElement('div');
+            element.innerHTML = htmlContent;
+            document.body.appendChild(element);
+
+            try {
+                const pdf = await html2pdf().set(options).from(element).save();
+                return pdf;
+            } finally {
+                document.body.removeChild(element);
+            }
+        }
+
         async function previewWorksheet() {
             const form = document.getElementById('worksheetForm');
             if (!form.checkValidity()) {
@@ -178,29 +219,13 @@
 
                 const data = await response.json();
                 
-                // Create object URLs for both PDFs
-                const worksheetBlob = new Blob([Uint8Array.from(atob(data.worksheet), c => c.charCodeAt(0))], {type: 'application/pdf'});
-                const keyBlob = new Blob([Uint8Array.from(atob(data.answer_key), c => c.charCodeAt(0))], {type: 'application/pdf'});
-                
-                const worksheetUrl = URL.createObjectURL(worksheetBlob);
-                const keyUrl = URL.createObjectURL(keyBlob);
+                // Generate worksheet PDF
+                const worksheetOptions = { ...pdfOptions, filename: 'worksheet.pdf' };
+                await generatePDF(data.worksheet, worksheetOptions);
 
-                // Open and print worksheet
-                const worksheetWindow = window.open(worksheetUrl);
-                if (worksheetWindow) {
-                    worksheetWindow.onload = function() {
-                        worksheetWindow.print();
-                    };
-                }
-
-                // Open answer key in new tab (but don't print automatically)
-                window.open(keyUrl, '_blank');
-
-                // Clean up URLs after a delay
-                setTimeout(() => {
-                    URL.revokeObjectURL(worksheetUrl);
-                    URL.revokeObjectURL(keyUrl);
-                }, 1000);
+                // Generate answer key PDF
+                const answerKeyOptions = { ...pdfOptions, filename: 'answer_key.pdf' };
+                await generatePDF(data.answer_key, answerKeyOptions);
 
             } catch (error) {
                 alert('Error generating PDFs: ' + error);

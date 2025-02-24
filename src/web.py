@@ -1,16 +1,12 @@
 """Web interface for math worksheet generation."""
 
-import asyncio
-import base64
 import logging
 import os
 import time
 from datetime import datetime
 from functools import partial
-from io import BytesIO
 
-import pyppeteer
-from flask import Flask, Response, jsonify, render_template, request, send_file, url_for
+from flask import Flask, jsonify, render_template, request
 from werkzeug.utils import safe_join, secure_filename
 
 from src.document.template import LayoutChoice
@@ -20,91 +16,7 @@ from src.generator import ProblemGenerator
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-class MathTutorApp(Flask):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.browser_manager = None
-
-    def init_browser(self):
-        """Initialize browser manager if not already initialized."""
-        if self.browser_manager is None:
-            logger.info("Initializing browser manager...")
-            self.browser_manager = BrowserManager()
-            self.browser_manager.run_async(self.browser_manager.init_browser())
-            logger.info("Browser manager initialized")
-
-
-class BrowserManager:
-    def __init__(self):
-        self.browser = None
-        self.loop = None
-        self.page = None
-
-    async def init_browser(self):
-        """Initialize browser if not already running."""
-        if not self.browser:
-            self.browser = await pyppeteer.launch(
-                handleSIGINT=False,
-                handleSIGTERM=False,
-                handleSIGHUP=False,
-                headless=True,
-                args=["--no-sandbox", "--disable-gpu"],
-            )
-            self.page = await self.browser.newPage()
-            # Set page size to US Letter
-            await self.page.setViewport({"width": 816, "height": 1056})
-
-    async def create_pdf(self, html_content: str) -> bytes:
-        """Create PDF using existing page."""
-        if not self.browser or not self.page:
-            await self.init_browser()
-
-        # Load HTML content
-        await self.page.setContent(html_content)
-        # Wait for any fonts/resources to load
-        await self.page.waitFor(100)
-
-        # Generate PDF
-        pdf_data = await self.page.pdf(
-            {
-                "format": "Letter",
-                "margin": {
-                    "top": "0.4in",
-                    "right": "0.4in",
-                    "bottom": "0.4in",
-                    "left": "0.4in",
-                },
-                "printBackground": True,
-            }
-        )
-
-        return pdf_data
-
-    def get_new_event_loop(self):
-        """Get a new event loop for async operations."""
-        if not self.loop or self.loop.is_closed():
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-        return self.loop
-
-    def run_async(self, coro):
-        """Run coroutine in the event loop."""
-        loop = self.get_new_event_loop()
-        return loop.run_until_complete(coro)
-
-    async def cleanup(self):
-        """Clean up browser resources."""
-        if self.page:
-            await self.page.close()
-        if self.browser:
-            await self.browser.close()
-        self.page = None
-        self.browser = None
-
-
-# Create Flask app with browser management
-app = MathTutorApp(__name__)
+app = Flask(__name__)
 
 # Configure absolute paths
 app.config["BASE_DIR"] = os.path.abspath(os.path.dirname(__file__))
@@ -116,7 +28,6 @@ generator = ProblemGenerator()
 @app.route("/")
 def index():
     """Render the main page."""
-    app.init_browser()  # Initialize browser on first request
     return render_template(
         "index.html",
         ages=list(range(6, 10)),  # Ages 6-9
@@ -127,7 +38,7 @@ def index():
 
 @app.route("/generate", methods=["POST"])
 def generate_worksheet():
-    """Generate a worksheet or answer key PDF for printing."""
+    """Generate a worksheet or answer key HTML."""
     try:
         start_time = time.time()
 
@@ -162,29 +73,13 @@ def generate_worksheet():
         html_time = time.time() - html_start
         logger.info(f"HTML generation took: {html_time:.2f} seconds")
 
-        # Generate PDF
-        pdf_start = time.time()
-        pdf = app.browser_manager.run_async(
-            app.browser_manager.create_pdf(html_content)
-        )
-        pdf_time = time.time() - pdf_start
-        logger.info(f"PDF generation took: {pdf_time:.2f} seconds")
-
-        # Create response
-        response = Response(pdf, mimetype="application/pdf")
-        filename = "answer_key.pdf" if is_answer_key else "worksheet.pdf"
-        response.headers["Content-Disposition"] = f'inline; filename="{filename}"'
-
         total_time = time.time() - start_time
         logger.info(f"Total request took: {total_time:.2f} seconds")
 
-        return response
+        return jsonify({"success": True, "html": html_content})
 
     except Exception as e:
         logger.error(f"Error generating worksheet: {str(e)}")
-        if app.browser_manager:
-            app.browser_manager.run_async(app.browser_manager.cleanup())
-            app.browser_manager = None
         return {"error": str(e)}, 500
 
 
@@ -216,7 +111,7 @@ def preview_problems():
 
 @app.route("/generate_both", methods=["POST"])
 def generate_both():
-    """Generate both worksheet and answer key PDFs."""
+    """Generate both worksheet and answer key HTML."""
     try:
         start_time = time.time()
 
@@ -227,7 +122,7 @@ def generate_both():
             request.form.get("difficulty", generator.get_school_year_progress())
         )
 
-        # Generate problems (only once for both PDFs)
+        # Generate problems (only once for both HTMLs)
         prob_start = time.time()
         problems, answers = generator.generate_math_problems(
             age=age,
@@ -260,22 +155,11 @@ def generate_both():
         html_time = time.time() - html_start
         logger.info(f"HTML generation took: {html_time:.2f} seconds")
 
-        # Generate both PDFs
-        pdf_start = time.time()
-        worksheet_pdf = app.browser_manager.run_async(
-            app.browser_manager.create_pdf(worksheet_html)
-        )
-        answer_key_pdf = app.browser_manager.run_async(
-            app.browser_manager.create_pdf(answer_key_html)
-        )
-        pdf_time = time.time() - pdf_start
-        logger.info(f"PDF generation took: {pdf_time:.2f} seconds")
-
-        # Return both PDFs
+        # Return both HTMLs
         response = jsonify(
             {
-                "worksheet": base64.b64encode(worksheet_pdf).decode("utf-8"),
-                "answer_key": base64.b64encode(answer_key_pdf).decode("utf-8"),
+                "worksheet": worksheet_html,
+                "answer_key": answer_key_html,
             }
         )
 
@@ -285,10 +169,7 @@ def generate_both():
         return response
 
     except Exception as e:
-        logger.error(f"Error generating PDFs: {str(e)}")
-        if app.browser_manager:
-            app.browser_manager.run_async(app.browser_manager.cleanup())
-            app.browser_manager = None
+        logger.error(f"Error generating HTMLs: {str(e)}")
         return {"error": str(e)}, 500
 
 
