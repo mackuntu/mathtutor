@@ -26,9 +26,6 @@
             transform: translate(-50%, -50%);
             text-align: center;
         }
-        .download-links {
-            display: none;
-        }
         .preview-box {
             display: none;
             margin-top: 20px;
@@ -37,11 +34,7 @@
             border-radius: 5px;
             background-color: #f8f9fa;
         }
-        #previewFrame {
-            width: 100%;
-            height: 600px;
-            border: none;
-        }
+        /* Remove unused class */
         .pdf-container {
             display: none;
             position: fixed;
@@ -121,10 +114,6 @@
         </div>
     </div>
 
-    <!-- Hidden containers for PDF generation -->
-    <div id="worksheetContainer" class="pdf-container"></div>
-    <div id="answerKeyContainer" class="pdf-container"></div>
-
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -144,7 +133,6 @@
                 format: 'letter', 
                 orientation: 'portrait'
             },
-            // Don't auto-download
             output: 'blob'
         };
 

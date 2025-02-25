@@ -114,29 +114,6 @@
 }
 </style>
 
-<script>
-    // Dynamically adjust layout based on problem count
-    const problemCount = {{ problems|length }};
-    const root = document.documentElement;
-    
-    // Adjust spacing and font size based on problem count
-    if (problemCount > 25) {
-        root.style.setProperty('--problem-gap', '1.5rem');
-        root.style.setProperty('--vertical-gap', '2rem');
-        root.style.setProperty('--problem-font', '15pt');
-    }
-    if (problemCount > 30) {
-        root.style.setProperty('--problem-gap', '1.25rem');
-        root.style.setProperty('--vertical-gap', '1.75rem');
-        root.style.setProperty('--problem-font', '14pt');
-    }
-    if (problemCount > 35) {
-        root.style.setProperty('--problem-gap', '1rem');
-        root.style.setProperty('--vertical-gap', '1.5rem');
-        root.style.setProperty('--problem-font', '13pt');
-    }
-</script>
-
 <div class="problem-grid">
     {% for problem in problems %}
     <div class="problem">

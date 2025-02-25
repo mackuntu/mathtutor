@@ -3,13 +3,9 @@
 import logging
 import os
 import time
-from datetime import datetime
-from functools import partial
 
 from flask import Flask, jsonify, render_template, request
-from werkzeug.utils import safe_join, secure_filename
 
-from src.document.template import LayoutChoice
 from src.generator import ProblemGenerator
 
 # Configure logging
@@ -34,53 +30,6 @@ def index():
         default_age=6,
         default_difficulty=generator.get_school_year_progress(),
     )
-
-
-@app.route("/generate", methods=["POST"])
-def generate_worksheet():
-    """Generate a worksheet or answer key HTML."""
-    try:
-        start_time = time.time()
-
-        # Get form data
-        age = int(request.form["age"])
-        count = int(request.form.get("count", 30))
-        difficulty = float(
-            request.form.get("difficulty", generator.get_school_year_progress())
-        )
-        pdf_type = request.form.get("type", "worksheet")
-
-        # Generate problems
-        prob_start = time.time()
-        problems, answers = generator.generate_math_problems(
-            age=age,
-            count=count,
-            difficulty=difficulty,
-        )
-        prob_time = time.time() - prob_start
-        logger.info(f"Problem generation took: {prob_time:.2f} seconds")
-
-        # Generate HTML
-        html_start = time.time()
-        is_answer_key = pdf_type == "answer_key"
-        html_content = render_template(
-            "worksheet.html",
-            problems=[{"text": p} for p in problems],
-            answers=answers if is_answer_key else None,
-            is_answer_key=is_answer_key,
-            is_preview=False,
-        )
-        html_time = time.time() - html_start
-        logger.info(f"HTML generation took: {html_time:.2f} seconds")
-
-        total_time = time.time() - start_time
-        logger.info(f"Total request took: {total_time:.2f} seconds")
-
-        return jsonify({"success": True, "html": html_content})
-
-    except Exception as e:
-        logger.error(f"Error generating worksheet: {str(e)}")
-        return {"error": str(e)}, 500
 
 
 @app.route("/preview", methods=["POST"])
