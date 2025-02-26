@@ -19,6 +19,15 @@ data/worksheets_pb2.py
 src/model/trained_model/checkpoint*
 src/model/trained_model/
 
+# DynamoDB Local
+DynamoDBLocal_lib/
+DynamoDBLocal.jar
+dynamodb_local_latest.tar.gz
+shared-local-instance.db*
+
+# OAuth credentials and secrets
+.env
+
 # C extensions
 *.so
 
@@ -194,3 +203,58 @@ __pycache__/
 *.log
 debug_*.png
 debug_*.jpg
+
+# Add to .gitignore
+*.pem
+secrets/
+.dynamodb/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
+*.db
+shared-local-instance.db*
+worksheets.db
+mathtutor.db
+
+# DynamoDB Local
+DynamoDBLocal_lib/
+DynamoDBLocal.jar
+dynamodb_local_latest.tar.gz
+.dynamodb/
+
+# OAuth and Secrets
+.env
+.env.example
+oauth_credentials.json
+client_secrets.json
+*.pem
+
+# Training data and models
+data/mnist/
+*.h5
+checkpoints/
+logs/
