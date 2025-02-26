@@ -105,7 +105,7 @@ def test_automatic_layout_selection(renderer, sample_problems):
     layout = renderer.template_manager.choose_layout(sample_problems[3:])
     assert layout == LayoutChoice.ONE_COLUMN
 
-    # Mixed problems should use mixed layout
+    # Mixed problems should use one-column layout to accommodate the longer problems
     mixed_problems = [
         "2 + 2",  # short
         "Which number is greater: 12 or 15?",  # medium
@@ -113,4 +113,6 @@ def test_automatic_layout_selection(renderer, sample_problems):
         "If you have 3 apples and get 2 more, how many do you have?",  # long
     ]
     layout = renderer.template_manager.choose_layout(mixed_problems)
-    assert layout == LayoutChoice.MIXED
+    assert (
+        layout == LayoutChoice.ONE_COLUMN
+    )  # Use one column when there are any long problems

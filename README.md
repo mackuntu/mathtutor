@@ -5,9 +5,17 @@ The MathTutor system simplifies the creation and distribution of personalized ma
 
 ---
 
-## Installation
+## Quick Start Guide
 
-To set up the MathTutor system and its dependencies:
+### Prerequisites
+- Python 3.12
+- Java Runtime Environment (JRE) for DynamoDB Local
+- OAuth credentials from:
+  - Google Cloud Console
+  - Facebook Developers
+  - X (Twitter) Developer Portal
+
+### Installation Steps
 
 1. **Clone the Repository**:
    ```bash
@@ -15,193 +23,271 @@ To set up the MathTutor system and its dependencies:
    cd mathtutor
    ```
 
-2. **Set Up a Virtual Environment (Optional but Recommended)**:
+2. **Set Up Python Environment**:
    ```bash
+   # Using pyenv (recommended)
    pyenv install 3.12
    pyenv local 3.12
-   ```
-
-3. **Install Dependencies**:
-   Use the provided `requirements.txt` file to install all necessary Python packages:
-   ```bash
+   
+   # Create and activate virtual environment
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   
+   # Install dependencies
    pip install -r requirements.txt
    ```
 
-4. **Run the Application**:
-   You can run the project in two ways:
+3. **Set Up DynamoDB Local**:
+   ```bash
+   # Download and extract DynamoDB Local
+   curl -O https://s3.us-west-2.amazonaws.com/dynamodb-local/dynamodb_local_latest.tar.gz
+   tar xzf dynamodb_local_latest.tar.gz
+   
+   # Start DynamoDB Local (keep this running in a separate terminal)
+   java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb
+   ```
 
-   - **Web Interface** (Recommended):
-     ```bash
-     python -m src.web
-     ```
+4. **Configure Environment**:
+   ```bash
+   # Copy example environment file
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and add your credentials:
+   ```ini
+   # AWS/DynamoDB Configuration
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_DEFAULT_REGION=us-west-2
+   DYNAMODB_ENDPOINT=http://localhost:8000
+   
+   # OAuth Configuration
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   
+   FACEBOOK_CLIENT_ID=your_facebook_client_id
+   FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
+   
+   X_CLIENT_ID=your_x_client_id
+   X_CLIENT_SECRET=your_x_client_secret
+   
+   # Application Settings
+   FLASK_SECRET_KEY=your_random_secret_key
+   OAUTH_REDIRECT_URI=http://localhost:8080/oauth/callback
+   ```
 
-   - **Command Line**:
-     ```bash
-     python -m src.main
-     ```
+### OAuth Setup Guide
 
----
+#### Google OAuth Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select an existing one
+3. Enable the Google+ API and OAuth2 API
+4. Go to Credentials → Create Credentials → OAuth Client ID
+5. Configure the OAuth consent screen:
+   - Add authorized domains
+   - Add scopes for email and profile
+6. Create OAuth 2.0 Client ID:
+   - Application type: Web application
+   - Name: MathTutor
+   - Authorized redirect URIs: `http://localhost:8080/oauth/callback`
+7. Copy the Client ID and Client Secret to your `.env` file
 
-### Goals
-1. **Efficient Practice**: Generate daily customized worksheets with minimal parent effort.
-2. **Paper-Based Learning**: Keep children engaged without screen time.
-3. **Quick Feedback**: Enable immediate parent-guided feedback through answer overlays.
-4. **Family-Friendly**: Support multiple children at different learning levels.
+#### Facebook OAuth Setup
+1. Go to [Facebook Developers](https://developers.facebook.com)
+2. Create a new app or select an existing one
+3. Add Facebook Login product to your app
+4. Go to Facebook Login → Settings:
+   - Add `http://localhost:8080/oauth/callback` to Valid OAuth Redirect URIs
+5. Go to Basic Settings:
+   - Copy App ID to `FACEBOOK_CLIENT_ID`
+   - Copy App Secret to `FACEBOOK_CLIENT_SECRET`
+6. Configure app permissions:
+   - Add email and public_profile permissions
 
----
+#### X (Twitter) OAuth Setup
+1. Go to [X Developer Portal](https://developer.twitter.com/en/portal/dashboard)
+2. Create a new project and app
+3. Enable OAuth 2.0
+4. In project settings:
+   - Set Type to Web App
+   - Add `http://localhost:8080/oauth/callback` to Callback URLs
+   - Enable OAuth 2.0 scopes:
+     - `tweet.read`
+     - `users.read`
+     - `offline.access`
+5. Copy API Key to `X_CLIENT_ID`
+6. Copy API Secret Key to `X_CLIENT_SECRET`
 
-### Features
+### Security Notes
+- Never commit `.env` file to version control
+- Keep OAuth credentials secure
+- Regularly rotate secrets in production
+- Use different credentials for development and production
 
-#### P1: Essential Features
-1. **Simple Web Interface**:
-   - One-click worksheet generation
-   - Mobile-friendly design
-   - Optional scheduled auto-generation
-   - Basic configuration settings
+5. **Initialize Database**:
+   ```bash
+   # Create DynamoDB tables
+   python src/database/create_tables.py
+   ```
 
-2. **Enhanced Parent Guide**:
-   - Clear answer overlay system
-   - Common mistake indicators
-   - Suggested hints for typical errors
-   - Weekly progress checklist
+6. **Run the Application**:
+   ```bash
+   # Start the Flask application
+   python -m src.web
+   ```
 
-3. **Core Worksheet Generation**:
-   - Dynamic problem creation
-   - Grade-appropriate content
-   - Customizable difficulty levels
-   - Print-ready formatting
+   The application will be available at http://localhost:8080
 
-4. **Multi-Child Support**:
-   - Individual student profiles
-   - Color-coded worksheets per child
-   - Batch printing options
-   - Progress tracking per student
+### Running in Development
 
-5. **Educational Enhancements**:
-   - Mini-tutorials on worksheets
-   - Visual guides for concepts
-   - Reference sections
-   - Progressive difficulty system
+1. **Start DynamoDB Local** (in a separate terminal):
+   ```bash
+   java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb
+   ```
 
-#### P2: Important Features
-1. **Basic Achievement System**:
-   - Weekly tracker
-   - Designated sticker spots
-   - Challenge problems
-   - Progress visualization
+2. **Start the Flask Application** (in another terminal):
+   ```bash
+   python -m src.web
+   ```
 
-2. **Simplified Distribution**:
-   - Single-file executable
-   - Desktop shortcuts
-   - Auto-update mechanism
-   - Configuration persistence
+3. **Access the Application**:
+   - Open http://localhost:8080 in your browser
+   - Log in using any of the configured OAuth providers
+   - Start managing children and generating worksheets
 
-3. **Resource Management**:
-   - Organized worksheet storage
-   - Print history tracking
-   - Content reuse optimization
-   - Batch processing options
+### Troubleshooting
 
-#### P3: Nice-to-Have Features
-1. **Advanced Analytics**:
-   - Learning pattern recognition
-   - Progress reporting
-   - Difficulty adjustment algorithms
-   - Performance insights
+1. **DynamoDB Connection Issues**:
+   - Ensure DynamoDB Local is running (port 8000)
+   - Check AWS credentials in `.env`
+   - Verify DYNAMODB_ENDPOINT is set correctly
 
-2. **Content Expansion**:
-   - Additional subject areas
-   - Seasonal/themed content
-   - Custom problem templates
-   - Parent-created content support
+2. **OAuth Login Problems**:
+   - Verify OAuth credentials in `.env`
+   - Ensure redirect URIs are configured in provider consoles
+   - Check that OAUTH_REDIRECT_URI matches the configured callbacks
 
----
-
-### Functional Requirements
-
-#### Core Requirements
-1. **Worksheet Creation**:
-   - Dynamic generation of age-appropriate problems
-   - Clean, print-ready formatting
-   - Parent guide overlay generation
-
-2. **Web Interface**:
-   - Simple, mobile-friendly design
-   - One-click generation
-   - Basic configuration options
-
-3. **Multi-Child Support**:
-   - Profile management
-   - Individual progress tracking
-   - Batch worksheet generation
-
-4. **Content Management**:
-   - Problem difficulty progression
-   - Educational reference materials
-   - Weekly achievement tracking
-
-#### Secondary Requirements
-1. **Distribution System**:
-   - Packaged executable
-   - Auto-update mechanism
-   - Configuration persistence
-
-2. **Resource Optimization**:
-   - Print history tracking
-   - Content reuse strategies
-   - Storage organization
-
-#### Non-Functional Requirements
-1. **Performance**:
-   - Worksheet generation under 5 seconds
-   - Web interface response under 1 second
-
-2. **Usability**:
-   - No technical knowledge required
-   - Intuitive interface
-   - Minimal setup process
-
-3. **Reliability**:
-   - Consistent formatting
-   - Error-free content generation
-   - Stable web interface
+3. **Application Errors**:
+   - Check application logs for detailed error messages
+   - Verify all required environment variables are set
+   - Ensure Python virtual environment is activated
 
 ---
 
-### Roadmap
+## Features
 
-#### Phase 1: Core System Enhancement
-- Implement web interface
-- Create parent guide overlay system
-- Develop multi-child support
+### Authentication
+- Multi-provider social login support:
+  - Google OAuth2
+  - Facebook OAuth2
+  - X (Twitter) OAuth2
+- Secure session management
+- User profile management
 
-#### Phase 2: Distribution
-- Package as executable
-- Add configuration system
-- Create auto-update mechanism
+### Child Management
+- Add, edit, and remove children profiles
+- Customize per child:
+  - Grade level
+  - Birthday tracking
+  - Color preferences
+- Multi-child support for families
 
-#### Phase 3: Content Expansion
-- Add mini-tutorials
-- Implement progressive difficulty
-- Create achievement system
+### Worksheet Generation
+- Grade-appropriate content
+- Customizable difficulty levels
+- Print-ready formatting
+- Answer overlays for grading
 
-#### Phase 4: Optimization
-- Resource management
-- Print optimization
-- Storage organization
-
-#### Phase 5: Analytics
-- Progress tracking
+### Progress Tracking
+- Worksheet history
+- Completion tracking
 - Performance insights
-- Pattern recognition
 
 ---
 
-### Deliverables
-1. **Web Interface**: Simple, mobile-friendly worksheet generation system
-2. **Worksheet Generator**: Enhanced content creation system
-3. **Parent Guide**: Clear overlay system for grading
-4. **Profile Manager**: Multi-child support system
-5. **Achievement System**: Basic progress tracking
-6. **Documentation**: User guides and setup instructions
+## Technical Stack
+
+### Backend
+- Python 3.12
+- Flask web framework
+- DynamoDB for data storage
+- OAuth2 for authentication
+
+### Frontend
+- HTML5/CSS3
+- Bootstrap for responsive design
+- JavaScript for interactive features
+
+### Database Schema
+
+#### Users
+- Primary Key: email (String)
+- Attributes:
+  - name (String)
+  - picture (String, optional)
+  - created_at (Number)
+  - updated_at (Number)
+
+#### Children
+- Primary Key: id (String)
+- GSI: ParentEmailIndex
+- Attributes:
+  - parent_email (String)
+  - name (String)
+  - birthday (String)
+  - grade_level (Number)
+  - preferred_color (String)
+  - created_at (Number)
+  - updated_at (Number)
+
+#### Sessions
+- Primary Key: token (String)
+- GSI: UserEmailIndex
+- Attributes:
+  - user_email (String)
+  - expires_at (Number)
+  - created_at (Number)
+
+#### Worksheets
+- Primary Key: id (String)
+- GSI: ChildIdIndex
+- Attributes:
+  - child_id (String)
+  - problems (List)
+  - answers (List)
+  - completed (Boolean)
+  - created_at (Number)
+  - updated_at (Number)
+
+---
+
+## Development
+
+### Testing
+```bash
+python -m pytest tests/
+```
+
+### Code Style
+- Black for Python formatting
+- Flake8 for linting
+- MyPy for type checking
+
+---
+
+## Recent Updates
+
+- Implemented multi-provider social login (Google, Facebook, X)
+- Enhanced child profile management with birthday tracking
+- Added color preferences for worksheet customization
+- Improved error handling and validation
+- Set up local DynamoDB for development
+- Updated authentication flow with proper token handling
+- Enhanced UI with modern design elements
+
+---
+
+## License
+
+MIT License
 

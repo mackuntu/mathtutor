@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathTutor - Manage Children</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .child-card {
+            transition: all 0.3s ease;
+        }
+        .child-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .action-button {
+            padding: 0.25rem 0.5rem;
+            color: #6c757d;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .action-button:hover {
+            color: #0d6efd;
+        }
+        .action-button.delete:hover {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('web.index') }}">MathTutor</a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
+                <a class="nav-link" href="{{ url_for('web.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Add New Child</h5>
+                        <form id="childForm" method="POST" action="{{ url_for('web.register_child') }}">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="birthday" class="form-label">Birthday</label>
+                                <input type="date" class="form-control" id="birthday" name="birthday" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="grade_level" class="form-label">Grade Level</label>
+                                <select class="form-select" id="grade_level" name="grade_level" required>
+                                    <option value="">Select grade...</option>
+                                    <option value="0">Kindergarten</option>
+                                    {% for grade in range(1, 13) %}
+                                    <option value="{{ grade }}">Grade {{ grade }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="preferred_color" class="form-label">Preferred Color</label>
+                                <input type="color" class="form-control form-control-color" id="preferred_color" name="preferred_color" value="#4CAF50">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Child</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <h3 class="mb-4">Your Children</h3>
+                {% if children %}
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    {% for child in children %}
+                    <div class="col">
+                        <div class="card child-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title mb-0">{{ child.name }}
+                                        {% if child.preferred_color %}
+                                        <span class="color-preview" style="background-color: {{ child.preferred_color }}"></span>
+                                        {% endif %}
+                                    </h5>
+                                    <div>
+                                        <button class="action-button" onclick="editChild('{{ child.id }}')">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="action-button delete" onclick="deleteChild('{{ child.id }}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="card-text">
+                                    Grade: {% if child.grade == 0 %}Kindergarten{% else %}{{ child.grade }}{% endif %}<br>
+                                    Age: {{ child.age }} years old
+                                </p>
+                                <a href="{{ url_for('web.index', child_id=child.id) }}" class="btn btn-outline-primary btn-sm">Generate Worksheet</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    You haven't added any children yet. Use the form on the left to add your first child.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function deleteChild(childId) {
+            if (confirm('Are you sure you want to delete this child?')) {
+                // Create a form to submit the delete request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/children/${childId}/delete`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function editChild(childId) {
+            window.location.href = `/children/${childId}/edit`;
+        }
+
+        // Form validation
+        document.getElementById('childForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const birthday = new Date(document.getElementById('birthday').value);
+            const today = new Date();
+            const age = Math.floor((today - birthday) / (1000 * 60 * 60 * 24 * 365.25));
+            
+            if (age < 4 || age > 18) {
+                alert('Child must be between 4 and 18 years old');
+                return;
+            }
+            
+            this.submit();
+        });
+    </script>
+</body>
+</html> 

@@ -6,6 +6,8 @@
     <title>MathTutor - Worksheet Generator</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -34,34 +36,78 @@
             border-radius: 5px;
             background-color: #f8f9fa;
         }
-        /* Remove unused class */
         .pdf-container {
             display: none;
             position: fixed;
             left: -9999px;
         }
+        .child-selector {
+            max-width: 300px;
+            margin-bottom: 2rem;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">MathTutor</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('web.index') }}">Worksheets</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('web.children') }}">Manage Children</a>
+                    </li>
+                </ul>
+                <div class="navbar-nav ms-auto">
+                    <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
+                    <a class="nav-link" href="{{ url_for('web.logout') }}">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <div class="container py-5">
         <h1 class="text-center mb-4">MathTutor Worksheet Generator</h1>
+        
+        <!-- Child Selector -->
+        <div class="child-selector mx-auto">
+            <label for="childSelect" class="form-label">Generate worksheet for:</label>
+            <div class="position-relative">
+                <select class="form-select" id="childSelect" onchange="window.location.href='/?child_id=' + this.value">
+                    {% for child in children %}
+                    <option value="{{ child.id }}" {% if child.id == active_child.id %}selected{% endif %}>
+                        {{ child.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if active_child.preferred_color %}
+                <span class="color-preview position-absolute top-50 end-0 translate-middle-y me-4" 
+                      style="background-color: {{ active_child.preferred_color }}"></span>
+                {% endif %}
+            </div>
+        </div>
         
         <!-- Configuration Form -->
         <div class="card mb-4">
             <div class="card-body">
                 <form id="worksheetForm" class="needs-validation" novalidate>
-                    <!-- Student Age -->
-                    <div class="mb-3">
-                        <label for="age" class="form-label">Student Age</label>
-                        <select class="form-select" id="age" name="age" required>
-                            <option value="">Select age...</option>
-                            {% for age in ages %}
-                            <option value="{{ age }}" {% if age == default_age %}selected{% endif %}>{{ age }} years old</option>
-                            {% endfor %}
-                        </select>
-                        <div class="invalid-feedback">Please select an age.</div>
-                    </div>
-
+                    <!-- Student Age (Hidden, using active child's age) -->
+                    <input type="hidden" id="age" name="age" value="{{ active_child.age }}">
+                    
                     <!-- Number of Problems -->
                     <div class="mb-3">
                         <label for="count" class="form-label">Number of Problems</label>
@@ -98,21 +144,21 @@
         </div>
 
         <!-- Problem Preview -->
-        <div id="previewBox" class="preview-box">
-            <h5 class="mb-3">Preview:</h5>
-            <div id="previewContent"></div>
-        </div>
+        <div id="previewBox" class="preview-box"></div>
 
-        <!-- Loading Spinner -->
+        <!-- Loading Indicator -->
         <div id="loading" class="loading">
             <div class="loading-content">
-                <div class="spinner-border text-primary" role="status">
+                <div class="spinner-border text-primary mb-3" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="mt-2">Processing...</p>
+                <p>Generating worksheet...</p>
             </div>
         </div>
     </div>
+
+    <!-- PDF Container -->
+    <div id="pdfContainer" class="pdf-container"></div>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -188,7 +234,7 @@
                 const data = await response.json();
                 if (data.success) {
                     // Display preview
-                    document.getElementById('previewContent').innerHTML = data.html;
+                    document.getElementById('previewBox').innerHTML = data.html;
                     document.getElementById('previewBox').style.display = 'block';
                 } else {
                     throw new Error(data.error);
