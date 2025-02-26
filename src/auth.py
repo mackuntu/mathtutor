@@ -179,7 +179,11 @@ class AuthManager:
             return None
 
         session = self.repository.get_session(token)
-        if not session or session.expires_at < int(time.time()):
+        if not session:
+            return None
+
+        if session.expires_at < int(time.time()):
+            self.repository.delete_session(token)
             return None
 
         return self.repository.get_user_by_email(session.user_email)

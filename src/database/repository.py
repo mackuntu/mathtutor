@@ -85,6 +85,11 @@ class DynamoDBRepository:
         """Delete a child."""
         self.dynamodb.delete_item(TableName=CHILDREN_TABLE, Key={"id": {"S": child_id}})
 
+    def scan_children(self) -> List[Child]:
+        """Scan all children."""
+        response = self.dynamodb.scan(TableName=CHILDREN_TABLE)
+        return [Child.from_item(item) for item in response.get("Items", [])]
+
     # Session operations
     def get_session(self, token: str) -> Optional[Session]:
         """Get session by token."""
@@ -110,6 +115,11 @@ class DynamoDBRepository:
     def delete_session(self, token: str) -> None:
         """Delete a session."""
         self.dynamodb.delete_item(TableName=SESSIONS_TABLE, Key={"token": {"S": token}})
+
+    def scan_sessions(self) -> List[Session]:
+        """Scan all sessions."""
+        response = self.dynamodb.scan(TableName=SESSIONS_TABLE)
+        return [Session.from_item(item) for item in response.get("Items", [])]
 
     # Worksheet operations
     def get_worksheet(self, worksheet_id: str) -> Optional[Worksheet]:

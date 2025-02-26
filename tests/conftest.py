@@ -176,3 +176,23 @@ def sample_problems():
         "Solve the equation: x + 5 = 10",
         "If you have 3 apples and get 2 more, how many do you have?",
     ]
+
+
+@pytest.fixture(autouse=True)
+def cleanup_sessions(repository):
+    """Clean up all sessions before each test."""
+    # Get all sessions and delete them
+    sessions = repository.scan_sessions()
+    for session in sessions:
+        repository.delete_session(session.token)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def cleanup_children(repository):
+    """Clean up all children before each test."""
+    # Get all children and delete them
+    children = repository.scan_children()
+    for child in children:
+        repository.delete_child(child.id)
+    yield

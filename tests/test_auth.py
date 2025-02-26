@@ -11,7 +11,7 @@ from src.database.models import Session, User
 def test_verify_google_token(auth_manager):
     """Test Google token verification."""
     # Test invalid token
-    valid, user_info = auth_manager.verify_google_token("invalid_token")
+    valid, user_info = auth_manager.verify_oauth_token("google", "invalid_token")
     assert not valid
     assert user_info is None
 
