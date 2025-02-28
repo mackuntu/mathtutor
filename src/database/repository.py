@@ -1,11 +1,13 @@
 """Repository class for DynamoDB operations."""
 
+import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import boto3
 
+from ..models import Worksheet as WorksheetModel  # Import the new Worksheet model
 from .config import (
     CHILD_ID_INDEX,
     CHILDREN_TABLE,
@@ -122,14 +124,28 @@ class DynamoDBRepository:
         return [Session.from_item(item) for item in response.get("Items", [])]
 
     # Worksheet operations
-    def get_worksheet(self, worksheet_id: str) -> Optional[Worksheet]:
+    def get_worksheet(self, worksheet_id: str) -> Optional[WorksheetModel]:
         """Get worksheet by ID."""
         response = self.dynamodb.get_item(
             TableName=WORKSHEETS_TABLE, Key={"id": {"S": worksheet_id}}
         )
-        return Worksheet.from_item(response.get("Item"))
+        item = response.get("Item")
+        if not item:
+            return None
 
-    def get_child_worksheets(self, child_id: str) -> List[Worksheet]:
+        return WorksheetModel.from_dict(
+            {
+                "id": item["id"]["S"],
+                "child_id": item["child_id"]["S"],
+                "problems": item["problems"]["S"],
+                "created_at": datetime.fromtimestamp(int(item["created_at"]["N"])),
+                "updated_at": datetime.fromtimestamp(int(item["updated_at"]["N"])),
+                "serial_number": item.get("serial_number", {}).get("S"),
+                "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
+            }
+        )
+
+    def get_child_worksheets(self, child_id: str) -> List[WorksheetModel]:
         """Get all worksheets for a child."""
         response = self.dynamodb.query(
             TableName=WORKSHEETS_TABLE,
@@ -137,16 +153,75 @@ class DynamoDBRepository:
             KeyConditionExpression="child_id = :child_id",
             ExpressionAttributeValues={":child_id": {"S": child_id}},
         )
-        return [Worksheet.from_item(item) for item in response.get("Items", [])]
+        return [
+            WorksheetModel.from_dict(
+                {
+                    "id": item["id"]["S"],
+                    "child_id": item["child_id"]["S"],
+                    "problems": item["problems"]["S"],
+                    "created_at": datetime.fromtimestamp(int(item["created_at"]["N"])),
+                    "updated_at": datetime.fromtimestamp(int(item["updated_at"]["N"])),
+                    "serial_number": item.get("serial_number", {}).get("S"),
+                    "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
+                }
+            )
+            for item in response.get("Items", [])
+        ]
 
-    def create_worksheet(self, worksheet: Worksheet) -> None:
+    def create_worksheet(self, worksheet: WorksheetModel) -> None:
         """Create a new worksheet."""
-        self.dynamodb.put_item(TableName=WORKSHEETS_TABLE, Item=worksheet.to_item())
+        self.dynamodb.put_item(
+            TableName=WORKSHEETS_TABLE,
+            Item={
+                "id": {"S": worksheet.id},
+                "child_id": {"S": worksheet.child_id},
+                "problems": {"S": worksheet.problems},
+                "created_at": {"N": str(int(worksheet.created_at.timestamp()))},
+                "updated_at": {"N": str(int(worksheet.updated_at.timestamp()))},
+                **(
+                    {"serial_number": {"S": worksheet.serial_number}}
+                    if worksheet.serial_number
+                    else {}
+                ),
+                **(
+                    {
+                        "incorrect_problems": {
+                            "S": json.dumps(worksheet.incorrect_problems)
+                        }
+                    }
+                    if worksheet.incorrect_problems
+                    else {}
+                ),
+            },
+        )
 
-    def update_worksheet(self, worksheet: Worksheet) -> None:
+    def update_worksheet(self, worksheet: WorksheetModel) -> None:
         """Update an existing worksheet."""
-        worksheet.updated_at = worksheet.utc_now()
-        self.dynamodb.put_item(TableName=WORKSHEETS_TABLE, Item=worksheet.to_item())
+        worksheet.updated_at = datetime.utcnow()
+        self.dynamodb.put_item(
+            TableName=WORKSHEETS_TABLE,
+            Item={
+                "id": {"S": worksheet.id},
+                "child_id": {"S": worksheet.child_id},
+                "problems": {"S": worksheet.problems},
+                "created_at": {"N": str(int(worksheet.created_at.timestamp()))},
+                "updated_at": {"N": str(int(worksheet.updated_at.timestamp()))},
+                **(
+                    {"serial_number": {"S": worksheet.serial_number}}
+                    if worksheet.serial_number
+                    else {}
+                ),
+                **(
+                    {
+                        "incorrect_problems": {
+                            "S": json.dumps(worksheet.incorrect_problems)
+                        }
+                    }
+                    if worksheet.incorrect_problems
+                    else {}
+                ),
+            },
+        )
 
     def delete_worksheet(self, worksheet_id: str) -> None:
         """Delete a worksheet."""

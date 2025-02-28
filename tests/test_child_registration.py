@@ -76,7 +76,7 @@ def test_update_child(repository, test_child_dynamodb):
     assert updated_child.grade == 4
 
 
-def test_delete_child(repository, test_child_dynamodb):
+def test_delete_child(repository, test_child_dynamodb, cleanup_children):
     """Test deleting a child."""
     # Delete child
     repository.delete_child(test_child_dynamodb.id)

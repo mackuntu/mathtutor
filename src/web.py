@@ -1,5 +1,6 @@
 """Web routes for the MathTutor application."""
 
+import json
 import logging
 import os
 import secrets
@@ -23,8 +24,9 @@ from flask import (
 
 from .auth import AuthManager
 from .database import get_repository
-from .database.models import Child, Worksheet
+from .database.models import Child
 from .generator import ProblemGenerator
+from .models import Worksheet  # Use the model with create() method
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -363,52 +365,72 @@ def generate_both():
         difficulty = float(
             request.form.get("difficulty", generator.get_school_year_progress())
         )
+        num_worksheets = int(request.form.get("num_worksheets", 1))
+        child_id = request.form.get("child_id")
 
-        # Generate problems (only once for both HTMLs)
-        prob_start = time.time()
-        problems, answers = generator.generate_math_problems(
-            age=age,
-            count=count,
-            difficulty=difficulty,
-        )
-        prob_time = time.time() - prob_start
-        logger.info(f"Problem generation took: {prob_time:.2f} seconds")
+        if not child_id:
+            return {"error": "Child ID is required"}, 400
 
-        problem_list = [{"text": p} for p in problems]
+        child = repository.get_child_by_id(child_id)
+        if not child or child.parent_email != user.email:
+            return {"error": "Child not found"}, 404
 
-        # Generate worksheet HTML
-        html_start = time.time()
-        worksheet_html = render_template(
-            "worksheet.html",
-            problems=problem_list,
-            answers=None,
-            is_answer_key=False,
-            is_preview=False,
-        )
+        # Generate multiple worksheets
+        worksheets_data = []
+        for _ in range(num_worksheets):
+            # Generate problems
+            prob_start = time.time()
+            problems, answers = generator.generate_math_problems(
+                age=age,
+                count=count,
+                difficulty=difficulty,
+            )
+            prob_time = time.time() - prob_start
+            logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
-        # Generate answer key HTML
-        answer_key_html = render_template(
-            "worksheet.html",
-            problems=problem_list,
-            answers=answers,
-            is_answer_key=True,
-            is_preview=False,
-        )
-        html_time = time.time() - html_start
-        logger.info(f"HTML generation took: {html_time:.2f} seconds")
+            # Create worksheet in database
+            worksheet = Worksheet.create(
+                child_id=child_id, problems=json.dumps(problems)
+            )
+            repository.create_worksheet(worksheet)
 
-        # Return both HTMLs
-        response = jsonify(
-            {
-                "worksheet": worksheet_html,
-                "answer_key": answer_key_html,
-            }
-        )
+            problem_list = [{"text": p} for p in problems]
+
+            # Generate worksheet HTML
+            html_start = time.time()
+            worksheet_html = render_template(
+                "worksheet.html",
+                problems=problem_list,
+                answers=None,
+                is_answer_key=False,
+                is_preview=False,
+                serial_number=worksheet.serial_number,
+            )
+
+            # Generate answer key HTML
+            answer_key_html = render_template(
+                "worksheet.html",
+                problems=problem_list,
+                answers=answers,
+                is_answer_key=True,
+                is_preview=False,
+                serial_number=worksheet.serial_number,
+            )
+            html_time = time.time() - html_start
+            logger.info(f"HTML generation took: {html_time:.2f} seconds")
+
+            worksheets_data.append(
+                {
+                    "worksheet": worksheet_html,
+                    "answer_key": answer_key_html,
+                    "serial_number": worksheet.serial_number,
+                }
+            )
 
         total_time = time.time() - start_time
         logger.info(f"Total request took: {total_time:.2f} seconds")
 
-        return response
+        return jsonify({"worksheets": worksheets_data})
 
     except Exception as e:
         logger.error(f"Error generating HTMLs: {str(e)}")
@@ -468,11 +490,23 @@ def submit_worksheet(worksheet_id):
         return redirect(url_for("web.index"))
 
     try:
-        answers = [
-            float(request.form.get(f"answer_{i}"))
-            for i in range(len(worksheet.problems))
-        ]
-        worksheet.answers = answers
+        answers = []
+        incorrect_problems = []
+        problems = json.loads(worksheet.problems)
+
+        for i in range(len(problems)):
+            student_answer = request.form.get(f"answer_{i}")
+            if student_answer:
+                student_answer = float(student_answer)
+                answers.append(student_answer)
+                # Check if answer is incorrect
+                if "answer" in problems[i] and student_answer != problems[i]["answer"]:
+                    incorrect_problems.append(i)
+            else:
+                answers.append(None)
+
+        worksheet.answers = json.dumps(answers)
+        worksheet.incorrect_problems = incorrect_problems
         worksheet.completed = True
         repository.update_worksheet(worksheet)
         flash("Worksheet submitted successfully!", "success")
@@ -499,14 +533,22 @@ def view_worksheet(worksheet_id):
         flash("Access denied.", "error")
         return redirect(url_for("web.index"))
 
+    problems = json.loads(worksheet.problems)
+    answers = json.loads(worksheet.answers) if worksheet.answers else None
+
+    # Format problems to match the expected structure
+    problem_list = [{"text": p} for p in problems]
+
     return render_template(
         "worksheet.html",
         user=user,
         child=child,
-        problems=worksheet.problems,
-        answers=worksheet.answers,
-        completed=worksheet.completed,
+        problems=problem_list,
+        answers=answers,
         worksheet_id=worksheet.id,
+        serial_number=worksheet.serial_number,
+        incorrect_problems=worksheet.incorrect_problems,
+        is_answer_key=request.args.get("print") == "true",
     )
 
 
@@ -520,3 +562,154 @@ def terms():
 def privacy():
     """Render Privacy Policy page."""
     return render_template("privacy.html")
+
+
+@bp.route("/past_worksheets/", defaults={"child_id": None})
+@bp.route("/past_worksheets/<child_id>")
+def past_worksheets(child_id):
+    """View past worksheets for a child."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("web.login"))
+
+    if not child_id:
+        flash("Please select a child first.", "warning")
+        return redirect(url_for("web.index"))
+
+    child = repository.get_child_by_id(child_id)
+    if not child or child.parent_email != user.email:
+        flash("Child not found.", "error")
+        return redirect(url_for("web.index"))
+
+    worksheets = repository.get_child_worksheets(child_id)
+    worksheets.sort(key=lambda w: w.created_at, reverse=True)
+
+    return render_template(
+        "past_worksheets.html",
+        user=user,
+        child=child,
+        worksheets=worksheets,
+    )
+
+
+@bp.route("/worksheets/<worksheet_id>/grade")
+def grade_worksheet(worksheet_id):
+    """Grade a worksheet."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("web.login"))
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        flash("Worksheet not found.", "error")
+        return redirect(url_for("web.index"))
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        flash("Access denied.", "error")
+        return redirect(url_for("web.index"))
+
+    # Get past scores for sparkline
+    past_worksheets = repository.get_child_worksheets(child.id)
+    past_scores = []
+    past_dates = []
+
+    for w in past_worksheets:
+        if w.incorrect_problems is not None:  # Only include graded worksheets
+            total = len(json.loads(w.problems))
+            incorrect = len(w.incorrect_problems)
+            score = ((total - incorrect) / total) * 100
+            past_scores.append(score)
+            past_dates.append(w.created_at.strftime("%Y-%m-%d"))
+
+    problems = json.loads(worksheet.problems)
+    problem_list = [{"text": p} for p in problems]
+
+    return render_template(
+        "grade_worksheet.html",
+        user=user,
+        child=child,
+        worksheet=worksheet,
+        problems=problem_list,
+        past_scores=past_scores[-10:],  # Show last 10 scores
+        past_dates=past_dates[-10:],
+    )
+
+
+@bp.route("/worksheets/<worksheet_id>/submit_grades", methods=["POST"])
+def submit_grades(worksheet_id):
+    """Submit grades for a worksheet."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        return jsonify({"success": False, "error": "Worksheet not found"}), 404
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+
+    try:
+        data = request.get_json()
+        incorrect_problems = data.get("incorrect_problems", [])
+
+        # Update worksheet with incorrect problems
+        worksheet.incorrect_problems = incorrect_problems
+        repository.update_worksheet(worksheet)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/worksheets/<worksheet_id>/delete", methods=["POST"])
+def delete_worksheet(worksheet_id):
+    """Delete a worksheet."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        return jsonify({"success": False, "error": "Worksheet not found"}), 404
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+
+    repository.delete_worksheet(worksheet_id)
+    flash("Worksheet deleted successfully!", "success")
+    return jsonify({"success": True})
+
+
+@bp.route("/worksheets/bulk_delete", methods=["POST"])
+def bulk_delete_worksheets():
+    """Delete multiple worksheets."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    data = request.get_json()
+    worksheet_ids = data.get("worksheet_ids", [])
+
+    if not worksheet_ids:
+        return jsonify({"success": False, "error": "No worksheets selected"}), 400
+
+    # Verify ownership of all worksheets before deleting
+    for worksheet_id in worksheet_ids:
+        worksheet = repository.get_worksheet(worksheet_id)
+        if not worksheet:
+            continue
+
+        child = repository.get_child_by_id(worksheet.child_id)
+        if not child or child.parent_email != user.email:
+            return jsonify({"success": False, "error": "Access denied"}), 403
+
+    # Delete all worksheets
+    for worksheet_id in worksheet_ids:
+        repository.delete_worksheet(worksheet_id)
+
+    flash(f"{len(worksheet_ids)} worksheets deleted successfully!", "success")
+    return jsonify({"success": True})

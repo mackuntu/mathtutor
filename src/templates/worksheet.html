@@ -71,6 +71,19 @@
             border-radius: 4px;
             background-color: transparent !important;
         }
+
+        .incorrect {
+            background-color: #ffebee !important;
+            border-color: #ef5350 !important;
+        }
+
+        .serial-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10pt;
+            color: #666;
+        }
         
         @media screen {
             .print-only {
@@ -83,12 +96,20 @@
                 border: 2px dotted #999 !important;
                 background-color: transparent !important;
             }
+            
+            .incorrect {
+                background-color: #ffebee !important;
+                border-color: #ef5350 !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="title">{{ "Answer Key" if is_answer_key else "MathTutor Worksheet" }}</div>
+        {% if serial_number %}
+        <div class="serial-number">Serial: {{ serial_number }}</div>
+        {% endif %}
         <div class="info-row">
             <div class="field">Name: <span class="underline"></span></div>
             <div class="field">Date: <span class="underline"></span></div>

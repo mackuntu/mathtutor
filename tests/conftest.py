@@ -178,7 +178,7 @@ def sample_problems():
     ]
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def cleanup_sessions(repository):
     """Clean up all sessions before each test."""
     # Get all sessions and delete them
@@ -188,7 +188,7 @@ def cleanup_sessions(repository):
     yield
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def cleanup_children(repository):
     """Clean up all children before each test."""
     # Get all children and delete them

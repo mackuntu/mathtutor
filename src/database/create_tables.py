@@ -84,13 +84,21 @@ def create_tables():
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
                 {"AttributeName": "child_id", "AttributeType": "S"},
+                {"AttributeName": "serial_number", "AttributeType": "S"},
             ],
             GlobalSecondaryIndexes=[
                 {
                     "IndexName": "ChildIdIndex",
                     "KeySchema": [{"AttributeName": "child_id", "KeyType": "HASH"}],
                     "Projection": {"ProjectionType": "ALL"},
-                }
+                },
+                {
+                    "IndexName": "SerialNumberIndex",
+                    "KeySchema": [
+                        {"AttributeName": "serial_number", "KeyType": "HASH"}
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                },
             ],
             BillingMode="PAY_PER_REQUEST",
         )

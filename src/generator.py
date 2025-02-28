@@ -16,6 +16,10 @@ class ProblemGenerator:
 
     # Base problem types by age group (will be adjusted by difficulty)
     PROBLEM_TYPES = {
+        5: {  # Kindergarten
+            "addition": (1, 10),  # Numbers up to 10
+            "subtraction": (1, 10),  # Numbers up to 10
+        },
         6: {  # First grade
             "addition": (1, 20),  # Numbers up to 20
             "subtraction": (1, 20),  # Numbers up to 20
@@ -42,6 +46,14 @@ class ProblemGenerator:
 
     # Problem type weights by difficulty (0.0 to 1.0)
     DIFFICULTY_WEIGHTS = {
+        5: {  # Kindergarten
+            0.0: {"addition": 0.8, "subtraction": 0.2},  # Easier: mostly addition
+            0.5: {
+                "addition": 0.6,
+                "subtraction": 0.4,
+            },  # Medium: more addition than subtraction
+            1.0: {"addition": 0.5, "subtraction": 0.5},  # Harder: equal mix
+        },
         6: {  # First grade
             0.0: {"addition": 0.7, "subtraction": 0.3},  # Easier: more addition
             0.5: {"addition": 0.5, "subtraction": 0.5},  # Medium: balanced
@@ -135,29 +147,43 @@ class ProblemGenerator:
         """
         range_size = max_val - min_val
 
-        # Scale ranges more aggressively with difficulty
-        if difficulty > 0.5:  # For higher difficulties, extend the maximum
-            extension_factor = 1.0 + (difficulty - 0.5) * 2  # Up to 2x extension
-            adjusted_max = min(
-                max_val * extension_factor,  # Extend range
-                self.PROBLEM_TYPES[
-                    min(age + 1, 9)
-                ].get(  # But don't exceed next age level
-                    list(self.PROBLEM_TYPES[min(age + 1, 9)].keys())[0]
-                )[
-                    1
-                ],
-            )
+        # For age 5, keep ranges smaller and more manageable
+        if age == 5:
+            if difficulty <= 0.3:
+                # Very easy: numbers 1-5
+                return 1, 5
+            elif difficulty <= 0.7:
+                # Medium: numbers 1-7
+                return 1, 7
+            else:
+                # Hard: full range (1-10)
+                return min_val, max_val
         else:
-            adjusted_max = max_val
+            # Scale ranges more aggressively with difficulty
+            if difficulty > 0.5:  # For higher difficulties, extend the maximum
+                extension_factor = 1.0 + (difficulty - 0.5) * 2  # Up to 2x extension
+                adjusted_max = min(
+                    max_val * extension_factor,  # Extend range
+                    self.PROBLEM_TYPES[
+                        min(age + 1, 9)
+                    ].get(  # But don't exceed next age level
+                        list(self.PROBLEM_TYPES[min(age + 1, 9)].keys())[0]
+                    )[
+                        1
+                    ],
+                )
+            else:
+                adjusted_max = max_val
 
-        # Adjust minimum value to make problems harder
-        if difficulty > 0.7:  # For very high difficulties, raise the minimum
-            adjusted_min = min_val + int(range_size * 0.3)  # Start from 30% of range
-        else:
-            adjusted_min = min_val
+            # Adjust minimum value to make problems harder
+            if difficulty > 0.7:  # For very high difficulties, raise the minimum
+                adjusted_min = min_val + int(
+                    range_size * 0.3
+                )  # Start from 30% of range
+            else:
+                adjusted_min = min_val
 
-        return int(adjusted_min), int(adjusted_max)
+            return int(adjusted_min), int(adjusted_max)
 
     def _get_problem_types(self, age: int, difficulty: float) -> Dict[str, float]:
         """Get problem type weights based on difficulty.
@@ -211,13 +237,24 @@ class ProblemGenerator:
         )
 
         if problem_type in ["addition", "subtraction"]:
-            # Generate both numbers in the full range
-            num1 = random.randint(min_val, max_val)
-            num2 = random.randint(min_val, max_val)
+            # For age 5, ensure the sum/difference is within their range
+            if age == 5:
+                if problem_type == "addition":
+                    # For addition, ensure sum is <= max_val
+                    num1 = random.randint(min_val, max_val - 1)
+                    num2 = random.randint(min_val, min(max_val - num1, max_val))
+                else:  # subtraction
+                    # For subtraction, ensure first number is larger and result is positive
+                    num1 = random.randint(min_val + 1, max_val)
+                    num2 = random.randint(min_val, num1 - 1)
+            else:
+                # Generate both numbers in the full range
+                num1 = random.randint(min_val, max_val)
+                num2 = random.randint(min_val, max_val)
 
-            # For subtraction, ensure first number is larger
-            if problem_type == "subtraction":
-                num1, num2 = max(num1, num2), min(num1, num2)
+                # For subtraction, ensure first number is larger
+                if problem_type == "subtraction":
+                    num1, num2 = max(num1, num2), min(num1, num2)
 
             operator = self.OPERATORS[problem_type]
             problem = f"{num1} {operator} {num2}"

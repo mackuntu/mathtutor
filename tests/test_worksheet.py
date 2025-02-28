@@ -3,7 +3,7 @@
 from src.database.models import Worksheet
 
 
-def test_create_worksheet(repository, test_child_dynamodb):
+def test_create_worksheet(repository, test_child_dynamodb, cleanup_children):
     """Test creating a new worksheet."""
     worksheet = Worksheet(
         child_id=test_child_dynamodb.id,
@@ -56,7 +56,7 @@ def test_update_worksheet(repository, test_worksheet_dynamodb):
     assert updated_worksheet.completed is True
 
 
-def test_delete_worksheet(repository, test_worksheet_dynamodb):
+def test_delete_worksheet(repository, test_worksheet_dynamodb, cleanup_children):
     """Test deleting a worksheet."""
     # Delete worksheet
     repository.delete_worksheet(test_worksheet_dynamodb.id)

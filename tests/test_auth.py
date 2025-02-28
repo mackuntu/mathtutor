@@ -16,7 +16,7 @@ def test_verify_google_token(auth_manager):
     assert user_info is None
 
 
-def test_session_management(auth_manager, test_user):
+def test_session_management(auth_manager, test_user, cleanup_sessions):
     """Test session creation and validation."""
     # Create session
     token = auth_manager.create_session(test_user.email)
@@ -77,7 +77,7 @@ def test_create_session(repository, test_user):
     assert saved_session.user_email == test_user.email
 
 
-def test_get_user_sessions(repository, test_user):
+def test_get_user_sessions(repository, test_user, cleanup_sessions):
     """Test retrieving all sessions for a user."""
     # Create two sessions
     session1 = Session(
@@ -110,7 +110,7 @@ def test_delete_session(repository, test_session):
     assert deleted_session is None
 
 
-def test_session_expiration(auth_manager, repository, test_user):
+def test_session_expiration(auth_manager, repository, test_user, cleanup_sessions):
     """Test that expired sessions are handled correctly."""
     # Create an expired session
     expired_session = Session(

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Worksheet{% endblock %}
+
+{% block extra_css %}
+<style>
+.problem {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.problem:hover {
+    background-color: #f8f9fa;
+}
+
+.problem.incorrect {
+    background-color: #ffe6e6;
+}
+
+.problem.incorrect:hover {
+    background-color: #ffd6d6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Grade Worksheet for {{ child.name }}</h2>
+        <div>
+            <button onclick="saveGrades()" class="btn btn-success me-2">Save Grades</button>
+            <a href="{{ url_for('web.view_worksheet', worksheet_id=worksheet.id, print=1) }}" class="btn btn-secondary">Print</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        Click on problems that were answered incorrectly to mark them. All problems start as correct.
+    </div>
+
+    {% include "problem_grid.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const problems = document.querySelectorAll('.problem');
+    problems.forEach((problem, index) => {
+        problem.setAttribute('data-index', index);
+        problem.addEventListener('click', function() {
+            this.classList.toggle('incorrect');
+        });
+    });
+
+    // Restore previous state if any
+    const incorrectProblems = {{ worksheet.incorrect_problems|tojson|safe if worksheet.incorrect_problems else '[]' }};
+    incorrectProblems.forEach(index => {
+        const problem = document.querySelector(`.problem[data-index="${index}"]`);
+        if (problem) {
+            problem.classList.add('incorrect');
+        }
+    });
+
+    window.saveGrades = async function() {
+        const incorrect = Array.from(document.querySelectorAll('.problem.incorrect'))
+            .map(problem => parseInt(problem.getAttribute('data-index')));
+
+        try {
+            const response = await fetch('{{ url_for("web.submit_grades", worksheet_id=worksheet.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    incorrect_problems: incorrect
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Grades saved successfully!');
+                window.location.href = '{{ url_for("web.past_worksheets", child_id=child.id) }}';
+            } else {
+                alert('Error saving grades: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error saving grades: ' + error.message);
+        }
+    };
+});
+</script>
+{% endblock %} 

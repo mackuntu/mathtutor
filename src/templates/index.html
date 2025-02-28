@@ -87,21 +87,29 @@
         <div class="child-selector mx-auto">
             <label for="childSelect" class="form-label">Generate worksheet for:</label>
             <div class="position-relative">
+                {% if children %}
                 <select class="form-select" id="childSelect" onchange="window.location.href='/?child_id=' + this.value">
+                    <option value="">Select a child...</option>
                     {% for child in children %}
-                    <option value="{{ child.id }}" {% if child.id == active_child.id %}selected{% endif %}>
+                    <option value="{{ child.id }}" {% if active_child and child.id == active_child.id %}selected{% endif %}>
                         {{ child.name }}
                     </option>
                     {% endfor %}
                 </select>
-                {% if active_child.preferred_color %}
+                {% if active_child and active_child.preferred_color %}
                 <span class="color-preview position-absolute top-50 end-0 translate-middle-y me-4" 
                       style="background-color: {{ active_child.preferred_color }}"></span>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-info">
+                    No children found. <a href="{{ url_for('web.children') }}">Add a child</a> to get started.
+                </div>
                 {% endif %}
             </div>
         </div>
         
         <!-- Configuration Form -->
+        {% if active_child %}
         <div class="card mb-4">
             <div class="card-body">
                 <form id="worksheetForm" class="needs-validation" novalidate>
@@ -114,6 +122,14 @@
                         <input type="number" class="form-control" id="count" name="count" 
                                value="30" min="5" max="50" required>
                         <div class="invalid-feedback">Please enter a number between 5 and 50.</div>
+                    </div>
+
+                    <!-- Number of Worksheets -->
+                    <div class="mb-3">
+                        <label for="num_worksheets" class="form-label">Number of Worksheets</label>
+                        <input type="number" class="form-control" id="num_worksheets" name="num_worksheets" 
+                               value="1" min="1" max="5" required>
+                        <div class="invalid-feedback">Please enter a number between 1 and 5.</div>
                     </div>
 
                     <!-- Difficulty Slider -->
@@ -138,10 +154,17 @@
                         <button type="button" class="btn btn-secondary" id="previewBtn">
                             Preview (First 5 Problems)
                         </button>
+                        <a href="{{ url_for('web.past_worksheets', child_id=active_child.id) }}" 
+                           class="btn btn-outline-primary">View Past Worksheets</a>
                     </div>
                 </form>
             </div>
         </div>
+        {% elif children %}
+        <div class="alert alert-info text-center">
+            Please select a child from the dropdown above to generate worksheets.
+        </div>
+        {% endif %}
 
         <!-- Problem Preview -->
         <div id="previewBox" class="preview-box"></div>
@@ -258,6 +281,8 @@
 
             try {
                 const formData = new FormData(form);
+                formData.append('child_id', document.getElementById('childSelect').value);
+                
                 const response = await fetch('/generate_both', {
                     method: 'POST',
                     body: formData
@@ -269,15 +294,24 @@
 
                 const data = await response.json();
                 
-                // Generate worksheet PDF and send to print
-                const worksheetOptions = { ...pdfOptions, filename: 'worksheet.pdf' };
-                const worksheetPdf = await generatePDF(data.worksheet, worksheetOptions);
-                await openAndPrint(worksheetPdf, true); // Open and print worksheet
+                // Process each worksheet
+                for (const worksheetData of data.worksheets) {
+                    // Generate worksheet PDF and send to print
+                    const worksheetOptions = { 
+                        ...pdfOptions, 
+                        filename: `worksheet-${worksheetData.serial_number}.pdf` 
+                    };
+                    const worksheetPdf = await generatePDF(worksheetData.worksheet, worksheetOptions);
+                    await openAndPrint(worksheetPdf, true); // Open and print worksheet
 
-                // Generate answer key PDF and just open it
-                const answerKeyOptions = { ...pdfOptions, filename: 'answer_key.pdf' };
-                const answerKeyPdf = await generatePDF(data.answer_key, answerKeyOptions);
-                await openAndPrint(answerKeyPdf, false); // Just open answer key
+                    // Generate answer key PDF and just open it
+                    const answerKeyOptions = { 
+                        ...pdfOptions, 
+                        filename: `answer-key-${worksheetData.serial_number}.pdf` 
+                    };
+                    const answerKeyPdf = await generatePDF(worksheetData.answer_key, answerKeyOptions);
+                    await openAndPrint(answerKeyPdf, false); // Just open answer key
+                }
 
             } catch (error) {
                 alert('Error generating PDFs: ' + error);
