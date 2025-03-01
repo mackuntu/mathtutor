@@ -3,22 +3,32 @@
 import os
 
 import boto3
+from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 
-def create_tables():
-    """Create DynamoDB tables if they don't exist."""
-    # Initialize DynamoDB client with local endpoint
-    dynamodb = boto3.client(
-        "dynamodb",
-        endpoint_url="http://localhost:8000",
-        aws_access_key_id="testing",
-        aws_secret_access_key="testing",
-        region_name="us-east-1",
-    )
+def create_tables(dynamodb_resource=None):
+    """Create DynamoDB tables if they don't exist.
+
+    Args:
+        dynamodb_resource: Optional boto3 DynamoDB resource. If not provided,
+            a new client will be created with local development settings.
+    """
+    if dynamodb_resource is None:
+        # Initialize DynamoDB client with local endpoint for development
+        dynamodb_resource = boto3.resource(
+            "dynamodb",
+            endpoint_url=os.getenv("DYNAMODB_ENDPOINT", "http://localhost:8000"),
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", "testing"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "testing"),
+            region_name=os.getenv("AWS_REGION", "us-east-1"),
+        )
+
+    # Get DynamoDB client from resource
+    dynamodb = dynamodb_resource.meta.client
 
     # Users table
     try:
@@ -29,8 +39,11 @@ def create_tables():
             BillingMode="PAY_PER_REQUEST",
         )
         print("Users table created successfully")
-    except dynamodb.exceptions.ResourceInUseException:
-        print("Users table already exists")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Users table already exists")
+        else:
+            raise
 
     # Children table
     try:
@@ -51,8 +64,11 @@ def create_tables():
             BillingMode="PAY_PER_REQUEST",
         )
         print("Children table created successfully")
-    except dynamodb.exceptions.ResourceInUseException:
-        print("Children table already exists")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Children table already exists")
+        else:
+            raise
 
     # Sessions table
     try:
@@ -73,8 +89,11 @@ def create_tables():
             BillingMode="PAY_PER_REQUEST",
         )
         print("Sessions table created successfully")
-    except dynamodb.exceptions.ResourceInUseException:
-        print("Sessions table already exists")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Sessions table already exists")
+        else:
+            raise
 
     # Worksheets table
     try:
@@ -103,8 +122,11 @@ def create_tables():
             BillingMode="PAY_PER_REQUEST",
         )
         print("Worksheets table created successfully")
-    except dynamodb.exceptions.ResourceInUseException:
-        print("Worksheets table already exists")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Worksheets table already exists")
+        else:
+            raise
 
 
 if __name__ == "__main__":
