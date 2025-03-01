@@ -66,15 +66,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('web.index') }}">Worksheets</a>
+                        <a class="nav-link active" href="{{ url_for('pages.index') }}">Worksheets</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('web.children') }}">Manage Children</a>
+                        <a class="nav-link" href="{{ url_for('children.list_children') }}">Manage Children</a>
                     </li>
                 </ul>
                 <div class="navbar-nav ms-auto">
                     <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
-                    <a class="nav-link" href="{{ url_for('web.logout') }}">Logout</a>
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
                 </div>
             </div>
         </div>
@@ -98,11 +98,11 @@
                 </select>
                 {% if active_child and active_child.preferred_color %}
                 <span class="color-preview position-absolute top-50 end-0 translate-middle-y me-4" 
-                      style="background-color: {{ active_child.preferred_color }}"></span>
+                     style="background-color: {{ active_child.preferred_color }}"></span>
                 {% endif %}
                 {% else %}
                 <div class="alert alert-info">
-                    No children found. <a href="{{ url_for('web.children') }}">Add a child</a> to get started.
+                    No children found. <a href="{{ url_for('children.list_children') }}">Add a child</a> to get started.
                 </div>
                 {% endif %}
             </div>
@@ -154,7 +154,7 @@
                         <button type="button" class="btn btn-secondary" id="previewBtn">
                             Preview (First 5 Problems)
                         </button>
-                        <a href="{{ url_for('web.past_worksheets', child_id=active_child.id) }}" 
+                        <a href="{{ url_for('worksheets.past_worksheets', child_id=active_child.id) }}" 
                            class="btn btn-outline-primary">View Past Worksheets</a>
                     </div>
                 </form>
@@ -171,11 +171,13 @@
 
         <!-- Loading Indicator -->
         <div id="loading" class="loading">
-            <div class="loading-content">
-                <div class="spinner-border text-primary mb-3" role="status">
-                    <span class="visually-hidden">Loading...</span>
+            <div class="d-flex justify-content-center align-items-center h-100">
+                <div class="text-center">
+                    <div class="spinner-border text-light mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Generating worksheet...</p>
                 </div>
-                <p>Generating worksheet...</p>
             </div>
         </div>
     </div>
@@ -240,12 +242,13 @@
             }
 
             // Show loading state
-            document.getElementById('loading').style.display = 'block';
+            const loadingElement = document.getElementById('loading');
+            loadingElement.style.display = 'flex';
             document.getElementById('previewBox').style.display = 'none';
 
             try {
                 const formData = new FormData(form);
-                const response = await fetch('/preview', {
+                const response = await fetch('/worksheets/preview', {
                     method: 'POST',
                     body: formData
                 });
@@ -265,7 +268,7 @@
             } catch (error) {
                 alert('Error generating preview: ' + error);
             } finally {
-                document.getElementById('loading').style.display = 'none';
+                loadingElement.style.display = 'none';
             }
         }
 
@@ -277,13 +280,14 @@
             }
 
             // Show loading state
-            document.getElementById('loading').style.display = 'block';
+            const loadingElement = document.getElementById('loading');
+            loadingElement.style.display = 'flex';
 
             try {
                 const formData = new FormData(form);
                 formData.append('child_id', document.getElementById('childSelect').value);
                 
-                const response = await fetch('/generate_both', {
+                const response = await fetch('/worksheets/generate_both', {
                     method: 'POST',
                     body: formData
                 });
@@ -316,7 +320,7 @@
             } catch (error) {
                 alert('Error generating PDFs: ' + error);
             } finally {
-                document.getElementById('loading').style.display = 'none';
+                loadingElement.style.display = 'none';
             }
         }
 

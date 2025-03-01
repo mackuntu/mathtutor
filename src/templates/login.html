@@ -77,22 +77,22 @@
             {% endwith %}
 
             <div class="social-login">
-                <a href="{{ url_for('web.oauth_google') }}" class="social-login-btn google">
+                <a href="{{ url_for('auth.oauth_google') }}" class="social-login-btn google">
                     <img src="{{ url_for('static', filename='images/google.svg') }}" alt="Google">
                     <span>Continue with Google</span>
                 </a>
-                <a href="{{ url_for('web.oauth_facebook') }}" class="social-login-btn facebook">
+                <a href="{{ url_for('auth.oauth_facebook') }}" class="social-login-btn facebook">
                     <img src="{{ url_for('static', filename='images/facebook.svg') }}" alt="Facebook">
                     <span>Continue with Facebook</span>
                 </a>
-                <a href="{{ url_for('web.oauth_x') }}" class="social-login-btn x">
+                <a href="{{ url_for('auth.oauth_x') }}" class="social-login-btn x">
                     <img src="{{ url_for('static', filename='images/x.svg') }}" alt="X">
                     <span>Continue with X</span>
                 </a>
             </div>
 
             <div class="terms-text">
-                By continuing, you agree to MathTutor's <a href="{{ url_for('web.terms') }}">Terms of Service</a> and <a href="{{ url_for('web.privacy') }}">Privacy Policy</a>
+                By continuing, you agree to MathTutor's <a href="{{ url_for('pages.terms') }}">Terms of Service</a> and <a href="{{ url_for('pages.privacy') }}">Privacy Policy</a>
             </div>
         </div>
     </div>

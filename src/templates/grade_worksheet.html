@@ -29,7 +29,7 @@
         <h2>Grade Worksheet for {{ child.name }}</h2>
         <div>
             <button onclick="saveGrades()" class="btn btn-success me-2">Save Grades</button>
-            <a href="{{ url_for('web.view_worksheet', worksheet_id=worksheet.id, print=1) }}" class="btn btn-secondary">Print</a>
+            <a href="{{ url_for('worksheets.view_worksheet', worksheet_id=worksheet.id, print=1) }}" class="btn btn-secondary">Print</a>
         </div>
     </div>
 
@@ -66,24 +66,30 @@ document.addEventListener('DOMContentLoaded', function() {
             .map(problem => parseInt(problem.getAttribute('data-index')));
 
         try {
-            const response = await fetch('{{ url_for("web.submit_grades", worksheet_id=worksheet.id) }}', {
+            const response = await fetch('{{ url_for("worksheets.submit_grades", worksheet_id=worksheet.id) }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    incorrect_problems: incorrect
+                    incorrect_problems: incorrect,
+                    completed: true  // Add this to mark the worksheet as completed
                 })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const result = await response.json();
             if (result.success) {
                 alert('Grades saved successfully!');
-                window.location.href = '{{ url_for("web.past_worksheets", child_id=child.id) }}';
+                window.location.href = '{{ url_for("worksheets.past_worksheets", child_id=child.id) }}';
             } else {
-                alert('Error saving grades: ' + result.error);
+                alert('Error saving grades: ' + (result.error || 'Unknown error'));
             }
         } catch (error) {
+            console.error('Error saving grades:', error);
             alert('Error saving grades: ' + error.message);
         }
     };

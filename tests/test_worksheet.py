@@ -1,6 +1,9 @@
 """Tests for worksheet functionality."""
 
+import json
+
 from src.database.models import Worksheet
+from src.models import Worksheet as WorksheetModel
 
 
 def test_create_worksheet(repository, test_child_dynamodb, cleanup_children):
@@ -88,3 +91,29 @@ def test_get_nonexistent_worksheet(repository):
     """Test retrieving a worksheet that doesn't exist."""
     nonexistent_worksheet = repository.get_worksheet("nonexistent-id")
     assert nonexistent_worksheet is None
+
+
+def test_grade_worksheet_all_correct(repository, test_child_dynamodb):
+    """Test grading a worksheet with all correct answers."""
+    # Create a worksheet
+    worksheet = WorksheetModel.create(
+        child_id=test_child_dynamodb.id,
+        problems=json.dumps(
+            [
+                {"type": "addition", "a": 5, "b": 3, "answer": 8},
+                {"type": "subtraction", "a": 10, "b": 4, "answer": 6},
+            ]
+        ),
+    )
+    repository.create_worksheet(worksheet)
+
+    # Grade the worksheet with no incorrect problems
+    worksheet.incorrect_problems = []
+    worksheet.completed = True
+    repository.update_worksheet(worksheet)
+
+    # Verify worksheet is marked as completed
+    saved_worksheet = repository.get_worksheet(worksheet.id)
+    assert saved_worksheet is not None
+    assert saved_worksheet.completed is True
+    assert saved_worksheet.incorrect_problems == []

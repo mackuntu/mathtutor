@@ -142,6 +142,8 @@ class DynamoDBRepository:
                 "updated_at": datetime.fromtimestamp(int(item["updated_at"]["N"])),
                 "serial_number": item.get("serial_number", {}).get("S"),
                 "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
+                "answers": item.get("answers", {}).get("S"),
+                "completed": item.get("completed", {}).get("BOOL", False),
             }
         )
 
@@ -163,6 +165,8 @@ class DynamoDBRepository:
                     "updated_at": datetime.fromtimestamp(int(item["updated_at"]["N"])),
                     "serial_number": item.get("serial_number", {}).get("S"),
                     "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
+                    "answers": item.get("answers", {}).get("S"),
+                    "completed": item.get("completed", {}).get("BOOL", False),
                 }
             )
             for item in response.get("Items", [])
@@ -170,57 +174,90 @@ class DynamoDBRepository:
 
     def create_worksheet(self, worksheet: WorksheetModel) -> None:
         """Create a new worksheet."""
+        # Build the item dictionary
+        item = {
+            "id": {"S": worksheet.id},
+            "child_id": {"S": worksheet.child_id},
+            "completed": {"BOOL": worksheet.completed},
+        }
+
+        # Handle problems which could be a list or a string
+        if isinstance(worksheet.problems, list):
+            item["problems"] = {"S": json.dumps(worksheet.problems)}
+        else:
+            item["problems"] = {"S": worksheet.problems}
+
+        # Handle created_at and updated_at which could be datetime or int
+        if isinstance(worksheet.created_at, datetime):
+            item["created_at"] = {"N": str(int(worksheet.created_at.timestamp()))}
+        else:
+            item["created_at"] = {"N": str(worksheet.created_at)}
+
+        if isinstance(worksheet.updated_at, datetime):
+            item["updated_at"] = {"N": str(int(worksheet.updated_at.timestamp()))}
+        else:
+            item["updated_at"] = {"N": str(worksheet.updated_at)}
+
+        # Add serial_number if present and the attribute exists
+        if hasattr(worksheet, "serial_number") and worksheet.serial_number:
+            item["serial_number"] = {"S": worksheet.serial_number}
+
+        # Always include incorrect_problems, even if it's an empty list
+        if worksheet.incorrect_problems is not None:
+            item["incorrect_problems"] = {"S": json.dumps(worksheet.incorrect_problems)}
+
+        # Always include answers, even if it's an empty list
+        if worksheet.answers is not None:
+            item["answers"] = {"S": json.dumps(worksheet.answers)}
+
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,
-            Item={
-                "id": {"S": worksheet.id},
-                "child_id": {"S": worksheet.child_id},
-                "problems": {"S": worksheet.problems},
-                "created_at": {"N": str(int(worksheet.created_at.timestamp()))},
-                "updated_at": {"N": str(int(worksheet.updated_at.timestamp()))},
-                **(
-                    {"serial_number": {"S": worksheet.serial_number}}
-                    if worksheet.serial_number
-                    else {}
-                ),
-                **(
-                    {
-                        "incorrect_problems": {
-                            "S": json.dumps(worksheet.incorrect_problems)
-                        }
-                    }
-                    if worksheet.incorrect_problems
-                    else {}
-                ),
-            },
+            Item=item,
         )
 
     def update_worksheet(self, worksheet: WorksheetModel) -> None:
         """Update an existing worksheet."""
         worksheet.updated_at = datetime.utcnow()
+
+        # Build the item dictionary
+        item = {
+            "id": {"S": worksheet.id},
+            "child_id": {"S": worksheet.child_id},
+            "completed": {"BOOL": worksheet.completed},
+        }
+
+        # Handle problems which could be a list or a string
+        if isinstance(worksheet.problems, list):
+            item["problems"] = {"S": json.dumps(worksheet.problems)}
+        else:
+            item["problems"] = {"S": worksheet.problems}
+
+        # Handle created_at and updated_at which could be datetime or int
+        if isinstance(worksheet.created_at, datetime):
+            item["created_at"] = {"N": str(int(worksheet.created_at.timestamp()))}
+        else:
+            item["created_at"] = {"N": str(worksheet.created_at)}
+
+        if isinstance(worksheet.updated_at, datetime):
+            item["updated_at"] = {"N": str(int(worksheet.updated_at.timestamp()))}
+        else:
+            item["updated_at"] = {"N": str(worksheet.updated_at)}
+
+        # Add serial_number if present
+        if hasattr(worksheet, "serial_number") and worksheet.serial_number:
+            item["serial_number"] = {"S": worksheet.serial_number}
+
+        # Always include incorrect_problems, even if it's an empty list
+        if worksheet.incorrect_problems is not None:
+            item["incorrect_problems"] = {"S": json.dumps(worksheet.incorrect_problems)}
+
+        # Always include answers, even if it's an empty list
+        if worksheet.answers is not None:
+            item["answers"] = {"S": json.dumps(worksheet.answers)}
+
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,
-            Item={
-                "id": {"S": worksheet.id},
-                "child_id": {"S": worksheet.child_id},
-                "problems": {"S": worksheet.problems},
-                "created_at": {"N": str(int(worksheet.created_at.timestamp()))},
-                "updated_at": {"N": str(int(worksheet.updated_at.timestamp()))},
-                **(
-                    {"serial_number": {"S": worksheet.serial_number}}
-                    if worksheet.serial_number
-                    else {}
-                ),
-                **(
-                    {
-                        "incorrect_problems": {
-                            "S": json.dumps(worksheet.incorrect_problems)
-                        }
-                    }
-                    if worksheet.incorrect_problems
-                    else {}
-                ),
-            },
+            Item=item,
         )
 
     def delete_worksheet(self, worksheet_id: str) -> None:

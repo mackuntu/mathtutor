@@ -7,6 +7,7 @@ from flask import Flask
 
 from .auth import AuthManager
 from .database import get_repository
+from .web import init_app as init_web_routes
 
 # Load environment variables
 load_dotenv()
@@ -25,10 +26,8 @@ def create_app():
     auth_manager = AuthManager()
     repository = get_repository()
 
-    # Register blueprints
-    from .web import bp as web_bp
-
-    app.register_blueprint(web_bp)
+    # Initialize web routes
+    init_web_routes(app)
 
     return app
 

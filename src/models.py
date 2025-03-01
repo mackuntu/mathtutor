@@ -132,14 +132,33 @@ class Worksheet:
     serial_number: Optional[str] = None
     incorrect_problems: Optional[List[int]] = None
     answers: Optional[List[str]] = None
+    completed: bool = False
 
     @property
     def problem_count(self) -> int:
         """Get the number of problems in the worksheet."""
         try:
-            return len(json.loads(self.problems))
+            if isinstance(self.problems, str):
+                return len(json.loads(self.problems))
+            elif isinstance(self.problems, list):
+                return len(self.problems)
+            return 0
         except (json.JSONDecodeError, TypeError):
             return 0
+
+    @property
+    def score(self) -> Optional[float]:
+        """Calculate the score as a percentage based on correct answers."""
+        if not self.completed or not self.incorrect_problems:
+            return None
+
+        total_problems = self.problem_count
+        if total_problems == 0:
+            return None
+
+        incorrect = len(self.incorrect_problems)
+        correct = total_problems - incorrect
+        return (correct / total_problems) * 100
 
     @classmethod
     def create(
@@ -158,6 +177,7 @@ class Worksheet:
             serial_number=serial_number,
             incorrect_problems=None,
             answers=answers,
+            completed=False,
         )
 
     def to_dict(self) -> dict:
@@ -168,6 +188,7 @@ class Worksheet:
             "problems": self.problems,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "completed": self.completed,
         }
         if self.serial_number:
             data["serial_number"] = self.serial_number
@@ -194,6 +215,15 @@ class Worksheet:
             except (json.JSONDecodeError, TypeError):
                 answers = []
 
+        # Parse problems if it's a JSON string
+        problems = data["problems"]
+        if isinstance(problems, str):
+            try:
+                problems = json.loads(problems)
+            except (json.JSONDecodeError, TypeError):
+                # Keep as string if parsing fails
+                pass
+
         # Parse datetime strings if they are strings
         created_at = data.get("created_at")
         if isinstance(created_at, str):
@@ -210,10 +240,11 @@ class Worksheet:
         return cls(
             id=data.get("id"),
             child_id=data["child_id"],
-            problems=data["problems"],
+            problems=problems,
             created_at=created_at,
             updated_at=updated_at,
             serial_number=data.get("serial_number"),
             incorrect_problems=incorrect_problems,
             answers=answers,
+            completed=data.get("completed", False),
         )

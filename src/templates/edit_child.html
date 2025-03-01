@@ -43,10 +43,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('web.index') }}">MathTutor</a>
+            <a class="navbar-brand" href="{{ url_for('pages.index') }}">MathTutor</a>
             <div class="navbar-nav ms-auto">
                 <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
-                <a class="nav-link" href="{{ url_for('web.logout') }}">Logout</a>
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
             </div>
         </div>
     </nav>
@@ -66,7 +66,7 @@
                             {% endif %}
                         {% endwith %}
 
-                        <form method="POST" action="{{ url_for('web.edit_child', child_id=child.id) }}" id="editChildForm">
+                        <form method="POST" action="{{ url_for('children.edit_child', child_id=child.id) }}" id="editChildForm">
                             <div class="mb-3">
                                 <label for="name" class="form-label">Name</label>
                                 <input type="text" class="form-control" id="name" name="name" 
@@ -120,9 +120,9 @@
                                 </div>
                             </div>
 
-                            <div class="d-grid gap-2">
+                            <div class="mt-4 d-flex justify-content-between">
                                 <button type="submit" class="btn btn-primary">Save Changes</button>
-                                <a href="{{ url_for('web.children') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <a href="{{ url_for('children.list_children') }}" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </form>
                     </div>

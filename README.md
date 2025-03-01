@@ -1,3 +1,105 @@
+# MathTutor Application
+
+A web application for generating and managing math worksheets for children.
+
+## Recent Refactoring
+
+The application has been refactored from a monolithic structure to a more modular one:
+
+1. **Route Organization**: Routes are now organized by functional area in the `routes` package.
+2. **Blueprint Structure**: Each functional area has its own Flask blueprint.
+3. **Common Functionality**: Shared functionality has been extracted to a common module.
+4. **Initialization**: The application initialization has been simplified.
+
+## Project Structure
+
+The application follows a modular structure:
+
+```
+src/
+├── __init__.py           # Application factory
+├── auth.py               # Authentication manager
+├── config.py             # Configuration settings
+├── database.py           # Database connection
+├── exceptions.py         # Custom exceptions
+├── generator.py          # Math problem generator
+├── main.py               # CLI entry point
+├── models.py             # Data models
+├── renderer.py           # PDF renderer
+├── web.py                # Web routes initialization
+├── database/             # Database modules
+│   ├── __init__.py
+│   ├── config.py
+│   ├── create_tables.py
+│   ├── dynamodb.py
+│   ├── models.py
+│   └── repository.py
+├── document/             # Document generation
+│   └── ...
+├── routes/               # Web route handlers
+│   ├── __init__.py       # Blueprint registration
+│   ├── auth.py           # Authentication routes
+│   ├── children.py       # Child management routes
+│   ├── common.py         # Shared functionality
+│   ├── pages.py          # Static page routes
+│   └── worksheets.py     # Worksheet routes
+├── static/               # Static assets
+│   └── ...
+├── templates/            # HTML templates
+│   └── ...
+└── utils/                # Utility functions
+    └── ...
+```
+
+## Refactoring Changes
+
+The application has been refactored from a monolithic structure to a more modular one:
+
+1. **Route Organization**: Routes are now organized by functional area in the `routes` package.
+2. **Blueprint Structure**: Each functional area has its own Flask blueprint.
+3. **Common Functionality**: Shared functionality has been extracted to a common module.
+4. **Initialization**: The application initialization has been simplified.
+
+## Running the Application
+
+To run the application:
+
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Set up environment variables:
+   ```
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. Run the application:
+   ```
+   flask run
+   ```
+
+## Development
+
+To set up the development environment:
+
+1. Create a virtual environment:
+   ```
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+2. Install development dependencies:
+   ```
+   pip install -r requirements-dev.txt
+   ```
+
+3. Run tests:
+   ```
+   pytest
+   ```
+
 ### Product Requirements Document: MathTutor System
 
 #### Overview

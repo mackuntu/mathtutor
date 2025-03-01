@@ -220,6 +220,7 @@ class Worksheet(DynamoDBModel):
         problems: List[Dict[str, Any]],
         answers: Optional[List[float]] = None,
         completed: bool = False,
+        incorrect_problems: Optional[List[int]] = None,
     ):
         """Initialize a worksheet."""
         self.id = self.generate_id()
@@ -227,41 +228,48 @@ class Worksheet(DynamoDBModel):
         self.problems = problems
         self.answers = answers
         self.completed = completed
+        self.incorrect_problems = incorrect_problems
         self.created_at = self.utc_now()
         self.updated_at = self.created_at
 
-    def to_item(self) -> Dict[str, Dict[str, Any]]:
+    def to_item(self) -> Dict[str, Any]:
         """Convert to DynamoDB item."""
         item = {
-            "id": {"S": self.id},
-            "child_id": {"S": self.child_id},
-            "problems": {"S": json.dumps(self.problems)},
-            "completed": {"BOOL": self.completed},
-            "created_at": {"N": str(self.created_at)},
-            "updated_at": {"N": str(self.updated_at)},
+            "id": self.id,
+            "child_id": self.child_id,
+            "problems": json.dumps(self.problems),
+            "completed": self.completed,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
         }
         if self.answers is not None:
-            item["answers"] = {"S": json.dumps(self.answers)}
+            item["answers"] = json.dumps(self.answers)
+        if self.incorrect_problems is not None:
+            item["incorrect_problems"] = json.dumps(self.incorrect_problems)
         return item
 
     @classmethod
-    def from_item(
-        cls, item: Optional[Dict[str, Dict[str, Any]]]
-    ) -> Optional["Worksheet"]:
+    def from_item(cls, item: Optional[Dict[str, Any]]) -> Optional["Worksheet"]:
         """Create from DynamoDB item."""
         if not item:
             return None
 
-        problems = json.loads(item["problems"]["S"])
-        answers = json.loads(item["answers"]["S"]) if "answers" in item else None
+        problems = json.loads(item["problems"])
+        answers = json.loads(item["answers"]) if "answers" in item else None
+        incorrect_problems = (
+            json.loads(item["incorrect_problems"])
+            if "incorrect_problems" in item
+            else None
+        )
 
         worksheet = cls(
-            child_id=item["child_id"]["S"],
+            child_id=item["child_id"],
             problems=problems,
             answers=answers,
-            completed=item["completed"]["BOOL"],
+            completed=item["completed"],
+            incorrect_problems=incorrect_problems,
         )
-        worksheet.id = item["id"]["S"]
-        worksheet.created_at = int(item["created_at"]["N"])
-        worksheet.updated_at = int(item["updated_at"]["N"])
+        worksheet.id = item["id"]
+        worksheet.created_at = int(float(item["created_at"]))
+        worksheet.updated_at = int(float(item["updated_at"]))
         return worksheet

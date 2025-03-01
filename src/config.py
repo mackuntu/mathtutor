@@ -55,5 +55,5 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 
 # OAuth redirect URI
 OAUTH_REDIRECT_URI = os.getenv(
-    "OAUTH_REDIRECT_URI", "http://localhost:8080/oauth/callback"
+    "OAUTH_REDIRECT_URI", "http://localhost:8080/auth/oauth/callback"
 )
