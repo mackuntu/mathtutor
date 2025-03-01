@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from ..database import get_repository
 from ..database.models import Child
@@ -90,7 +90,10 @@ def edit_child(child_id):
         preferred_color = request.form.get("preferred_color")
 
         if not all([name, birthday, grade_level]):
-            flash("Please fill in all required fields.", "error")
+            message = "Please fill in all required fields."
+            if request.args.get("ajax"):
+                return jsonify({"success": False, "message": message})
+            flash(message, "error")
         else:
             try:
                 # Calculate age from birthday
@@ -106,18 +109,35 @@ def edit_child(child_id):
                 )
 
                 if age < 4 or age > 18:
-                    flash("Child must be between 4 and 18 years old.", "error")
+                    message = "Child must be between 4 and 18 years old."
+                    if request.args.get("ajax"):
+                        return jsonify({"success": False, "message": message})
+                    flash(message, "error")
                 else:
                     child.name = name
                     child.birthday = birthday_date
                     child.grade = int(grade_level)
                     child.preferred_color = preferred_color
                     repository.update_child(child)
+
+                    if request.args.get("ajax"):
+                        return jsonify(
+                            {"success": True, "message": "Child updated successfully!"}
+                        )
+
                     flash("Child updated successfully!", "success")
                     return redirect(url_for("children.list_children"))
             except ValueError:
-                flash("Please enter valid values for all fields.", "error")
+                message = "Please enter valid values for all fields."
+                if request.args.get("ajax"):
+                    return jsonify({"success": False, "message": message})
+                flash(message, "error")
 
+    # For AJAX requests, return just the form
+    if request.args.get("ajax"):
+        return render_template("edit_child_form.html", user=user, child=child)
+
+    # For regular requests, return the full page
     return render_template("edit_child.html", user=user, child=child)
 
 
