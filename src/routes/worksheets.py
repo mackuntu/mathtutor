@@ -285,10 +285,20 @@ def past_worksheets(child_id):
     # Calculate past scores for the chart
     past_scores = []
     past_dates = []
+
+    # First collect all completed worksheets with scores
+    scored_worksheets = []
     for worksheet in worksheets:
         if worksheet.completed and worksheet.score is not None:
-            past_scores.append(round(worksheet.score, 1))
-            past_dates.append(worksheet.created_at.strftime("%Y-%m-%d"))
+            scored_worksheets.append(worksheet)
+
+    # Sort by date (oldest first) for the chart
+    scored_worksheets.sort(key=lambda w: w.created_at)
+
+    # Extract scores and dates in chronological order
+    for worksheet in scored_worksheets:
+        past_scores.append(round(worksheet.score, 1))
+        past_dates.append(worksheet.created_at.strftime("%Y-%m-%d"))
 
     return render_template(
         "past_worksheets.html",
@@ -341,16 +351,66 @@ def grade_worksheet(worksheet_id):
         problems = json.loads(worksheet.problems)
     else:
         problems = worksheet.problems
-    problem_list = [{"text": p} for p in problems]
+
+    # Generate problems and answers for the answer key view
+    problem_list = []
+    answers = []
+
+    # Process each problem to extract text and calculate answers
+    for p in problems:
+        if isinstance(p, dict):
+            # If problem is a dictionary, extract text and answer if available
+            problem_text = p.get("text", "")
+            problem_list.append({"text": problem_text})
+
+            # If answer is already in the problem dictionary, use it
+            if "answer" in p:
+                answers.append(p["answer"])
+            else:
+                # Otherwise calculate the answer from the problem text
+                try:
+                    # Replace × with * and ÷ with / for evaluation
+                    calc_text = problem_text.replace("×", "*").replace("÷", "/")
+                    # Remove any spaces
+                    calc_text = calc_text.replace(" ", "")
+                    # Evaluate the expression
+                    answer = eval(calc_text)
+                    answers.append(answer)
+                except Exception as e:
+                    # If evaluation fails, append None
+                    logger.warning(
+                        f"Failed to evaluate problem: {problem_text}. Error: {str(e)}"
+                    )
+                    answers.append(None)
+        elif isinstance(p, str):
+            # If problem is a string, use it directly
+            problem_list.append({"text": p})
+
+            # Calculate the answer from the problem text
+            try:
+                # Replace × with * and ÷ with / for evaluation
+                calc_text = p.replace("×", "*").replace("÷", "/")
+                # Remove any spaces
+                calc_text = calc_text.replace(" ", "")
+                # Evaluate the expression
+                answer = eval(calc_text)
+                answers.append(answer)
+            except Exception as e:
+                # If evaluation fails, append None
+                logger.warning(f"Failed to evaluate problem: {p}. Error: {str(e)}")
+                answers.append(None)
 
     return render_template(
         "grade_worksheet.html",
         user=user,
         child=child,
-        worksheet=worksheet,
         problems=problem_list,
+        answers=answers,
+        worksheet=worksheet,
+        incorrect_problems=worksheet.incorrect_problems,
         past_scores=past_scores[-10:],  # Show last 10 scores
         past_dates=past_dates[-10:],
+        is_answer_key=True,
     )
 
 

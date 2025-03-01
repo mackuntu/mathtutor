@@ -63,9 +63,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
 <script>
-// Initialize the sparkline chart when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('sparkline')) {
+    if (document.getElementById('sparkline') && {{ past_scores|tojson|length }} > 0) {
         var options = {
             series: [{
                 name: 'Score',
@@ -78,25 +77,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     enabled: true
                 }
             },
+            labels: {{ past_dates|tojson }},
             stroke: {
                 curve: 'smooth',
                 width: 2
             },
             tooltip: {
-                fixed: {
-                    enabled: true
-                },
-                x: {
-                    show: true,
-                    formatter: function(index) {
-                        var dates = {{ past_dates|tojson }};
-                        return dates[index];
-                    }
-                },
-                y: {
-                    formatter: function(value) {
-                        return value.toFixed(1) + '%';
-                    }
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    var date = w.globals.labels[dataPointIndex];
+                    var score = series[seriesIndex][dataPointIndex];
+                    return '<div class="p-2">' +
+                        '<span>' + date + ': ' + score.toFixed(1) + '%</span>' +
+                        '</div>';
                 }
             },
             colors: ['#2E93fA']
