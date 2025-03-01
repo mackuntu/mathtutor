@@ -1,0 +1,97 @@
+name: Deploy MathTutor App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run tests
+        run: |
+          pytest tests/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install awscli
+          
+      - name: Create DynamoDB tables
+        run: |
+          python scripts/create_dynamodb_tables.py
+          
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          # Create application bundle
+          mkdir -p .ebextensions
+          echo "option_settings:" > .ebextensions/01_environment.config
+          echo "  aws:elasticbeanstalk:application:environment:" >> .ebextensions/01_environment.config
+          echo "    FLASK_SECRET_KEY: \"${{ secrets.FLASK_SECRET_KEY }}\"" >> .ebextensions/01_environment.config
+          echo "    FLASK_ENV: \"production\"" >> .ebextensions/01_environment.config
+          echo "    AWS_REGION: \"${{ secrets.AWS_REGION }}\"" >> .ebextensions/01_environment.config
+          echo "    GOOGLE_CLIENT_ID: \"${{ secrets.GOOGLE_CLIENT_ID }}\"" >> .ebextensions/01_environment.config
+          echo "    GOOGLE_CLIENT_SECRET: \"${{ secrets.GOOGLE_CLIENT_SECRET }}\"" >> .ebextensions/01_environment.config
+          echo "    GOOGLE_REDIRECT_URI: \"${{ secrets.GOOGLE_REDIRECT_URI }}\"" >> .ebextensions/01_environment.config
+          echo "    FACEBOOK_CLIENT_ID: \"${{ secrets.FACEBOOK_CLIENT_ID }}\"" >> .ebextensions/01_environment.config
+          echo "    FACEBOOK_CLIENT_SECRET: \"${{ secrets.FACEBOOK_CLIENT_SECRET }}\"" >> .ebextensions/01_environment.config
+          echo "    FACEBOOK_REDIRECT_URI: \"${{ secrets.FACEBOOK_REDIRECT_URI }}\"" >> .ebextensions/01_environment.config
+          echo "    X_CLIENT_ID: \"${{ secrets.X_CLIENT_ID }}\"" >> .ebextensions/01_environment.config
+          echo "    X_CLIENT_SECRET: \"${{ secrets.X_CLIENT_SECRET }}\"" >> .ebextensions/01_environment.config
+          echo "    X_REDIRECT_URI: \"${{ secrets.X_REDIRECT_URI }}\"" >> .ebextensions/01_environment.config
+          echo "    DYNAMODB_ENDPOINT: \"\"" >> .ebextensions/01_environment.config
+          
+          # Create Procfile
+          echo "web: gunicorn --workers=2 --bind=0.0.0.0:8080 wsgi:app" > Procfile
+          
+          # Add gunicorn to requirements
+          echo "gunicorn==21.2.0" >> requirements.txt
+          
+          # Create application version
+          VERSION_LABEL="mathtutor-$(date +'%Y%m%d%H%M%S')"
+          zip -r "${VERSION_LABEL}.zip" . -x "*.git*" "*.venv*" "*.pytest_cache*" "__pycache__/*" "*.DS_Store"
+          
+          # Deploy to Elastic Beanstalk
+          aws elasticbeanstalk create-application-version \
+            --application-name mathtutor \
+            --version-label "${VERSION_LABEL}" \
+            --source-bundle S3Bucket="${{ secrets.AWS_S3_BUCKET }}",S3Key="${VERSION_LABEL}.zip" \
+            --auto-create-application
+            
+          aws s3 cp "${VERSION_LABEL}.zip" "s3://${{ secrets.AWS_S3_BUCKET }}/${VERSION_LABEL}.zip"
+          
+          aws elasticbeanstalk update-environment \
+            --environment-name mathtutor-prod \
+            --version-label "${VERSION_LABEL}" 
