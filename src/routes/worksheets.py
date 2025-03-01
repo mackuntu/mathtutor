@@ -287,12 +287,7 @@ def past_worksheets(child_id):
     past_dates = []
     for worksheet in worksheets:
         if worksheet.completed and worksheet.score is not None:
-            past_scores.append(
-                {
-                    "x": worksheet.created_at.strftime("%Y-%m-%d"),
-                    "y": round(worksheet.score, 1),
-                }
-            )
+            past_scores.append(round(worksheet.score, 1))
             past_dates.append(worksheet.created_at.strftime("%Y-%m-%d"))
 
     return render_template(

@@ -123,6 +123,36 @@ class Child(DynamoDBModel):
         self.preferred_color = preferred_color
         self.created_at = self.utc_now()
         self.updated_at = self.created_at
+        self._birthday = None  # Store the actual birthday when set
+
+    @property
+    def birthday(self):
+        """Get the birthday based on stored value or calculate from age."""
+        if self._birthday:
+            return self._birthday
+
+        # Calculate an approximate birthday based on the age
+        # This is a workaround for the template that expects a birthday
+        today = datetime.now(timezone.utc)
+        # Use January 1st instead of today's date to avoid always showing today's date
+        return datetime(today.year - self.age, 1, 1, tzinfo=timezone.utc)
+
+    @birthday.setter
+    def birthday(self, value):
+        """Set age based on birthday and store the actual birthday."""
+        if not isinstance(value, datetime):
+            raise ValueError("Birthday must be a datetime object")
+
+        # Store the actual birthday
+        self._birthday = value
+
+        # Calculate age from birthday
+        today = datetime.now(timezone.utc)
+        self.age = (
+            today.year
+            - value.year
+            - ((today.month, today.day) < (value.month, value.day))
+        )
 
     def validate(self) -> None:
         """Validate child data."""
@@ -150,6 +180,8 @@ class Child(DynamoDBModel):
         }
         if self.preferred_color:
             data["preferred_color"] = self.preferred_color
+        if self._birthday:
+            data["birthday"] = self._birthday.isoformat()
         return self.to_dynamodb_item(data)
 
     @classmethod
@@ -170,6 +202,8 @@ class Child(DynamoDBModel):
         child.id = data["id"]
         child.created_at = int(data["created_at"])
         child.updated_at = int(data["updated_at"])
+        if "birthday" in data:
+            child._birthday = datetime.fromisoformat(data["birthday"])
         return child
 
 

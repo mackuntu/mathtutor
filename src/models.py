@@ -149,7 +149,7 @@ class Worksheet:
     @property
     def score(self) -> Optional[float]:
         """Calculate the score as a percentage based on correct answers."""
-        if not self.completed or not self.incorrect_problems:
+        if not self.completed or self.incorrect_problems is None:
             return None
 
         total_problems = self.problem_count

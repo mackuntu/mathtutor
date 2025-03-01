@@ -61,44 +61,47 @@
     </table>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
 <script>
+// Initialize the sparkline chart when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    var options = {
-        series: [{
-            data: {{ past_scores|tojson }}
-        }],
-        chart: {
-            type: 'line',
-            height: 100,
-            sparkline: {
-                enabled: true
-            }
-        },
-        stroke: {
-            curve: 'smooth',
-            width: 2
-        },
-        tooltip: {
-            fixed: {
-                enabled: true
-            },
-            x: {
-                show: true,
-                formatter: function(value, opts) {
-                    return {{ past_dates|tojson }}[opts.dataPointIndex];
-                }
-            },
-            y: {
-                formatter: function(value) {
-                    return value.toFixed(1) + '%';
-                }
-            }
-        },
-        colors: ['#2E93fA']
-    };
-
     if (document.getElementById('sparkline')) {
+        var options = {
+            series: [{
+                name: 'Score',
+                data: {{ past_scores|tojson }}
+            }],
+            chart: {
+                height: 100,
+                type: 'line',
+                sparkline: {
+                    enabled: true
+                }
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            tooltip: {
+                fixed: {
+                    enabled: true
+                },
+                x: {
+                    show: true,
+                    formatter: function(index) {
+                        var dates = {{ past_dates|tojson }};
+                        return dates[index];
+                    }
+                },
+                y: {
+                    formatter: function(value) {
+                        return value.toFixed(1) + '%';
+                    }
+                }
+            },
+            colors: ['#2E93fA']
+        };
+
         var chart = new ApexCharts(document.getElementById('sparkline'), options);
         chart.render();
     }
