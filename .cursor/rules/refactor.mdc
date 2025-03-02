@@ -1,0 +1,9 @@
+---
+description: don't change problem layout
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- don't ever change the layout of [problem_grid.html](mdc:src/templates/problem_grid.html)

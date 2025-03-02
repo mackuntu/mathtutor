@@ -84,7 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             tooltip: {
                 custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                    var date = w.globals.labels[dataPointIndex];
+                    var dates = {{ past_dates|tojson }};
+                    var date = dates[dataPointIndex];
                     var score = series[seriesIndex][dataPointIndex];
                     return '<div class="p-2">' +
                         '<span>' + date + ': ' + score.toFixed(1) + '%</span>' +

@@ -1,0 +1,21 @@
+{
+  "name": "MathTutor",
+  "short_name": "MathTutor",
+  "description": "An application for generating and grading math worksheets",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4285F4",
+  "icons": [
+    {
+      "src": "/static/images/icons/mathtutor_icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/images/icons/mathtutor_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 
