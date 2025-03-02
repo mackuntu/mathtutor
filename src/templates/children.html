@@ -74,32 +74,21 @@
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Manage Children</h1>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addChildModal">
+        <button class="btn btn-primary" id="addChildBtn">
             <i class="bi bi-plus-circle me-1"></i> Add New Child
         </button>
     </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
 
     <div class="row">
         {% if children %}
             {% for child in children %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card child-card h-100" style="border-left-color: {{ child.preferred_color }}">
+                    <div class="card child-card h-100" style="border-left-color: {{ child.preferred_color|safe }}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="card-title mb-0">
                                     {{ child.name }}
-                                    <span class="color-preview" style="background-color: {{ child.preferred_color }}"></span>
+                                    <span class="color-preview" style="background-color: {{ child.preferred_color|safe }}"></span>
                                 </h5>
                                 <div>
                                     <a href="{{ url_for('children.edit_child', child_id=child.id) }}" class="btn btn-outline-primary action-button me-1">
@@ -248,6 +237,7 @@
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
     // Form validation for adding a child
     document.getElementById('addChildForm').addEventListener('submit', function(event) {
@@ -268,7 +258,7 @@
     // Function to confirm deletion
     function confirmDelete(childId, childName) {
         document.getElementById('childNameToDelete').textContent = childName;
-        document.getElementById('deleteChildForm').action = "{{ url_for('children.delete_child', child_id='') }}" + childId;
+        document.getElementById('deleteChildForm').action = "{{ url_for('children.delete_child', child_id='PLACEHOLDER') }}".replace('PLACEHOLDER', childId);
         
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
         deleteModal.show();
@@ -288,5 +278,16 @@
                 alert('Error loading edit form. Please try again.');
             });
     }
+    
+    // Initialize the Add Child modal button
+    document.addEventListener('DOMContentLoaded', function() {
+        const addChildButton = document.getElementById('addChildBtn');
+        if (addChildButton) {
+            addChildButton.addEventListener('click', function() {
+                const addChildModal = new bootstrap.Modal(document.getElementById('addChildModal'));
+                addChildModal.show();
+            });
+        }
+    });
 </script>
 {% endblock %} 
