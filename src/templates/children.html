@@ -10,6 +10,8 @@
 <meta property="og:type" content="website">
 {% endblock %}
 
+{% from "components/ads.html" import google_ad, facebook_ad, native_ad %}
+
 {% block extra_css %}
 <style>
     .child-card {
@@ -83,12 +85,12 @@
         {% if children %}
             {% for child in children %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card child-card h-100" style="border-left-color: {{ child.preferred_color|safe }}">
+                    <div class="card child-card h-100" data-color="{{ child.preferred_color|safe }}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="card-title mb-0">
                                     {{ child.name }}
-                                    <span class="color-preview" style="background-color: {{ child.preferred_color|safe }}"></span>
+                                    <span class="color-preview" data-color="{{ child.preferred_color|safe }}"></span>
                                 </h5>
                                 <div>
                                     <a href="{{ url_for('children.edit_child', child_id=child.id) }}" class="btn btn-outline-primary action-button me-1">
@@ -127,6 +129,11 @@
             </div>
         {% endif %}
     </div>
+</div>
+
+<!-- Native Ad -->
+<div class="container mt-4">
+    {{ native_ad() }}
 </div>
 
 <!-- Add Child Modal -->
@@ -279,7 +286,7 @@
             });
     }
     
-    // Initialize the Add Child modal button
+    // Initialize the Add Child modal button and apply colors
     document.addEventListener('DOMContentLoaded', function() {
         const addChildButton = document.getElementById('addChildBtn');
         if (addChildButton) {
@@ -288,6 +295,15 @@
                 addChildModal.show();
             });
         }
+        
+        // Apply colors based on data attributes
+        document.querySelectorAll('.child-card[data-color]').forEach(function(card) {
+            card.style.borderLeftColor = card.getAttribute('data-color');
+        });
+        
+        document.querySelectorAll('.color-preview[data-color]').forEach(function(preview) {
+            preview.style.backgroundColor = preview.getAttribute('data-color');
+        });
     });
 </script>
 {% endblock %} 

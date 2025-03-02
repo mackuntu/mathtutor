@@ -8,6 +8,8 @@
 
 {% block navbar %}{% endblock %}
 
+{% from "components/ads.html" import google_ad, facebook_ad %}
+
 {% block extra_css %}
 <style>
     .social-login-btn {
@@ -45,7 +47,7 @@
     }
     .login-container {
         max-width: 400px;
-        margin: 100px auto;
+        margin: 100px auto 40px;
         padding: 20px;
     }
     .terms-text {
@@ -60,6 +62,10 @@
     }
     .terms-text a:hover {
         text-decoration: underline;
+    }
+    .login-ad-container {
+        max-width: 728px;
+        margin: 20px auto;
     }
 </style>
 {% endblock %}
@@ -92,5 +98,11 @@
             By continuing, you agree to MathTutor's <a href="{{ url_for('pages.terms') }}">Terms of Service</a> and <a href="{{ url_for('pages.privacy') }}">Privacy Policy</a>
         </div>
     </div>
+    
+    <div class="login-ad-container">
+        {{ google_ad('XXXXXXXXXX') }}
+    </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block footer %}{% endblock %} 

@@ -1,0 +1,56 @@
+{% macro google_ad(slot_id, format='auto', responsive=true) %}
+<div class="ad-container">
+    <span class="ad-label">Advertisement</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="{{ slot_id }}"
+         data-ad-format="{{ format }}"
+         {% if responsive %}data-full-width-responsive="true"{% endif %}></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+{% endmacro %}
+
+{% macro facebook_ad(placement_id, format='medium_rectangle') %}
+<div class="ad-container">
+    <span class="ad-label">Advertisement</span>
+    <div class="fb-ad" 
+         data-placementid="{{ placement_id }}" 
+         data-format="{{ format }}" 
+         data-testmode="false"></div>
+</div>
+{% endmacro %}
+
+{% macro sidebar_ad() %}
+<div class="ad-container sidebar">
+    <span class="ad-label">Advertisement</span>
+    <!-- Google AdSense Sidebar Ad -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="XXXXXXXXXX"
+         data-ad-format="vertical"
+         data-full-width-responsive="false"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+{% endmacro %}
+
+{% macro native_ad() %}
+<div class="ad-container native-ad">
+    <span class="ad-label">Sponsored Content</span>
+    <!-- Google AdSense Native Ad -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="XXXXXXXXXX"
+         data-ad-format="fluid"
+         data-ad-layout-key="-fb+5w+4e-db+86"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+</div>
+{% endmacro %} 

@@ -44,7 +44,7 @@ def preview_problems():
 
         # Generate preview HTML
         preview_html = render_template(
-            "problem_grid.html", problems=preview_problems, is_preview=True
+            "problem_grid.html", problems=preview_problems, is_preview=True, user=user
         )
 
         return jsonify({"success": True, "html": preview_html})
@@ -109,6 +109,7 @@ def generate_both():
                 is_answer_key=False,
                 is_preview=False,
                 serial_number=worksheet.serial_number,
+                user=user,
             )
 
             # Generate answer key HTML
@@ -119,6 +120,7 @@ def generate_both():
                 is_answer_key=True,
                 is_preview=False,
                 serial_number=worksheet.serial_number,
+                user=user,
             )
             html_time = time.time() - html_start
             logger.info(f"HTML generation took: {html_time:.2f} seconds")

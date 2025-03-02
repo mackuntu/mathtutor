@@ -1,5 +1,6 @@
 """Web routes for the MathTutor application."""
 
+import datetime
 import logging
 
 from flask import Blueprint, Flask
@@ -24,6 +25,11 @@ def init_app(app: Flask) -> None:
 
     # Register the legacy blueprint
     app.register_blueprint(bp)
+
+    # Add context processor for template variables
+    @app.context_processor
+    def inject_globals():
+        return {"current_year": datetime.datetime.now().year}
 
     logger.info("Web routes initialized")
 
