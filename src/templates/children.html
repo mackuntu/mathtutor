@@ -1,315 +1,292 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathTutor - Manage Children</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .child-card {
-            transition: all 0.3s ease;
-        }
-        .child-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .color-preview {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 8px;
-        }
-        .action-button {
-            padding: 0.25rem 0.5rem;
-            color: #6c757d;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        .action-button:hover {
-            color: #0d6efd;
-        }
-        .action-button.delete:hover {
-            color: #dc3545;
-        }
-        .color-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .color-btn {
-            width: 80px;
-            height: 32px;
-            border-radius: 16px;
-            color: white;
-            text-shadow: 0 0 2px rgba(0,0,0,0.5);
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .color-btn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(0,0,0,0.2);
-            color: white;
-        }
-        .btn-check:checked + .color-btn {
-            border-color: #000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="/">MathTutor</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'pages.index' %}active{% endif %}" 
-                           href="{{ url_for('pages.index') }}">Worksheets</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'children.list_children' %}active{% endif %}" 
-                           href="{{ url_for('children.list_children') }}">Manage Children</a>
-                    </li>
-                </ul>
-                <div class="navbar-nav ms-auto">
-                    <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
-                    <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+{% extends "base.html" %}
+
+{% block title %}MathTutor - Manage Children{% endblock %}
+{% set meta_description = "Manage your children's profiles in MathTutor to customize their learning experience." %}
+{% set meta_keywords = "math, education, children, profiles, manage, customize" %}
+
+{% block og_tags %}
+<meta property="og:title" content="MathTutor - Manage Children">
+<meta property="og:description" content="Manage your children's profiles in MathTutor to customize their learning experience.">
+<meta property="og:type" content="website">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .child-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-left: 5px solid #ddd;
+    }
+    .child-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .color-preview {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 8px;
+    }
+    .action-button {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+    }
+    .action-button:hover {
+        transform: scale(1.1);
+    }
+    .color-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .color-btn {
+        width: 80px;
+        height: 32px;
+        border-radius: 16px;
+        color: white;
+        text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .color-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(0,0,0,0.2);
+        color: white;
+    }
+    .btn-check:checked + .color-btn {
+        border-color: #000;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Manage Children</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addChildModal">
+            <i class="bi bi-plus-circle me-1"></i> Add New Child
+        </button>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            </div>
-        </div>
-    </nav>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-    <div class="container py-5">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Add New Child</h5>
-                        <form id="childForm" method="POST" action="{{ url_for('children.register_child') }}">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="birthday" class="form-label">Birthday</label>
-                                <input type="date" class="form-control" id="birthday" name="birthday" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="grade_level" class="form-label">Grade Level</label>
-                                <select class="form-select" id="grade_level" name="grade_level" required>
-                                    <option value="">Select grade...</option>
-                                    <option value="0">Kindergarten</option>
-                                    {% for grade in range(1, 13) %}
-                                    <option value="{{ grade }}">Grade {{ grade }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Favorite Color</label>
-                                <div class="color-buttons">
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color1" value="#FF6B6B" checked>
-                                    <label class="btn btn-outline-secondary color-btn" for="color1" style="background-color: #FF6B6B">Red</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color2" value="#4ECDC4">
-                                    <label class="btn btn-outline-secondary color-btn" for="color2" style="background-color: #4ECDC4">Teal</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color3" value="#45B7D1">
-                                    <label class="btn btn-outline-secondary color-btn" for="color3" style="background-color: #45B7D1">Blue</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color4" value="#96CEB4">
-                                    <label class="btn btn-outline-secondary color-btn" for="color4" style="background-color: #96CEB4">Mint</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color5" value="#FFBE0B">
-                                    <label class="btn btn-outline-secondary color-btn" for="color5" style="background-color: #FFBE0B">Yellow</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color6" value="#FF9999">
-                                    <label class="btn btn-outline-secondary color-btn" for="color6" style="background-color: #FF9999">Pink</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color7" value="#9B5DE5">
-                                    <label class="btn btn-outline-secondary color-btn" for="color7" style="background-color: #9B5DE5">Purple</label>
-
-                                    <input type="radio" class="btn-check" name="preferred_color" id="color8" value="#F15BB5">
-                                    <label class="btn btn-outline-secondary color-btn" for="color8" style="background-color: #F15BB5">Magenta</label>
+    <div class="row">
+        {% if children %}
+            {% for child in children %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card child-card h-100" style="border-left-color: {{ child.preferred_color }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">
+                                    {{ child.name }}
+                                    <span class="color-preview" style="background-color: {{ child.preferred_color }}"></span>
+                                </h5>
+                                <div>
+                                    <a href="{{ url_for('children.edit_child', child_id=child.id) }}" class="btn btn-outline-primary action-button me-1">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger action-button" 
+                                            onclick="confirmDelete('{{ child.id }}', '{{ child.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">Add Child</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                <h3 class="mb-4">Your Children</h3>
-                {% if children %}
-                <div class="row row-cols-1 row-cols-md-2 g-4">
-                    {% for child in children %}
-                    <div class="col">
-                        <div class="card child-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h5 class="card-title mb-0">{{ child.name }}
-                                        {% if child.preferred_color %}
-                                        <span class="color-preview" style="background-color: {{ child.preferred_color }}"></span>
-                                        {% endif %}
-                                    </h5>
-                                    <div>
-                                        <button class="action-button" onclick="editChild('{{ child.id }}')">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                        <button class="action-button delete" onclick="deleteChild('{{ child.id }}')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <p class="card-text">
-                                    Grade: {% if child.grade == 0 %}Kindergarten{% else %}{{ child.grade }}{% endif %}<br>
-                                    Age: {{ child.age }} years old
-                                </p>
-                                <a href="{{ url_for('pages.index', child_id=child.id) }}" class="btn btn-outline-primary btn-sm">Generate Worksheet</a>
+                            <p class="card-text">
+                                <strong>Grade:</strong> 
+                                {% if child.grade == 0 %}Kindergarten{% else %}Grade {{ child.grade }}{% endif %}
+                            </p>
+                            <p class="card-text">
+                                <strong>Age:</strong> {{ child.age }} years old
+                            </p>
+                            <div class="mt-3">
+                                <a href="{{ url_for('pages.index') }}?child_id={{ child.id }}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-file-earmark-text me-1"></i> Create Worksheet
+                                </a>
+                                <a href="{{ url_for('worksheets.past_worksheets', child_id=child.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
+                                    <i class="bi bi-clock-history me-1"></i> Past Worksheets
+                                </a>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
                 <div class="alert alert-info">
-                    You haven't added any children yet. Use the form on the left to add your first child.
+                    <i class="bi bi-info-circle me-2"></i> You haven't added any children yet. Click the "Add New Child" button to get started.
                 </div>
-                {% endif %}
             </div>
-        </div>
+        {% endif %}
     </div>
+</div>
 
-    <!-- Edit Child Modal -->
-    <div class="modal fade" id="editChildModal" tabindex="-1" aria-labelledby="editChildModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editChildModalLabel">Edit Child</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="editChildModalBody">
-                    <!-- Form will be loaded here via AJAX -->
-                    <div class="text-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
+<!-- Add Child Modal -->
+<div class="modal fade" id="addChildModal" tabindex="-1" aria-labelledby="addChildModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addChildModalLabel">Add New Child</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('children.register_child') }}" id="addChildForm">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="birthday" class="form-label">Birthday</label>
+                        <input type="date" class="form-control" id="birthday" name="birthday" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="grade_level" class="form-label">Grade Level</label>
+                        <select class="form-select" id="grade_level" name="grade_level" required>
+                            <option value="0">Kindergarten</option>
+                            {% for grade in range(1, 13) %}
+                            <option value="{{ grade }}">Grade {{ grade }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Favorite Color</label>
+                        <div class="color-buttons">
+                            <input type="radio" class="btn-check" name="preferred_color" id="color1" value="#FF6B6B" checked>
+                            <label class="btn btn-outline-secondary color-btn" for="color1" style="background-color: #FF6B6B">Red</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color2" value="#4ECDC4">
+                            <label class="btn btn-outline-secondary color-btn" for="color2" style="background-color: #4ECDC4">Teal</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color3" value="#45B7D1">
+                            <label class="btn btn-outline-secondary color-btn" for="color3" style="background-color: #45B7D1">Blue</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color4" value="#96CEB4">
+                            <label class="btn btn-outline-secondary color-btn" for="color4" style="background-color: #96CEB4">Mint</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color5" value="#FFBE0B">
+                            <label class="btn btn-outline-secondary color-btn" for="color5" style="background-color: #FFBE0B">Yellow</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color6" value="#FF9999">
+                            <label class="btn btn-outline-secondary color-btn" for="color6" style="background-color: #FF9999">Pink</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color7" value="#9B5DE5">
+                            <label class="btn btn-outline-secondary color-btn" for="color7" style="background-color: #9B5DE5">Purple</label>
+
+                            <input type="radio" class="btn-check" name="preferred_color" id="color8" value="#F15BB5">
+                            <label class="btn btn-outline-secondary color-btn" for="color8" style="background-color: #F15BB5">Magenta</label>
                         </div>
                     </div>
-                </div>
+
+                    <div class="mt-4 d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Child</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Global variable to store the current edit modal
-        let editModal;
+<!-- Edit Child Modal -->
+<div class="modal fade" id="editChildModal" tabindex="-1" aria-labelledby="editChildModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editChildModalLabel">Edit Child</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="editChildFormContainer">
+                <!-- Form will be loaded here via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <span id="childNameToDelete"></span>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteChildForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form validation for adding a child
+    document.getElementById('addChildForm').addEventListener('submit', function(event) {
+        event.preventDefault();
         
-        function deleteChild(childId) {
-            if (confirm('Are you sure you want to delete this child?')) {
-                // Create a form to submit the delete request
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/children/${childId}/delete`;
-                document.body.appendChild(form);
-                form.submit();
-            }
+        const birthday = new Date(document.getElementById('birthday').value);
+        const today = new Date();
+        const age = Math.floor((today - birthday) / (1000 * 60 * 60 * 24 * 365.25));
+        
+        if (age < 4 || age > 18) {
+            alert('Child must be between 4 and 18 years old');
+            return;
         }
+        
+        this.submit();
+    });
 
-        function editChild(childId) {
-            // Initialize the modal if not already done
-            if (!editModal) {
-                editModal = new bootstrap.Modal(document.getElementById('editChildModal'));
-            }
-            
-            // Show the modal
-            editModal.show();
-            
-            // Load the edit form via AJAX
-            fetch(`/children/${childId}/edit?ajax=true`)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('editChildModalBody').innerHTML = html;
-                    
-                    // Add event listener to the form
-                    const form = document.getElementById('editChildForm');
-                    if (form) {
-                        form.addEventListener('submit', function(event) {
-                            event.preventDefault();
-                            
-                            // Validate the form
-                            const birthday = new Date(document.getElementById('edit_birthday').value);
-                            const today = new Date();
-                            const age = Math.floor((today - birthday) / (1000 * 60 * 60 * 24 * 365.25));
-                            
-                            if (age < 4 || age > 18) {
-                                alert('Child must be between 4 and 18 years old');
-                                return;
-                            }
-                            
-                            // Submit the form via AJAX
-                            const formData = new FormData(form);
-                            
-                            fetch(form.action + '?ajax=true', {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    // Close the modal
-                                    editModal.hide();
-                                    
-                                    // Reload the page to show the updated data
-                                    window.location.reload();
-                                } else {
-                                    // Show error message
-                                    alert(data.message || 'An error occurred');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('An error occurred while saving changes');
-                            });
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('editChildModalBody').innerHTML = '<div class="alert alert-danger">Error loading form</div>';
-                });
-        }
+    // Function to confirm deletion
+    function confirmDelete(childId, childName) {
+        document.getElementById('childNameToDelete').textContent = childName;
+        document.getElementById('deleteChildForm').action = "{{ url_for('children.delete_child', child_id='') }}" + childId;
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        deleteModal.show();
+    }
 
-        // Form validation for the add child form
-        document.getElementById('childForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            const birthday = new Date(document.getElementById('birthday').value);
-            const today = new Date();
-            const age = Math.floor((today - birthday) / (1000 * 60 * 60 * 24 * 365.25));
-            
-            if (age < 4 || age > 18) {
-                alert('Child must be between 4 and 18 years old');
-                return;
-            }
-            
-            this.submit();
-        });
-    </script>
-</body>
-</html> 
+    // Load edit form via AJAX
+    function loadEditForm(childId) {
+        fetch("{{ url_for('children.edit_child', child_id='') }}" + childId + "?ajax=true")
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('editChildFormContainer').innerHTML = html;
+                const editModal = new bootstrap.Modal(document.getElementById('editChildModal'));
+                editModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading edit form:', error);
+                alert('Error loading edit form. Please try again.');
+            });
+    }
+</script>
+{% endblock %} 

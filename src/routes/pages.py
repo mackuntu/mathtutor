@@ -49,10 +49,12 @@ def index():
 @bp.route("/terms")
 def terms():
     """Render Terms of Service page."""
-    return render_template("terms.html")
+    user = get_current_user()
+    return render_template("terms.html", user=user)
 
 
 @bp.route("/privacy")
 def privacy():
     """Render Privacy Policy page."""
-    return render_template("privacy.html")
+    user = get_current_user()
+    return render_template("privacy.html", user=user)

@@ -1,332 +1,313 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathTutor - Worksheet Generator</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- html2pdf.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-        .loading {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            z-index: 1000;
-        }
-        .loading-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-        .preview-box {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f8f9fa;
-        }
-        .pdf-container {
-            display: none;
-            position: fixed;
-            left: -9999px;
-        }
-        .child-selector {
-            max-width: 300px;
-            margin-bottom: 2rem;
-        }
-        .color-preview {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="/">MathTutor</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('pages.index') }}">Worksheets</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('children.list_children') }}">Manage Children</a>
-                    </li>
-                </ul>
-                <div class="navbar-nav ms-auto">
-                    <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
-                    <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
-                </div>
+{% extends "base.html" %}
+
+{% block title %}MathTutor - Worksheet Generator{% endblock %}
+{% set meta_description = "Generate customized math worksheets for children based on their age and skill level." %}
+{% set meta_keywords = "math, worksheets, generator, education, children, practice" %}
+
+{% block og_tags %}
+<meta property="og:title" content="MathTutor - Worksheet Generator">
+<meta property="og:description" content="Generate customized math worksheets for children based on their age and skill level.">
+<meta property="og:type" content="website">
+{% endblock %}
+
+{% block extra_head %}
+<!-- html2pdf.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .loading {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 1000;
+    }
+    .loading-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    .preview-box {
+        display: none;
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    .pdf-container {
+        display: none;
+        position: fixed;
+        left: -9999px;
+    }
+    .child-selector {
+        max-width: 300px;
+        margin-bottom: 2rem;
+    }
+    .color-preview {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4">MathTutor Worksheet Generator</h1>
+    
+    <!-- Child Selector -->
+    <div class="child-selector mx-auto">
+        <label for="childSelect" class="form-label">Generate worksheet for:</label>
+        <div class="position-relative">
+            {% if children %}
+            <select class="form-select" id="childSelect" onchange="window.location.href='/?child_id=' + this.value">
+                <option value="">Select a child...</option>
+                {% for child in children %}
+                <option value="{{ child.id }}" {% if active_child and child.id == active_child.id %}selected{% endif %}>
+                    {{ child.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if active_child and active_child.preferred_color %}
+            <span class="color-preview position-absolute top-50 end-0 translate-middle-y me-4" 
+                 style="background-color: {{ active_child.preferred_color }}"></span>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                No children found. <a href="{{ url_for('children.list_children') }}">Add a child</a> to get started.
             </div>
+            {% endif %}
         </div>
-    </nav>
-
-    <div class="container py-5">
-        <h1 class="text-center mb-4">MathTutor Worksheet Generator</h1>
-        
-        <!-- Child Selector -->
-        <div class="child-selector mx-auto">
-            <label for="childSelect" class="form-label">Generate worksheet for:</label>
-            <div class="position-relative">
-                {% if children %}
-                <select class="form-select" id="childSelect" onchange="window.location.href='/?child_id=' + this.value">
-                    <option value="">Select a child...</option>
-                    {% for child in children %}
-                    <option value="{{ child.id }}" {% if active_child and child.id == active_child.id %}selected{% endif %}>
-                        {{ child.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-                {% if active_child and active_child.preferred_color %}
-                <span class="color-preview position-absolute top-50 end-0 translate-middle-y me-4" 
-                     style="background-color: {{ active_child.preferred_color }}"></span>
-                {% endif %}
-                {% else %}
-                <div class="alert alert-info">
-                    No children found. <a href="{{ url_for('children.list_children') }}">Add a child</a> to get started.
+    </div>
+    
+    <!-- Configuration Form -->
+    {% if active_child %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="worksheetForm" class="needs-validation" novalidate>
+                <!-- Student Age (Hidden, using active child's age) -->
+                <input type="hidden" id="age" name="age" value="{{ active_child.age }}">
+                
+                <!-- Number of Problems -->
+                <div class="mb-3">
+                    <label for="count" class="form-label">Number of Problems</label>
+                    <input type="number" class="form-control" id="count" name="count" 
+                           value="30" min="5" max="50" required>
+                    <div class="invalid-feedback">Please enter a number between 5 and 50.</div>
                 </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Configuration Form -->
-        {% if active_child %}
-        <div class="card mb-4">
-            <div class="card-body">
-                <form id="worksheetForm" class="needs-validation" novalidate>
-                    <!-- Student Age (Hidden, using active child's age) -->
-                    <input type="hidden" id="age" name="age" value="{{ active_child.age }}">
-                    
-                    <!-- Number of Problems -->
-                    <div class="mb-3">
-                        <label for="count" class="form-label">Number of Problems</label>
-                        <input type="number" class="form-control" id="count" name="count" 
-                               value="30" min="5" max="50" required>
-                        <div class="invalid-feedback">Please enter a number between 5 and 50.</div>
-                    </div>
 
-                    <!-- Number of Worksheets -->
-                    <div class="mb-3">
-                        <label for="num_worksheets" class="form-label">Number of Worksheets</label>
-                        <input type="number" class="form-control" id="num_worksheets" name="num_worksheets" 
-                               value="1" min="1" max="5" required>
-                        <div class="invalid-feedback">Please enter a number between 1 and 5.</div>
-                    </div>
-
-                    <!-- Difficulty Slider -->
-                    <div class="mb-3">
-                        <label for="difficulty" class="form-label">
-                            Difficulty Level
-                            <small class="text-muted">(Default: School Year Progress)</small>
-                        </label>
-                        <input type="range" class="form-range" id="difficulty" name="difficulty"
-                               min="0" max="1" step="0.1" value="{{ default_difficulty }}">
-                        <div class="d-flex justify-content-between">
-                            <small>Easier</small>
-                            <small>Harder</small>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-success" id="generateBtn">
-                            Generate Worksheet & Key
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="previewBtn">
-                            Preview (First 5 Problems)
-                        </button>
-                        <a href="{{ url_for('worksheets.past_worksheets', child_id=active_child.id) }}" 
-                           class="btn btn-outline-primary">View Past Worksheets</a>
-                    </div>
-                </form>
-            </div>
-        </div>
-        {% elif children %}
-        <div class="alert alert-info text-center">
-            Please select a child from the dropdown above to generate worksheets.
-        </div>
-        {% endif %}
-
-        <!-- Problem Preview -->
-        <div id="previewBox" class="preview-box"></div>
-
-        <!-- Loading Indicator -->
-        <div id="loading" class="loading">
-            <div class="d-flex justify-content-center align-items-center h-100">
-                <div class="text-center">
-                    <div class="spinner-border text-light mb-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p>Generating worksheet...</p>
+                <!-- Number of Worksheets -->
+                <div class="mb-3">
+                    <label for="num_worksheets" class="form-label">Number of Worksheets</label>
+                    <input type="number" class="form-control" id="num_worksheets" name="num_worksheets" 
+                           value="1" min="1" max="5" required>
+                    <div class="invalid-feedback">Please enter a number between 1 and 5.</div>
                 </div>
+
+                <!-- Difficulty Slider -->
+                <div class="mb-3">
+                    <label for="difficulty" class="form-label">
+                        Difficulty Level
+                        <small class="text-muted">(Default: School Year Progress)</small>
+                    </label>
+                    <input type="range" class="form-range" id="difficulty" name="difficulty"
+                           min="0" max="1" step="0.1" value="{{ default_difficulty }}">
+                    <div class="d-flex justify-content-between">
+                        <small>Easier</small>
+                        <small>Harder</small>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success" id="generateBtn">
+                        Generate Worksheet & Key
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="previewBtn">
+                        Preview (First 5 Problems)
+                    </button>
+                    <a href="{{ url_for('worksheets.past_worksheets', child_id=active_child.id) }}" 
+                       class="btn btn-outline-primary">View Past Worksheets</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% elif children %}
+    <div class="alert alert-info text-center">
+        Please select a child from the dropdown above to generate worksheets.
+    </div>
+    {% endif %}
+
+    <!-- Problem Preview -->
+    <div id="previewBox" class="preview-box"></div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading">
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="text-center">
+                <div class="spinner-border text-light mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Generating worksheet...</p>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- PDF Container -->
-    <div id="pdfContainer" class="pdf-container"></div>
+<!-- PDF Container -->
+<div id="pdfContainer" class="pdf-container"></div>
+{% endblock %}
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // PDF generation options
-        const pdfOptions = {
-            margin: [0.4, 0.4, 0.4, 0.4], // inches
-            filename: 'worksheet.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                letterRendering: true,
-                useCORS: true
-            },
-            jsPDF: { 
-                unit: 'in', 
-                format: 'letter', 
-                orientation: 'portrait'
-            },
-            output: 'blob'
-        };
+{% block scripts %}
+<script>
+    // PDF generation options
+    const pdfOptions = {
+        margin: [0.4, 0.4, 0.4, 0.4], // inches
+        filename: 'worksheet.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2,
+            letterRendering: true,
+            useCORS: true
+        },
+        jsPDF: { 
+            unit: 'in', 
+            format: 'letter', 
+            orientation: 'portrait'
+        },
+        output: 'blob'
+    };
 
-        async function openAndPrint(pdfBlob, shouldPrint = false) {
-            const url = URL.createObjectURL(pdfBlob);
-            const newWindow = window.open(url, '_blank');
+    async function openAndPrint(pdfBlob, shouldPrint = false) {
+        const url = URL.createObjectURL(pdfBlob);
+        const newWindow = window.open(url, '_blank');
+        
+        if (newWindow && shouldPrint) {
+            newWindow.addEventListener('load', () => {
+                newWindow.print();
+            });
+        }
+
+        // Clean up the URL after a delay
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function generatePDF(htmlContent, options) {
+        const element = document.createElement('div');
+        element.innerHTML = htmlContent;
+        document.body.appendChild(element);
+
+        try {
+            const pdf = await html2pdf().set(options).from(element).outputPdf('blob');
+            return pdf;
+        } finally {
+            document.body.removeChild(element);
+        }
+    }
+
+    async function previewWorksheet() {
+        const form = document.getElementById('worksheetForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // Show loading state
+        const loadingElement = document.getElementById('loading');
+        loadingElement.style.display = 'flex';
+        document.getElementById('previewBox').style.display = 'none';
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch('/worksheets/preview', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                // Display preview
+                document.getElementById('previewBox').innerHTML = data.html;
+                document.getElementById('previewBox').style.display = 'block';
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            alert('Error generating preview: ' + error);
+        } finally {
+            loadingElement.style.display = 'none';
+        }
+    }
+
+    async function generateAndPrint() {
+        const form = document.getElementById('worksheetForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // Show loading state
+        const loadingElement = document.getElementById('loading');
+        loadingElement.style.display = 'flex';
+
+        try {
+            const formData = new FormData(form);
+            formData.append('child_id', document.getElementById('childSelect').value);
             
-            if (newWindow && shouldPrint) {
-                newWindow.addEventListener('load', () => {
-                    newWindow.print();
-                });
+            const response = await fetch('/worksheets/generate_both', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
 
-            // Clean up the URL after a delay
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const data = await response.json();
+            
+            // Process each worksheet
+            for (const worksheetData of data.worksheets) {
+                // Generate worksheet PDF and send to print
+                const worksheetOptions = { 
+                    ...pdfOptions, 
+                    filename: `worksheet-${worksheetData.serial_number}.pdf` 
+                };
+                const worksheetPdf = await generatePDF(worksheetData.worksheet, worksheetOptions);
+                await openAndPrint(worksheetPdf, true); // Open and print worksheet
+
+                // Generate answer key PDF and just open it
+                const answerKeyOptions = { 
+                    ...pdfOptions, 
+                    filename: `answer-key-${worksheetData.serial_number}.pdf` 
+                };
+                const answerKeyPdf = await generatePDF(worksheetData.answer_key, answerKeyOptions);
+                await openAndPrint(answerKeyPdf, false); // Just open answer key
+            }
+
+        } catch (error) {
+            alert('Error generating PDFs: ' + error);
+        } finally {
+            loadingElement.style.display = 'none';
         }
+    }
 
-        async function generatePDF(htmlContent, options) {
-            const element = document.createElement('div');
-            element.innerHTML = htmlContent;
-            document.body.appendChild(element);
-
-            try {
-                const pdf = await html2pdf().set(options).from(element).outputPdf('blob');
-                return pdf;
-            } finally {
-                document.body.removeChild(element);
-            }
-        }
-
-        async function previewWorksheet() {
-            const form = document.getElementById('worksheetForm');
-            if (!form.checkValidity()) {
-                form.classList.add('was-validated');
-                return;
-            }
-
-            // Show loading state
-            const loadingElement = document.getElementById('loading');
-            loadingElement.style.display = 'flex';
-            document.getElementById('previewBox').style.display = 'none';
-
-            try {
-                const formData = new FormData(form);
-                const response = await fetch('/worksheets/preview', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    // Display preview
-                    document.getElementById('previewBox').innerHTML = data.html;
-                    document.getElementById('previewBox').style.display = 'block';
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                alert('Error generating preview: ' + error);
-            } finally {
-                loadingElement.style.display = 'none';
-            }
-        }
-
-        async function generateAndPrint() {
-            const form = document.getElementById('worksheetForm');
-            if (!form.checkValidity()) {
-                form.classList.add('was-validated');
-                return;
-            }
-
-            // Show loading state
-            const loadingElement = document.getElementById('loading');
-            loadingElement.style.display = 'flex';
-
-            try {
-                const formData = new FormData(form);
-                formData.append('child_id', document.getElementById('childSelect').value);
-                
-                const response = await fetch('/worksheets/generate_both', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const data = await response.json();
-                
-                // Process each worksheet
-                for (const worksheetData of data.worksheets) {
-                    // Generate worksheet PDF and send to print
-                    const worksheetOptions = { 
-                        ...pdfOptions, 
-                        filename: `worksheet-${worksheetData.serial_number}.pdf` 
-                    };
-                    const worksheetPdf = await generatePDF(worksheetData.worksheet, worksheetOptions);
-                    await openAndPrint(worksheetPdf, true); // Open and print worksheet
-
-                    // Generate answer key PDF and just open it
-                    const answerKeyOptions = { 
-                        ...pdfOptions, 
-                        filename: `answer-key-${worksheetData.serial_number}.pdf` 
-                    };
-                    const answerKeyPdf = await generatePDF(worksheetData.answer_key, answerKeyOptions);
-                    await openAndPrint(answerKeyPdf, false); // Just open answer key
-                }
-
-            } catch (error) {
-                alert('Error generating PDFs: ' + error);
-            } finally {
-                loadingElement.style.display = 'none';
-            }
-        }
-
-        // Event Listeners
-        document.getElementById('generateBtn').addEventListener('click', generateAndPrint);
-        document.getElementById('previewBtn').addEventListener('click', previewWorksheet);
-    </script>
-</body>
-</html> 
+    // Event Listeners
+    document.getElementById('generateBtn').addEventListener('click', generateAndPrint);
+    document.getElementById('previewBtn').addEventListener('click', previewWorksheet);
+</script>
+{% endblock %} 

@@ -1,122 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Worksheet</title>
-    <style>
-        @page {
-            size: letter portrait;
-            margin: 0.45in;
-        }
+{% extends "base.html" %}
 
-        html {
-            min-height: 100%;
-        }
+{% block title %}Math Worksheet{% endblock %}
+{% set meta_description = "Printable math worksheet with customized problems for practice and learning." %}
+{% set meta_keywords = "math, worksheet, practice, problems, education, children" %}
 
-        body {
-            font-family: 'Times New Roman', serif;
-            padding: 0;
-            font-size: 12pt;
-            margin: 0;
-            min-height: 100%;
-            display: flex;
-            flex-direction: column;
-            max-width: calc(8.5in - 0.9in); /* Account for page margins */
-            margin: 0 auto; /* Center the content */
-        }
+{% block og_tags %}
+<meta property="og:title" content="Math Worksheet">
+<meta property="og:description" content="Printable math worksheet with customized problems for practice and learning.">
+<meta property="og:type" content="website">
+{% endblock %}
 
-        .container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-        }
+{% block extra_css %}
+<style>
+    @page {
+        size: letter portrait;
+        margin: 0.45in;
+    }
 
-        .title {
-            text-align: center;
-            font-size: 16pt;
-            margin-bottom: 1rem;
-            border: 1px solid black;
-            padding: 0.5rem;
-            width: 100%;
-            box-sizing: border-box;
-        }
+    html {
+        min-height: 100%;
+    }
 
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 1rem;
-            width: 100%;
-            box-sizing: border-box;
-        }
+    body {
+        font-family: 'Times New Roman', serif;
+        padding: 0;
+        font-size: 12pt;
+        margin: 0;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        max-width: calc(8.5in - 0.9in); /* Account for page margins */
+        margin: 0 auto; /* Center the content */
+    }
 
-        .field {
-            display: block;
-            align-items: baseline;
-            gap: 0.5rem;
-        }
+    .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
 
-        .underline {
-            border-bottom: 1px solid black;
-            min-width: 150px;
-            height: 1.2em;
-            display: inline-block;
-        }
+    .title {
+        text-align: center;
+        font-size: 16pt;
+        margin-bottom: 1rem;
+        border: 1px solid black;
+        padding: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-        /* Answer space styling for both preview and PDF */
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .field {
+        display: block;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .underline {
+        border-bottom: 1px solid black;
+        min-width: 150px;
+        height: 1.2em;
+        display: inline-block;
+    }
+
+    /* Answer space styling for both preview and PDF */
+    .answer-space {
+        border: 2px dotted #999 !important;
+        border-radius: 4px;
+        background-color: transparent !important;
+    }
+
+    .incorrect {
+        background-color: #ffebee !important;
+        border-color: #ef5350 !important;
+    }
+
+    .serial-number {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 10pt;
+        color: #666;
+    }
+    
+    @media screen {
+        .print-only {
+            display: none !important;
+        }
+    }
+
+    @media print {
         .answer-space {
             border: 2px dotted #999 !important;
-            border-radius: 4px;
             background-color: transparent !important;
         }
-
+        
         .incorrect {
             background-color: #ffebee !important;
             border-color: #ef5350 !important;
         }
+    }
+</style>
+{% endblock %}
 
-        .serial-number {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 10pt;
-            color: #666;
-        }
-        
-        @media screen {
-            .print-only {
-                display: none !important;
-            }
-        }
-
-        @media print {
-            .answer-space {
-                border: 2px dotted #999 !important;
-                background-color: transparent !important;
-            }
-            
-            .incorrect {
-                background-color: #ffebee !important;
-                border-color: #ef5350 !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="title">{{ "Answer Key" if is_answer_key else "MathTutor Worksheet" }}</div>
-        {% if serial_number %}
-        <div class="serial-number">Serial: {{ serial_number }}</div>
-        {% endif %}
-        <div class="info-row">
-            <div class="field">Name: <span class="underline"></span></div>
-            <div class="field">Date: <span class="underline"></span></div>
-            <div class="field">Score: <span class="underline"></span>/{{ problems|length }}</div>
-        </div>
-
-        {% include 'problem_grid.html' %}
+{% block content %}
+<div class="container">
+    <div class="title">{{ "Answer Key" if is_answer_key else "MathTutor Worksheet" }}</div>
+    {% if serial_number %}
+    <div class="serial-number">Serial: {{ serial_number }}</div>
+    {% endif %}
+    <div class="info-row">
+        <div class="field">Name: <span class="underline"></span></div>
+        <div class="field">Date: <span class="underline"></span></div>
+        <div class="field">Score: <span class="underline"></span>/{{ problems|length }}</div>
     </div>
-</body>
-</html> 
+
+    {% include 'problem_grid.html' %}
+</div>
+{% endblock %} 
