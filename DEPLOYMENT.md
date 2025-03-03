@@ -7,6 +7,8 @@ This document provides instructions for deploying the MathTutor application to A
 1. AWS Account with appropriate permissions
 2. GitHub repository with the MathTutor code
 3. GitHub Actions enabled on the repository
+4. Stripe account for payment processing
+5. Google AdSense and/or Facebook Audience Network accounts for ad integration
 
 ## AWS Resources Required
 
@@ -46,7 +48,63 @@ This document provides instructions for deploying the MathTutor application to A
 
 ### 4. Set Up DynamoDB
 
-The DynamoDB tables will be created automatically during deployment.
+The DynamoDB tables will be created automatically during deployment, with the following structure:
+- `Users`: Stores user information and subscription details
+- `Children`: Stores information about children profiles
+- `Worksheets`: Stores generated worksheet data
+- `Sessions`: Stores user session data
+
+## Setting Up Stripe Integration
+
+### 1. Create a Stripe Account
+
+1. Sign up for a Stripe account at https://stripe.com
+2. Complete the verification process
+
+### 2. Configure Stripe Products and Prices
+
+1. In the Stripe Dashboard, go to "Products"
+2. Create the following products:
+   - **Free Tier**: 
+     - Price: $0/month
+     - Features: Limited worksheet generation (e.g., 5 per week)
+   - **Premium Subscription**:
+     - Price: $9.99/month (or your desired price)
+     - Features: Unlimited worksheet generation
+
+### 3. Set Up Stripe Webhook
+
+1. In the Stripe Dashboard, go to "Developers" > "Webhooks"
+2. Add an endpoint URL: `https://your-app-url.elasticbeanstalk.com/webhook/stripe`
+3. Select the following events to listen for:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Save the webhook secret for later use
+
+### 4. Get API Keys
+
+1. In the Stripe Dashboard, go to "Developers" > "API keys"
+2. Note down the Publishable Key and Secret Key
+
+## Setting Up Ad Integration
+
+### 1. Google AdSense
+
+1. Sign up for Google AdSense at https://www.google.com/adsense
+2. Add your website and verify ownership
+3. Create ad units for different placements:
+   - Sidebar ads
+   - In-content ads
+4. Note down your AdSense client ID
+
+### 2. Facebook Audience Network (Optional)
+
+1. Sign up for Facebook Audience Network
+2. Create placement IDs for your application
+3. Note down the placement IDs
 
 ## Setting Up GitHub Secrets
 
@@ -66,6 +124,11 @@ Add the following secrets to your GitHub repository:
 12. `X_CLIENT_ID`: X (Twitter) OAuth client ID
 13. `X_CLIENT_SECRET`: X (Twitter) OAuth client secret
 14. `X_REDIRECT_URI`: X (Twitter) OAuth redirect URI
+15. `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
+16. `STRIPE_SECRET_KEY`: Stripe secret key
+17. `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
+18. `GOOGLE_ADSENSE_CLIENT_ID`: Google AdSense client ID
+19. `FACEBOOK_AD_PLACEMENT_ID`: Facebook Audience Network placement ID (if applicable)
 
 ## Deployment Process
 
@@ -78,11 +141,25 @@ Add the following secrets to your GitHub repository:
 
 You can also manually trigger the deployment workflow from the GitHub Actions tab.
 
+## Post-Deployment Configuration
+
+### 1. Verify Stripe Webhook
+
+1. Make a test subscription to verify the webhook is working
+2. Check the application logs to ensure events are being received
+
+### 2. Verify Ad Integration
+
+1. Visit different pages of the application to ensure ads are displaying correctly
+2. Check for any console errors related to ad loading
+
 ## Monitoring and Troubleshooting
 
 1. **Elastic Beanstalk Logs**: Check the Elastic Beanstalk console for application logs
 2. **GitHub Actions Logs**: Check the GitHub Actions tab for deployment logs
 3. **CloudWatch**: Set up CloudWatch for monitoring application metrics
+4. **Stripe Dashboard**: Monitor subscription events and payment status
+5. **AdSense Dashboard**: Monitor ad performance and revenue
 
 ## Updating the Application
 
