@@ -128,6 +128,56 @@ def create_tables(dynamodb_resource=None):
         else:
             raise
 
+    # Subscriptions table
+    try:
+        dynamodb.create_table(
+            TableName="mathtutor-subscriptions",
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "user_email", "AttributeType": "S"},
+            ],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "user-email-index",
+                    "KeySchema": [{"AttributeName": "user_email", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        print("Subscriptions table created successfully")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Subscriptions table already exists")
+        else:
+            raise
+
+    # Payments table
+    try:
+        dynamodb.create_table(
+            TableName="mathtutor-payments",
+            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "user_email", "AttributeType": "S"},
+            ],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "user-email-index",
+                    "KeySchema": [{"AttributeName": "user_email", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        print("Payments table created successfully")
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ResourceInUseException":
+            print("Payments table already exists")
+        else:
+            raise
+
 
 if __name__ == "__main__":
     create_tables()

@@ -7,18 +7,22 @@ from typing import Any, Dict, List, Optional
 
 import boto3
 
-from ..models import Worksheet as WorksheetModel  # Import the new Worksheet model
 from .config import (
     CHILD_ID_INDEX,
     CHILDREN_TABLE,
     PARENT_EMAIL_INDEX,
+    PAYMENTS_TABLE,
     SESSION_TTL_ATTRIBUTE,
     SESSIONS_TABLE,
+    SUBSCRIPTIONS_TABLE,
     USER_EMAIL_INDEX,
+    USER_EMAIL_PAYMENT_INDEX,
+    USER_EMAIL_SUBSCRIPTION_INDEX,
     USERS_TABLE,
     WORKSHEETS_TABLE,
 )
-from .models import Child, Session, User, Worksheet
+from .models import Child, Payment, Session, Subscription, User
+from .models import Worksheet as WorksheetModel
 
 
 class DynamoDBRepository:
@@ -46,6 +50,11 @@ class DynamoDBRepository:
             TableName=USERS_TABLE, Key={"email": {"S": email}}
         )
         return User.from_item(response.get("Item"))
+
+    def scan_users(self) -> List[User]:
+        """Scan all users."""
+        response = self.dynamodb.scan(TableName=USERS_TABLE)
+        return [User.from_item(item) for item in response.get("Items", [])]
 
     def create_user(self, user: User) -> None:
         """Create a new user."""
@@ -264,6 +273,88 @@ class DynamoDBRepository:
         """Delete a worksheet."""
         self.dynamodb.delete_item(
             TableName=WORKSHEETS_TABLE, Key={"id": {"S": worksheet_id}}
+        )
+
+    # Subscription operations
+    def get_subscription_by_id(self, subscription_id: str) -> Optional[Subscription]:
+        """Get subscription by ID."""
+        response = self.dynamodb.get_item(
+            TableName=SUBSCRIPTIONS_TABLE, Key={"id": {"S": subscription_id}}
+        )
+        return Subscription.from_item(response.get("Item"))
+
+    def get_user_subscription(self, user_email: str) -> Optional[Subscription]:
+        """Get subscription for a user."""
+        response = self.dynamodb.query(
+            TableName=SUBSCRIPTIONS_TABLE,
+            IndexName=USER_EMAIL_SUBSCRIPTION_INDEX,
+            KeyConditionExpression="user_email = :email",
+            ExpressionAttributeValues={":email": {"S": user_email}},
+            ScanIndexForward=False,  # Sort by most recent
+            Limit=1,
+        )
+
+        items = response.get("Items", [])
+        if not items:
+            return None
+
+        return Subscription.from_item(items[0])
+
+    def create_subscription(self, subscription: Subscription) -> None:
+        """Create a new subscription."""
+        self.dynamodb.put_item(
+            TableName=SUBSCRIPTIONS_TABLE, Item=subscription.to_item()
+        )
+
+    def update_subscription(self, subscription: Subscription) -> None:
+        """Update an existing subscription."""
+        self.dynamodb.put_item(
+            TableName=SUBSCRIPTIONS_TABLE, Item=subscription.to_item()
+        )
+
+    def delete_subscription(self, subscription_id: str) -> None:
+        """Delete a subscription."""
+        self.dynamodb.delete_item(
+            TableName=SUBSCRIPTIONS_TABLE, Key={"id": {"S": subscription_id}}
+        )
+
+    def scan_subscriptions(self) -> List[Subscription]:
+        """Scan all subscriptions."""
+        response = self.dynamodb.scan(TableName=SUBSCRIPTIONS_TABLE)
+        return [Subscription.from_item(item) for item in response.get("Items", [])]
+
+    # Payment operations
+    def get_payment_by_id(self, payment_id: str) -> Optional[Payment]:
+        """Get payment by ID."""
+        response = self.dynamodb.get_item(
+            TableName=PAYMENTS_TABLE, Key={"id": {"S": payment_id}}
+        )
+        return Payment.from_item(response.get("Item"))
+
+    def get_user_payments(self, user_email: str) -> List[Payment]:
+        """Get payments for a user."""
+        response = self.dynamodb.query(
+            TableName=PAYMENTS_TABLE,
+            IndexName=USER_EMAIL_PAYMENT_INDEX,
+            KeyConditionExpression="user_email = :email",
+            ExpressionAttributeValues={":email": {"S": user_email}},
+            ScanIndexForward=False,  # Sort by most recent
+        )
+
+        return [Payment.from_item(item) for item in response.get("Items", [])]
+
+    def create_payment(self, payment: Payment) -> None:
+        """Create a new payment."""
+        self.dynamodb.put_item(TableName=PAYMENTS_TABLE, Item=payment.to_item())
+
+    def update_payment(self, payment: Payment) -> None:
+        """Update an existing payment."""
+        self.dynamodb.put_item(TableName=PAYMENTS_TABLE, Item=payment.to_item())
+
+    def delete_payment(self, payment_id: str) -> None:
+        """Delete a payment."""
+        self.dynamodb.delete_item(
+            TableName=PAYMENTS_TABLE, Key={"id": {"S": payment_id}}
         )
 
 

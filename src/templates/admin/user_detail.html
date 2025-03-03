@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}{{ target_user.name }} - User Details - MathTutor Admin{% endblock %}
+
+{% block meta_description %}Detailed user information for {{ target_user.name }} in MathTutor admin panel.{% endblock %}
+
+{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .admin-sidebar {
+        background-color: #343a40;
+        min-height: calc(100vh - 56px);
+        padding-top: 20px;
+    }
+    .admin-sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.75);
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .admin-sidebar .nav-link:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .admin-sidebar .nav-link.active {
+        color: #fff;
+        background-color: #007bff;
+    }
+    .admin-sidebar .nav-link i {
+        margin-right: 0.5rem;
+    }
+    .user-avatar-lg {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .child-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 admin-sidebar">
+            <div class="d-flex flex-column">
+                <h5 class="text-white mb-3 px-3">Admin Panel</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin.users') }}">
+                            <i class="bi bi-people"></i> Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.subscriptions') }}">
+                            <i class="bi bi-credit-card"></i> Subscriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.payments') }}">
+                            <i class="bi bi-cash-stack"></i> Payments
+                        </a>
+                    </li>
+                    <li class="nav-item mt-3">
+                        <a class="nav-link" href="{{ url_for('pages.index') }}">
+                            <i class="bi bi-arrow-left"></i> Back to Site
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>User Details</h1>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Users
+                </a>
+            </div>
+            
+            <!-- User Profile -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 text-center">
+                            {% if target_user.picture %}
+                            <img src="{{ target_user.picture }}" alt="{{ target_user.name }}" class="user-avatar-lg mb-3">
+                            {% else %}
+                            <div class="user-avatar-lg mb-3 bg-secondary d-flex align-items-center justify-content-center text-white mx-auto">
+                                {{ target_user.name[:1] }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-5">
+                            <h3>{{ target_user.name }}</h3>
+                            <p class="text-muted">{{ target_user.email }}</p>
+                            <p><strong>Joined:</strong> {{ target_user.created_at|timestamp_to_date }}</p>
+                        </div>
+                        <div class="col-md-5">
+                            <h4>Subscription Status</h4>
+                            {% if subscription %}
+                            <p>
+                                <strong>Plan:</strong>
+                                {% if subscription.plan == 'premium' %}
+                                <span class="badge bg-warning text-dark">Premium</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Free</span>
+                                {% endif %}
+                            </p>
+                            <p>
+                                <strong>Status:</strong>
+                                {% if subscription.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                                {% elif subscription.status == 'trial' %}
+                                <span class="badge bg-info">Trial</span>
+                                {% elif subscription.status == 'canceled' %}
+                                <span class="badge bg-danger">Canceled</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ subscription.status }}</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Worksheets Generated:</strong> {{ subscription.worksheets_generated }}</p>
+                            <p><strong>Worksheets Limit:</strong> {{ subscription.worksheets_limit }}</p>
+                            {% else %}
+                            <p>No active subscription</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Children -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Children</h4>
+                </div>
+                <div class="card-body">
+                    {% if children %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Age</th>
+                                    <th>Grade</th>
+                                    <th>Worksheets</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for child in children %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="child-avatar me-2 bg-{{ child.preferred_color if child.preferred_color else 'secondary' }} d-flex align-items-center justify-content-center text-white">
+                                                {{ child.name[:1] }}
+                                            </div>
+                                            {{ child.name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ child.age }}</td>
+                                    <td>{{ child.grade }}</td>
+                                    <td>{{ worksheets_by_child[child.id]|length }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="mb-0">No children registered</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Payment History -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Payment History</h4>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.created_at|timestamp_to_date }}</td>
+                                    <td>{{ payment.description }}</td>
+                                    <td>${{ payment.amount }}</td>
+                                    <td>
+                                        {% if payment.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif payment.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif payment.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ payment.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="mb-0">No payment history</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -12,7 +12,8 @@
 
 {% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
 
-{% block extra_head %}
+{% block head %}
+{{ super() }}
 <!-- html2pdf.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 {% endblock %}
@@ -44,11 +45,7 @@
         border-radius: 5px;
         background-color: #f8f9fa;
     }
-    .pdf-container {
-        display: none;
-        position: fixed;
-        left: -9999px;
-    }
+
     .child-selector {
         max-width: 300px;
         margin-bottom: 2rem;
@@ -69,7 +66,43 @@
     <h1 class="text-center mb-4">MathTutor Worksheet Generator</h1>
     
     <div class="row">
-        <div class="col-lg-9">
+        <div class="col-md-9">
+            <!-- Subscription Status -->
+            {% if user %}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Subscription Status</h5>
+                    <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-sm btn-outline-primary">Manage</a>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center subscription-status">
+                        <div>
+                            <h6>
+                                {% if is_premium %}
+                                <span class="badge bg-warning text-dark">Premium</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Free</span>
+                                {% endif %}
+                            </h6>
+                            {% if is_premium %}
+                            <p class="mb-0">Unlimited worksheet generation</p>
+                            {% else %}
+                            <p class="mb-0"><span class="remaining">{{ remaining_worksheets }}</span> of {{ subscription.worksheets_limit }} worksheets remaining this week</p>
+                            {% if not can_generate %}
+                            <div class="alert alert-danger mt-2 mb-0">
+                                <p class="mb-0">You've reached your worksheet limit. <a href="{{ url_for('subscription.subscription_page') }}">Upgrade to Premium</a> for unlimited worksheets.</p>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        {% if not is_premium %}
+                        <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-warning">Upgrade to Premium</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <!-- Child Selector -->
             <div class="child-selector mx-auto">
                 <label for="childSelect" class="form-label">Generate worksheet for:</label>
@@ -135,7 +168,7 @@
 
                         <!-- Action Buttons -->
                         <div class="d-grid gap-2">
-                            <button type="button" class="btn btn-success" id="generateBtn">
+                            <button type="button" class="btn btn-success" id="generateBtn" {% if not can_generate %}disabled{% endif %}>
                                 Generate Worksheet & Key
                             </button>
                             <button type="button" class="btn btn-secondary" id="previewBtn">
@@ -155,21 +188,9 @@
 
             <!-- Problem Preview -->
             <div id="previewBox" class="preview-box"></div>
-
-            <!-- Loading Indicator -->
-            <div id="loading" class="loading">
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="text-center">
-                        <div class="spinner-border text-light mb-3" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p>Generating worksheet...</p>
-                    </div>
-                </div>
-            </div>
         </div>
         
-        <div class="col-lg-3">
+        <div class="col-md-3">
             {{ sidebar_ad() }}
             
             <div class="card mb-4">
@@ -179,49 +200,79 @@
                 <div class="card-body">
                     <p class="small">Customize worksheets based on your child's age and skill level for the best learning experience.</p>
                     <p class="small">Regular practice with math worksheets helps build confidence and improve skills.</p>
+                    {% if not is_premium %}
+                    <p class="small mt-3"><strong>Upgrade to Premium</strong> for unlimited worksheets and advanced features!</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5>Generating worksheet...</h5>
+            <p class="text-muted">This may take a few moments</p>
+        </div>
+    </div>
 </div>
-
-<!-- PDF Container -->
-<div id="pdfContainer" class="pdf-container"></div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     // PDF generation options
     const pdfOptions = {
-        margin: [0.4, 0.4, 0.4, 0.4], // inches
+        margin: [0.4, 0.4, 0.4, 0.4], // reduced margins (top, right, bottom, left) in inches
         filename: 'worksheet.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
             scale: 2,
             letterRendering: true,
-            useCORS: true
+            useCORS: true,
+            scrollY: 0,
+            scrollX: 0,
+            windowWidth: document.documentElement.offsetWidth,
+            windowHeight: document.documentElement.offsetHeight,
+            y: 0,
+            x: 0
         },
         jsPDF: { 
             unit: 'in', 
             format: 'letter', 
-            orientation: 'portrait'
+            orientation: 'portrait',
+            compress: true
         },
         output: 'blob'
     };
 
-    async function openAndPrint(pdfBlob, shouldPrint = false) {
-        const url = URL.createObjectURL(pdfBlob);
-        const newWindow = window.open(url, '_blank');
-        
-        if (newWindow && shouldPrint) {
-            newWindow.addEventListener('load', () => {
-                newWindow.print();
-            });
+    // Check if user can generate worksheets
+    const canGenerate = {% if can_generate %}true{% else %}false{% endif %};
+    const isLoggedIn = {% if user %}true{% else %}false{% endif %};
+    
+    // Show subscription warning if needed
+    function checkSubscriptionStatus() {
+        const generateBtn = document.getElementById('generateBtn');
+        if (!isLoggedIn) {
+            // If not logged in, enable button but will redirect to login
+            if (generateBtn) generateBtn.disabled = false;
+            return;
         }
-
-        // Clean up the URL after a delay
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+        if (!canGenerate) {
+            if (generateBtn) {
+                generateBtn.disabled = true;
+                generateBtn.title = "You've reached your worksheet limit";
+            }
+        }
     }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        checkSubscriptionStatus();
+    });
 
     async function generatePDF(htmlContent, options) {
         const element = document.createElement('div');
@@ -236,41 +287,46 @@
         }
     }
 
+    // Preview worksheet
     async function previewWorksheet() {
         const form = document.getElementById('worksheetForm');
         if (!form.checkValidity()) {
             form.classList.add('was-validated');
             return;
         }
-
-        // Show loading state
-        const loadingElement = document.getElementById('loading');
-        loadingElement.style.display = 'flex';
+        
+        const formData = new FormData(form);
+        formData.append('child_id', document.getElementById('childSelect').value);
+        
+        // Show loading indicator
+        document.getElementById('loading').style.display = 'flex';
         document.getElementById('previewBox').style.display = 'none';
-
+        
         try {
-            const formData = new FormData(form);
-            const response = await fetch('/worksheets/preview', {
+            const response = await fetch('{{ url_for("worksheets.preview_problems") }}', {
                 method: 'POST',
                 body: formData
             });
-
+            
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-
+            
             const data = await response.json();
+            
             if (data.success) {
-                // Display preview
-                document.getElementById('previewBox').innerHTML = data.html;
-                document.getElementById('previewBox').style.display = 'block';
+                const previewBox = document.getElementById('previewBox');
+                previewBox.innerHTML = data.html;
+                previewBox.style.display = 'block';
+                previewBox.scrollIntoView({ behavior: 'smooth' });
             } else {
-                throw new Error(data.error);
+                console.error('Error: ' + data.error);
             }
         } catch (error) {
-            alert('Error generating preview: ' + error);
+            console.error('Error:', error);
         } finally {
-            loadingElement.style.display = 'none';
+            // Hide loading indicator
+            document.getElementById('loading').style.display = 'none';
         }
     }
 
@@ -302,12 +358,16 @@
             
             // Process each worksheet
             for (const worksheetData of data.worksheets) {
+                // Prepare content for PDF generation
+                const worksheetContent = preparePdfContent(worksheetData.worksheet);
+                const answerKeyContent = preparePdfContent(worksheetData.answer_key);
+                
                 // Generate worksheet PDF and send to print
                 const worksheetOptions = { 
                     ...pdfOptions, 
                     filename: `worksheet-${worksheetData.serial_number}.pdf` 
                 };
-                const worksheetPdf = await generatePDF(worksheetData.worksheet, worksheetOptions);
+                const worksheetPdf = await generatePDF(worksheetContent, worksheetOptions);
                 await openAndPrint(worksheetPdf, true); // Open and print worksheet
 
                 // Generate answer key PDF and just open it
@@ -315,7 +375,7 @@
                     ...pdfOptions, 
                     filename: `answer-key-${worksheetData.serial_number}.pdf` 
                 };
-                const answerKeyPdf = await generatePDF(worksheetData.answer_key, answerKeyOptions);
+                const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
                 await openAndPrint(answerKeyPdf, false); // Just open answer key
             }
 
@@ -323,6 +383,59 @@
             alert('Error generating PDFs: ' + error);
         } finally {
             loadingElement.style.display = 'none';
+        }
+    }
+    
+    // Function to prepare HTML content for PDF generation
+    function preparePdfContent(htmlContent) {
+        // Create a temporary container
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        
+        // Remove any unnecessary spacing elements or styles that might cause extra space
+        const spacingElements = tempDiv.querySelectorAll('br, hr');
+        spacingElements.forEach(el => {
+            if (el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        
+        // Add inline CSS to ensure content starts at the top
+        const style = document.createElement('style');
+        style.textContent = `
+            body, html, div {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            * {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+            .container, .row, .col {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+        `;
+        tempDiv.insertBefore(style, tempDiv.firstChild);
+        
+        return tempDiv.innerHTML;
+    }
+
+    // Function to open PDF in new tab and optionally print it
+    async function openAndPrint(pdfBlob, shouldPrint) {
+        // Create a URL for the PDF blob
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Open the PDF in a new tab
+        const newTab = window.open(pdfUrl, '_blank');
+        
+        // If printing is requested, trigger print dialog after the PDF loads
+        if (shouldPrint && newTab) {
+            newTab.addEventListener('load', function() {
+                setTimeout(() => {
+                    newTab.print();
+                }, 1000); // Small delay to ensure PDF is fully loaded
+            });
         }
     }
 

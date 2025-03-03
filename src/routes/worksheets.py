@@ -8,8 +8,9 @@ from typing import List
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from ..database import get_repository
+from ..database.models import Subscription
+from ..database.models import Worksheet as WorksheetModel
 from ..generator import ProblemGenerator
-from ..models import Worksheet
 from .common import get_current_user
 
 # Configure logging
@@ -79,6 +80,21 @@ def generate_both():
         if not child or child.parent_email != user.email:
             return {"error": "Child not found"}, 404
 
+        # Check subscription status
+        subscription = repository.get_user_subscription(user.email)
+        if not subscription:
+            # Create a free tier subscription if none exists
+            subscription = Subscription(user_email=user.email)
+            repository.create_subscription(subscription)
+
+        # Check if user can generate more worksheets
+        if not subscription.can_generate_worksheet():
+            return {
+                "error": "You have reached your worksheet generation limit. "
+                "Please upgrade to premium for unlimited worksheets.",
+                "limit_reached": True,
+            }, 403
+
         # Generate multiple worksheets
         worksheets_data = []
         for _ in range(num_worksheets):
@@ -93,7 +109,7 @@ def generate_both():
             logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
             # Create worksheet in database
-            worksheet = Worksheet.create(
+            worksheet = WorksheetModel.create(
                 child_id=child_id, problems=json.dumps(problems)
             )
             repository.create_worksheet(worksheet)
@@ -133,10 +149,21 @@ def generate_both():
                 }
             )
 
+        # Increment the worksheets generated count
+        subscription.increment_worksheets_count()
+        repository.update_subscription(subscription)
+
         total_time = time.time() - start_time
         logger.info(f"Total request took: {total_time:.2f} seconds")
 
-        return jsonify({"worksheets": worksheets_data})
+        return jsonify(
+            {
+                "worksheets": worksheets_data,
+                "remaining": subscription.worksheets_limit
+                - subscription.worksheets_generated,
+                "is_premium": subscription.plan == Subscription.PLAN_PREMIUM,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Error generating HTMLs: {str(e)}")
@@ -166,7 +193,7 @@ def generate_worksheet_route():
         difficulty=generator.get_school_year_progress(),
     )
 
-    worksheet = Worksheet(child_id=child.id, problems=problems)
+    worksheet = WorksheetModel.create(child_id=child.id, problems=problems)
     repository.create_worksheet(worksheet)
 
     return render_template(
@@ -281,6 +308,15 @@ def past_worksheets(child_id):
         flash("Child not found.", "error")
         return redirect(url_for("pages.index"))
 
+    # Get subscription status
+    subscription = repository.get_user_subscription(user.email)
+    if not subscription:
+        # Create a free tier subscription if none exists
+        subscription = Subscription(user_email=user.email)
+        repository.create_subscription(subscription)
+
+    is_premium = subscription.plan == Subscription.PLAN_PREMIUM
+
     worksheets = repository.get_child_worksheets(child_id)
     worksheets.sort(key=lambda w: w.created_at, reverse=True)
 
@@ -309,6 +345,8 @@ def past_worksheets(child_id):
         worksheets=worksheets,
         past_scores=past_scores,
         past_dates=past_dates,
+        is_premium=is_premium,
+        subscription=subscription,
     )
 
 

@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Management - MathTutor{% endblock %}
+
+{% block meta_description %}Manage your MathTutor subscription and payment details.{% endblock %}
+
+{% block meta_keywords %}math tutor, subscription, payment, premium, worksheet generator{% endblock %}
+
+{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
+
+{% block head %}
+{{ super() }}
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+    .plan-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+    .plan-card:hover {
+        transform: translateY(-5px);
+    }
+    .plan-header {
+        padding: 20px;
+        border-radius: 10px 10px 0 0;
+        color: white;
+    }
+    .free-plan .plan-header {
+        background-color: #6c757d;
+    }
+    .premium-plan .plan-header {
+        background-color: #ffc107;
+    }
+    .plan-price {
+        font-size: 2.5rem;
+        font-weight: bold;
+    }
+    .plan-period {
+        font-size: 1rem;
+        opacity: 0.8;
+    }
+    .plan-features {
+        padding: 20px;
+    }
+    .feature-item {
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+    }
+    .feature-item i {
+        margin-right: 10px;
+        color: #28a745;
+    }
+    .payment-history {
+        margin-top: 40px;
+    }
+    .current-plan-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Subscription Management</h1>
+    
+    <div class="row">
+        <div class="col-md-9">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h5>Your Current Plan: 
+                            {% if subscription.plan == 'premium' %}
+                                <span class="badge bg-warning text-dark">Premium</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Free</span>
+                            {% endif %}
+                        </h5>
+                        <p>
+                            {% if subscription.plan == 'premium' %}
+                                Your premium subscription is 
+                                {% if subscription.status == 'active' %}
+                                    active until {{ subscription.end_date|timestamp_to_date if subscription.end_date else 'ongoing' }}.
+                                {% elif subscription.status == 'canceled' %}
+                                    canceled and will expire on {{ subscription.end_date|timestamp_to_date }}.
+                                {% else %}
+                                    {{ subscription.status }}.
+                                {% endif %}
+                            {% else %}
+                                You have generated {{ subscription.worksheets_generated }} of {{ subscription.worksheets_limit }} 
+                                worksheets this week.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-5">
+                <!-- Free Plan -->
+                <div class="col-md-6 mb-4">
+                    <div class="card plan-card free-plan">
+                        {% if subscription.plan == 'free' %}
+                        <div class="current-plan-badge">
+                            <span class="badge bg-success">Current Plan</span>
+                        </div>
+                        {% endif %}
+                        <div class="plan-header">
+                            <h3>Free Plan</h3>
+                            <div class="plan-price">$0 <span class="plan-period">/month</span></div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>5 worksheets per week</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Basic worksheet generation</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>PDF download</span>
+                            </div>
+                            <div class="feature-item text-muted">
+                                <i class="bi bi-x-circle"></i>
+                                <span>Unlimited worksheets</span>
+                            </div>
+                            <div class="feature-item text-muted">
+                                <i class="bi bi-x-circle"></i>
+                                <span>Advanced analytics</span>
+                            </div>
+                            <div class="feature-item text-muted">
+                                <i class="bi bi-x-circle"></i>
+                                <span>Mistake analysis</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center p-4">
+                            {% if subscription.plan == 'premium' %}
+                            <button class="btn btn-outline-secondary btn-lg" disabled>Current Plan is Premium</button>
+                            {% else %}
+                            <button class="btn btn-outline-secondary btn-lg" disabled>Current Plan</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Premium Plan -->
+                <div class="col-md-6 mb-4">
+                    <div class="card plan-card premium-plan">
+                        {% if subscription.plan == 'premium' %}
+                        <div class="current-plan-badge">
+                            <span class="badge bg-success">Current Plan</span>
+                        </div>
+                        {% endif %}
+                        <div class="plan-header">
+                            <h3>Premium Plan</h3>
+                            <div class="plan-price">$4.99 <span class="plan-period">/month</span></div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Unlimited worksheets</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Advanced worksheet customization</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>PDF download</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Advanced analytics</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Mistake analysis</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Priority support</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center p-4">
+                            {% if subscription.plan == 'premium' %}
+                                {% if subscription.status == 'canceled' %}
+                                    <button id="resubscribe-button" class="btn btn-warning btn-lg">Reactivate Subscription</button>
+                                {% else %}
+                                    <form action="{{ url_for('subscription.cancel_subscription') }}" method="post">
+                                        <button type="submit" class="btn btn-outline-danger btn-lg">Cancel Subscription</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <button id="checkout-button" class="btn btn-warning btn-lg">Upgrade to Premium</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment History -->
+            <div class="payment-history">
+                <h3 class="mb-4">Payment History</h3>
+                {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                    <tr>
+                                        <td>{{ payment.created_at|timestamp_to_date }}</td>
+                                        <td>{{ payment.description }}</td>
+                                        <td>${{ payment.amount }}</td>
+                                        <td>
+                                            {% if payment.status == 'completed' %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% elif payment.status == 'pending' %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            {% elif payment.status == 'failed' %}
+                                                <span class="badge bg-danger">Failed</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ payment.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No payment history available.</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            {{ sidebar_ad() }}
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Why Upgrade?</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small">Premium subscribers get unlimited worksheet generation, perfect for teachers and homeschooling parents.</p>
+                    <p class="small">Advanced analytics help track progress and identify areas for improvement.</p>
+                    <p class="small">Customize worksheets to match your child's exact learning needs.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Stripe checkout
+        var stripe = Stripe('{{ stripe_public_key }}');
+        var checkoutButton = document.getElementById('checkout-button');
+        
+        if (checkoutButton) {
+            checkoutButton.addEventListener('click', function() {
+                // Create a checkout session
+                fetch('{{ url_for("subscription.upgrade_subscription") }}', {
+                    method: 'POST',
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(session) {
+                    if (session.error) {
+                        alert(session.error);
+                        return;
+                    }
+                    // Redirect to Stripe Checkout
+                    return stripe.redirectToCheckout({ sessionId: session.id });
+                })
+                .then(function(result) {
+                    if (result.error) {
+                        alert(result.error.message);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again later.');
+                });
+            });
+        }
+        
+        // Resubscribe button
+        var resubscribeButton = document.getElementById('resubscribe-button');
+        if (resubscribeButton) {
+            resubscribeButton.addEventListener('click', function() {
+                // Create a checkout session for resubscription
+                fetch('{{ url_for("subscription.upgrade_subscription") }}', {
+                    method: 'POST',
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(session) {
+                    if (session.error) {
+                        alert(session.error);
+                        return;
+                    }
+                    // Redirect to Stripe Checkout
+                    return stripe.redirectToCheckout({ sessionId: session.id });
+                })
+                .then(function(result) {
+                    if (result.error) {
+                        alert(result.error.message);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again later.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 

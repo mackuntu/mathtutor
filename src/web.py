@@ -31,6 +31,14 @@ def init_app(app: Flask) -> None:
     def inject_globals():
         return {"current_year": datetime.datetime.now().year}
 
+    # Add custom filters
+    @app.template_filter("timestamp_to_date")
+    def timestamp_to_date(timestamp):
+        """Convert a timestamp to a formatted date string."""
+        if not timestamp:
+            return ""
+        return datetime.datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+
     logger.info("Web routes initialized")
 
 

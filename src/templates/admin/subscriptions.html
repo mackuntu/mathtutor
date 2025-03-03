@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Management - MathTutor Admin{% endblock %}
+
+{% block meta_description %}Subscription management dashboard for MathTutor application.{% endblock %}
+
+{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .admin-sidebar {
+        background-color: #343a40;
+        min-height: calc(100vh - 56px);
+        padding-top: 20px;
+    }
+    .admin-sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.75);
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .admin-sidebar .nav-link:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .admin-sidebar .nav-link.active {
+        color: #fff;
+        background-color: #007bff;
+    }
+    .admin-sidebar .nav-link i {
+        margin-right: 0.5rem;
+    }
+    .subscription-table th, .subscription-table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 admin-sidebar">
+            <div class="d-flex flex-column">
+                <h5 class="text-white mb-3 px-3">Admin Panel</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.users') }}">
+                            <i class="bi bi-people"></i> Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin.subscriptions') }}">
+                            <i class="bi bi-credit-card"></i> Subscriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.payments') }}">
+                            <i class="bi bi-cash-stack"></i> Payments
+                        </a>
+                    </li>
+                    <li class="nav-item mt-3">
+                        <a class="nav-link" href="{{ url_for('pages.index') }}">
+                            <i class="bi bi-arrow-left"></i> Back to Site
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-10 p-4">
+            <h1 class="mb-4">Subscription Management</h1>
+            
+            <!-- Subscriptions Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover subscription-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Plan</th>
+                                    <th>Status</th>
+                                    <th>Worksheets</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in subscriptions %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('admin.user_detail', email=data.user.email) }}" class="text-decoration-none">
+                                            {{ data.user.name }}
+                                            <br>
+                                            <small class="text-muted">{{ data.user.email }}</small>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if data.subscription.plan == 'premium' %}
+                                        <span class="badge bg-warning text-dark">Premium</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Free</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if data.subscription.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% elif data.subscription.status == 'trial' %}
+                                        <span class="badge bg-info">Trial</span>
+                                        {% elif data.subscription.status == 'canceled' %}
+                                        <span class="badge bg-danger">Canceled</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ data.subscription.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ data.subscription.worksheets_generated }} / 
+                                        {% if data.subscription.worksheets_limit >= 999999999 %}
+                                        Unlimited
+                                        {% else %}
+                                        {{ data.subscription.worksheets_limit }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ data.subscription.start_date|timestamp_to_date }}</td>
+                                    <td>
+                                        {% if data.subscription.end_date %}
+                                        {{ data.subscription.end_date|timestamp_to_date }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editSubscriptionModal{{ loop.index }}">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Edit Subscription Modal -->
+                                <div class="modal fade" id="editSubscriptionModal{{ loop.index }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <form action="{{ url_for('admin.update_subscription') }}" method="POST">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Edit Subscription</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="user_email" value="{{ data.user.email }}">
+                                                    
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Plan</label>
+                                                        <select name="plan" class="form-select">
+                                                            <option value="free" {% if data.subscription.plan == 'free' %}selected{% endif %}>Free</option>
+                                                            <option value="premium" {% if data.subscription.plan == 'premium' %}selected{% endif %}>Premium</option>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Status</label>
+                                                        <select name="status" class="form-select">
+                                                            <option value="active" {% if data.subscription.status == 'active' %}selected{% endif %}>Active</option>
+                                                            <option value="trial" {% if data.subscription.status == 'trial' %}selected{% endif %}>Trial</option>
+                                                            <option value="canceled" {% if data.subscription.status == 'canceled' %}selected{% endif %}>Canceled</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

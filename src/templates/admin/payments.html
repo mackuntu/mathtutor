@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Payment History - MathTutor Admin{% endblock %}
+
+{% block meta_description %}Payment history and transaction management for MathTutor application.{% endblock %}
+
+{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .admin-sidebar {
+        background-color: #343a40;
+        min-height: calc(100vh - 56px);
+        padding-top: 20px;
+    }
+    .admin-sidebar .nav-link {
+        color: rgba(255, 255, 255, 0.75);
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+    .admin-sidebar .nav-link:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .admin-sidebar .nav-link.active {
+        color: #fff;
+        background-color: #007bff;
+    }
+    .admin-sidebar .nav-link i {
+        margin-right: 0.5rem;
+    }
+    .payment-table th, .payment-table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 admin-sidebar">
+            <div class="d-flex flex-column">
+                <h5 class="text-white mb-3 px-3">Admin Panel</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.users') }}">
+                            <i class="bi bi-people"></i> Users
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin.subscriptions') }}">
+                            <i class="bi bi-credit-card"></i> Subscriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('admin.payments') }}">
+                            <i class="bi bi-cash-stack"></i> Payments
+                        </a>
+                    </li>
+                    <li class="nav-item mt-3">
+                        <a class="nav-link" href="{{ url_for('pages.index') }}">
+                            <i class="bi bi-arrow-left"></i> Back to Site
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-10 p-4">
+            <h1 class="mb-4">Payment History</h1>
+            
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Revenue</h5>
+                            <h3 class="mb-0">${{ total_revenue }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">This Month</h5>
+                            <h3 class="mb-0">${{ monthly_revenue }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Subscriptions</h5>
+                            <h3 class="mb-0">{{ active_subscriptions }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Payments</h5>
+                            <h3 class="mb-0">{{ pending_payments }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payments Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover payment-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>User</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Plan</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">{{ payment.transaction_id }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.user_detail', email=payment.user.email) }}" class="text-decoration-none">
+                                            {{ payment.user.name }}
+                                            <br>
+                                            <small class="text-muted">{{ payment.user.email }}</small>
+                                        </a>
+                                    </td>
+                                    <td>${{ payment.amount }}</td>
+                                    <td>
+                                        {% if payment.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif payment.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif payment.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ payment.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ payment.date|timestamp_to_date }}</td>
+                                    <td>
+                                        {% if payment.plan == 'premium' %}
+                                        <span class="badge bg-warning text-dark">Premium</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ payment.plan }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewPaymentModal{{ loop.index }}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Payment Details Modal -->
+                                <div class="modal fade" id="viewPaymentModal{{ loop.index }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Payment Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <dl class="row">
+                                                    <dt class="col-sm-4">Transaction ID</dt>
+                                                    <dd class="col-sm-8">{{ payment.transaction_id }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">User</dt>
+                                                    <dd class="col-sm-8">{{ payment.user.name }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Email</dt>
+                                                    <dd class="col-sm-8">{{ payment.user.email }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Amount</dt>
+                                                    <dd class="col-sm-8">${{ payment.amount }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Status</dt>
+                                                    <dd class="col-sm-8">{{ payment.status|title }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Date</dt>
+                                                    <dd class="col-sm-8">{{ payment.date|timestamp_to_date }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Plan</dt>
+                                                    <dd class="col-sm-8">{{ payment.plan|title }}</dd>
+                                                    
+                                                    {% if payment.notes %}
+                                                    <dt class="col-sm-4">Notes</dt>
+                                                    <dd class="col-sm-8">{{ payment.notes }}</dd>
+                                                    {% endif %}
+                                                </dl>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                {% if payment.status == 'pending' %}
+                                                <form action="{{ url_for('admin.update_payment_status') }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="transaction_id" value="{{ payment.transaction_id }}">
+                                                    <input type="hidden" name="status" value="completed">
+                                                    <button type="submit" class="btn btn-success">Mark as Completed</button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

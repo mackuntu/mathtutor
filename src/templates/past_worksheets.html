@@ -2,6 +2,8 @@
 
 {% block title %}Past Worksheets{% endblock %}
 
+{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -11,64 +13,97 @@
         </button>
     </div>
 
-    {% if past_scores %}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Progress</h5>
-            <div id="sparkline"></div>
+    <div class="row">
+        <div class="col-md-9">
+            {% if past_scores %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Progress</h5>
+                    <div id="sparkline"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)">
+                        </th>
+                        <th>Serial #</th>
+                        <th>Date</th>
+                        <th>Problems</th>
+                        <th>Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worksheet in worksheets %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="worksheet-checkbox" data-id="{{ worksheet.id }}">
+                        </td>
+                        <td>{{ worksheet.serial_number }}</td>
+                        <td>{{ worksheet.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ worksheet.problem_count }}</td>
+                        <td>
+                            {% if worksheet.score is not none %}
+                            {{ "%.1f"|format(worksheet.score) }}%
+                            {% else %}
+                            Not graded
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('worksheets.view_worksheet', worksheet_id=worksheet.id) }}" class="btn btn-sm btn-primary">View</a>
+                            <a href="{{ url_for('worksheets.grade_worksheet', worksheet_id=worksheet.id) }}" class="btn btn-sm btn-info">Grade</a>
+                            <a href="{{ url_for('worksheets.view_worksheet', worksheet_id=worksheet.id, print=1) }}" class="btn btn-sm btn-secondary">Print</a>
+                            <button onclick="deleteWorksheet('{{ worksheet.id }}')" class="btn btn-sm btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="col-md-3">
+            {{ sidebar_ad() }}
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Tips</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small">Track your child's progress over time with our grading system.</p>
+                    <p class="small">Regular practice helps improve math skills and confidence.</p>
+                    {% if not is_premium %}
+                    <p class="small mt-3"><strong>Upgrade to Premium</strong> for advanced analytics and unlimited worksheets!</p>
+                    <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-warning btn-sm mt-2">Upgrade Now</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
-
-    <table class="table">
-        <thead>
-            <tr>
-                <th>
-                    <input type="checkbox" id="select-all" onchange="toggleSelectAll(this)">
-                </th>
-                <th>Serial #</th>
-                <th>Date</th>
-                <th>Problems</th>
-                <th>Score</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for worksheet in worksheets %}
-            <tr>
-                <td>
-                    <input type="checkbox" class="worksheet-checkbox" data-id="{{ worksheet.id }}">
-                </td>
-                <td>{{ worksheet.serial_number }}</td>
-                <td>{{ worksheet.created_at.strftime('%Y-%m-%d') }}</td>
-                <td>{{ worksheet.problem_count }}</td>
-                <td>
-                    {% if worksheet.score is not none %}
-                    {{ "%.1f"|format(worksheet.score) }}%
-                    {% else %}
-                    Not graded
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('worksheets.view_worksheet', worksheet_id=worksheet.id) }}" class="btn btn-sm btn-primary">View</a>
-                    <a href="{{ url_for('worksheets.grade_worksheet', worksheet_id=worksheet.id) }}" class="btn btn-sm btn-info">Grade</a>
-                    <a href="{{ url_for('worksheets.view_worksheet', worksheet_id=worksheet.id, print=1) }}" class="btn btn-sm btn-secondary">Print</a>
-                    <button onclick="deleteWorksheet('{{ worksheet.id }}')" class="btn btn-sm btn-danger">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
+
+<div id="chart-data" 
+     data-scores='{{ past_scores|tojson }}' 
+     data-dates='{{ past_dates|tojson }}'
+     data-bulk-delete-url='{{ url_for('worksheets.bulk_delete_worksheets') }}'></div>
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.0/dist/apexcharts.min.js"></script>
 <script>
+// Get data from data attributes to avoid linter errors
+const chartData = document.getElementById('chart-data');
+const pastScores = JSON.parse(chartData.dataset.scores);
+const pastDates = JSON.parse(chartData.dataset.dates);
+const bulkDeleteUrl = chartData.dataset.bulkDeleteUrl;
+
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('sparkline') && {{ past_scores|tojson|length }} > 0) {
+    if (document.getElementById('sparkline') && pastScores.length > 0) {
         var options = {
             series: [{
                 name: 'Score',
-                data: {{ past_scores|tojson }}
+                data: pastScores
             }],
             chart: {
                 height: 100,
@@ -77,15 +112,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     enabled: true
                 }
             },
-            labels: {{ past_dates|tojson }},
+            labels: pastDates,
             stroke: {
                 curve: 'smooth',
                 width: 2
             },
             tooltip: {
                 custom: function({ series, seriesIndex, dataPointIndex, w }) {
-                    var dates = {{ past_dates|tojson }};
-                    var date = dates[dataPointIndex];
+                    var date = pastDates[dataPointIndex];
                     var score = series[seriesIndex][dataPointIndex];
                     return '<div class="p-2">' +
                         '<span>' + date + ': ' + score.toFixed(1) + '%</span>' +
@@ -151,7 +185,7 @@ async function deleteSelected() {
     }
 
     try {
-        const response = await fetch('{{ url_for('worksheets.bulk_delete_worksheets') }}', {
+        const response = await fetch(bulkDeleteUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

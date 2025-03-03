@@ -11,11 +11,13 @@
     <meta name="author" content="MathTutor">
     
     <!-- Open Graph / Social Media Meta Tags -->
+    {% block og_tags %}
     <meta property="og:title" content="{% block og_title %}MathTutor{% endblock %}">
     <meta property="og:description" content="{% block og_description %}An application for generating and grading math worksheets{% endblock %}">
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:image" content="{{ url_for('static', filename='images/icons/mathtutor_icon_512.png', _external=True) }}">
+    {% endblock %}
     
     <!-- Favicon and App Icons -->
     <link rel="icon" href="{{ url_for('static', filename='images/icons/favicon.ico') }}">
@@ -76,7 +78,7 @@
         }
     </style>
     
-    {% block extra_head %}{% endblock %}
+    {% block head %}{% endblock %}
 </head>
 <body>
     {% block navbar %}
@@ -100,8 +102,16 @@
                         <a class="nav-link {% if request.endpoint == 'children.list_children' %}active{% endif %}" 
                            href="{{ url_for('children.list_children') }}">Manage Children</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('subscription.') %}active{% endif %}" 
+                           href="{{ url_for('subscription.subscription_page') }}">Subscription</a>
+                    </li>
                 </ul>
                 <div class="navbar-nav ms-auto">
+                    {% if user and user.email in ['admin@mathtutor.com'] %}
+                    <a class="nav-link {% if request.endpoint.startswith('admin.') %}active{% endif %}" 
+                       href="{{ url_for('admin.dashboard') }}">Admin</a>
+                    {% endif %}
                     <span class="nav-item nav-link">Welcome, {{ user.name }}</span>
                     <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
                 </div>
@@ -146,16 +156,8 @@
                     {% block footer_ad %}
                     <div class="ad-container-footer">
                         <span class="ad-label">Advertisement</span>
-                        <!-- Google AdSense Footer Ad -->
-                        <ins class="adsbygoogle"
-                             style="display:block"
-                             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                             data-ad-slot="XXXXXXXXXX"
-                             data-ad-format="auto"
-                             data-full-width-responsive="true"></ins>
-                        <script>
-                             (adsbygoogle = window.adsbygoogle || []).push({});
-                        </script>
+                        {% from "components/ads.html" import google_ad %}
+                        {{ google_ad('XXXXXXXXXX', 'horizontal') }}
                     </div>
                     {% endblock %}
                 </div>
