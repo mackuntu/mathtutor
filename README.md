@@ -100,6 +100,27 @@ To set up the development environment:
    pytest
    ```
 
+## Monetization
+
+MathTutor includes built-in ad serving capabilities to help generate revenue. The application is configured to serve ads from:
+
+### Google AdSense
+
+The application is set up to display Google AdSense ads in various strategic locations. To configure:
+
+1. Create a Google AdSense publisher account
+2. Add your AdSense publisher ID and ad slot IDs to the `.env` file
+3. See the [Ad Serving Setup Guide](docs/ADSENSE_SETUP.md) for detailed instructions
+
+### Facebook Audience Network
+
+For additional revenue streams, the application also supports Facebook Audience Network ads. To configure:
+
+1. Create a Facebook Developer account and set up Audience Network
+2. Add your Facebook App ID and placement IDs to the `.env` file
+
+The ad components are already integrated into the application templates, making it easy to start generating revenue once your ad accounts are approved.
+
 ### Product Requirements Document: MathTutor System
 
 #### Overview

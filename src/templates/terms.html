@@ -9,20 +9,79 @@
 {% block extra_css %}
 <style>
     .terms-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 40px auto;
-        padding: 20px;
+        padding: 30px;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        border-radius: 8px;
     }
-    .terms-section {
+    .terms-header {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 20px;
         margin-bottom: 30px;
     }
+    .terms-section {
+        margin-bottom: 35px;
+    }
     .terms-section h3 {
-        color: #333;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-weight: 600;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    .terms-section p, .terms-section li {
+        color: #505050;
+        line-height: 1.7;
+        margin-bottom: 10px;
+    }
+    .terms-section ul, .terms-section ol {
+        padding-left: 25px;
         margin-bottom: 15px;
     }
-    .terms-section p {
-        color: #666;
-        line-height: 1.6;
+    .terms-section li {
+        margin-bottom: 8px;
+    }
+    .terms-toc {
+        background-color: #f8f9fa;
+        padding: 20px 25px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+    .terms-toc h4 {
+        margin-bottom: 15px;
+        color: #2c3e50;
+    }
+    .terms-toc ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .terms-toc li {
+        margin-bottom: 8px;
+    }
+    .terms-toc a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    .terms-toc a:hover {
+        text-decoration: underline;
+    }
+    .terms-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .terms-footer p {
+        margin-bottom: 5px;
+    }
+    .terms-highlight {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-left: 4px solid #3498db;
+        margin: 15px 0;
     }
 </style>
 {% endblock %}
@@ -30,55 +89,199 @@
 {% block content %}
 <div class="container">
     <div class="terms-container">
-        <h1 class="mb-4">Terms of Service</h1>
+        <div class="terms-header">
+            <h1 class="mb-3">Terms of Service</h1>
+            <p class="text-muted">Effective Date: March 1, 2025</p>
+        </div>
         
-        <div class="terms-section">
+        <div class="terms-toc">
+            <h4>Table of Contents</h4>
+            <ul>
+                <li><a href="#acceptance">1. Acceptance of Terms</a></li>
+                <li><a href="#service">2. Service Description</a></li>
+                <li><a href="#accounts">3. User Accounts</a></li>
+                <li><a href="#subscription">4. Subscription and Payments</a></li>
+                <li><a href="#child-privacy">5. Child Privacy</a></li>
+                <li><a href="#content">6. Educational Content</a></li>
+                <li><a href="#acceptable-use">7. Acceptable Use</a></li>
+                <li><a href="#advertisements">8. Advertisements</a></li>
+                <li><a href="#intellectual-property">9. Intellectual Property</a></li>
+                <li><a href="#disclaimer">10. Disclaimer of Warranties</a></li>
+                <li><a href="#limitation">11. Limitation of Liability</a></li>
+                <li><a href="#modifications">12. Modifications to Service</a></li>
+                <li><a href="#termination">13. Termination</a></li>
+                <li><a href="#governing-law">14. Governing Law</a></li>
+                <li><a href="#dispute">15. Dispute Resolution</a></li>
+                <li><a href="#contact">16. Contact Information</a></li>
+            </ul>
+        </div>
+        
+        <div class="terms-section" id="acceptance">
             <h3>1. Acceptance of Terms</h3>
-            <p>By accessing and using MathTutor, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the service.</p>
+            <p>Welcome to MathTutor. These Terms of Service ("Terms") constitute a legally binding agreement between you and MathTutor ("we," "us," or "our") governing your access to and use of the MathTutor website, applications, and services (collectively, the "Service").</p>
+            <p>By accessing or using the Service, you acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree to these Terms, please do not access or use the Service.</p>
+            <p>We may modify these Terms at any time. Your continued use of the Service after any such changes constitutes your acceptance of the new Terms.</p>
         </div>
 
-        <div class="terms-section">
+        <div class="terms-section" id="service">
             <h3>2. Service Description</h3>
-            <p>MathTutor is an educational platform that provides personalized math worksheets and learning materials for children. The service is intended for educational purposes only.</p>
+            <p>MathTutor is an educational platform that provides personalized math worksheets and learning materials for children. The Service is intended for educational purposes only and includes:</p>
+            <ul>
+                <li>Generation of customized math worksheets based on grade level and skill areas</li>
+                <li>Progress tracking and performance analytics</li>
+                <li>Digital and printable worksheet formats</li>
+                <li>Answer keys and solution guides</li>
+            </ul>
         </div>
 
-        <div class="terms-section">
+        <div class="terms-section" id="accounts">
             <h3>3. User Accounts</h3>
-            <p>To use MathTutor, you must create an account using a valid social login provider. You are responsible for maintaining the confidentiality of your account and for all activities that occur under your account.</p>
+            <p>To use MathTutor, you must create an account using a valid social login provider or email address. By creating an account, you represent that:</p>
+            <ul>
+                <li>All registration information you submit is truthful and accurate</li>
+                <li>You will maintain the accuracy of such information</li>
+                <li>You are at least 18 years of age or have the legal authority to enter into these Terms on behalf of a minor</li>
+            </ul>
+            <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.</p>
+            <p>We reserve the right to suspend or terminate your account if any information provided proves to be inaccurate, false, or outdated.</p>
+        </div>
+        
+        <div class="terms-section" id="subscription">
+            <h3>4. Subscription and Payments</h3>
+            <p>MathTutor offers both free and premium subscription plans. By selecting a premium plan, you agree to pay the subscription fees indicated for your selected plan.</p>
+            <p>Subscription fees are billed in advance on a recurring basis according to the billing cycle you select. You authorize us to charge your payment method for all fees incurred in connection with your account.</p>
+            <p>You may cancel your subscription at any time. Upon cancellation, your subscription will remain active until the end of your current billing period, after which it will not renew.</p>
+            <div class="terms-highlight">
+                <p><strong>No Refunds:</strong> All payments are non-refundable except where required by law. We do not provide refunds or credits for partially used subscription periods.</p>
+            </div>
         </div>
 
-        <div class="terms-section">
-            <h3>4. Child Privacy</h3>
-            <p>We take children's privacy seriously and comply with all applicable laws regarding the collection and use of children's personal information. Parents/guardians are responsible for managing their children's information within the platform.</p>
+        <div class="terms-section" id="child-privacy">
+            <h3>5. Child Privacy</h3>
+            <p>We take children's privacy seriously and comply with all applicable laws regarding the collection and use of children's personal information, including the Children's Online Privacy Protection Act (COPPA) in the United States.</p>
+            <p>Parents/guardians are responsible for:</p>
+            <ul>
+                <li>Providing consent for the collection of their children's information</li>
+                <li>Managing their children's information within the platform</li>
+                <li>Reviewing and monitoring their children's use of the Service</li>
+            </ul>
+            <p>For more information on how we collect, use, and protect children's information, please review our <a href="/privacy">Privacy Policy</a>.</p>
         </div>
 
-        <div class="terms-section">
-            <h3>5. Educational Content</h3>
-            <p>The math problems and worksheets generated by MathTutor are intended for educational purposes. While we strive for accuracy, we do not guarantee that all content will be error-free.</p>
+        <div class="terms-section" id="content">
+            <h3>6. Educational Content</h3>
+            <p>The math problems, worksheets, and educational materials generated by MathTutor are intended for educational purposes. While we strive for accuracy and educational value, we do not guarantee that all content will be error-free or suitable for every learning need.</p>
+            <p>The content provided through the Service is not intended to replace professional educational guidance. Parents, guardians, and educators should use their judgment when implementing our materials into a child's learning program.</p>
         </div>
 
-        <div class="terms-section">
-            <h3>6. Acceptable Use</h3>
-            <p>You agree to use MathTutor only for lawful purposes and in accordance with these Terms. You will not use the service to violate any applicable laws or regulations.</p>
+        <div class="terms-section" id="acceptable-use">
+            <h3>7. Acceptable Use</h3>
+            <p>You agree to use MathTutor only for lawful purposes and in accordance with these Terms. You will not:</p>
+            <ul>
+                <li>Use the Service in any way that violates any applicable laws or regulations</li>
+                <li>Impersonate any person or entity, or falsely state or misrepresent your affiliation with a person or entity</li>
+                <li>Interfere with or disrupt the Service or servers or networks connected to the Service</li>
+                <li>Attempt to gain unauthorized access to any portion of the Service or any other systems or networks</li>
+                <li>Use the Service to generate, distribute, or facilitate the distribution of unsolicited bulk communications</li>
+                <li>Reproduce, duplicate, copy, sell, resell, or exploit any portion of the Service without our express written permission</li>
+                <li>Use the Service to collect or store personal data about other users without their consent</li>
+                <li>Use any ad-blocking software, browser extensions, or other technologies that interfere with the display of advertisements on the Service</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section" id="advertisements">
+            <h3>8. Advertisements</h3>
+            <p>The Service includes advertisements served by third-party ad networks, including Google AdSense and Facebook Audience Network.</p>
+            
+            <h4 class="mt-4 mb-3">8.1 Ad Content</h4>
+            <p>We do not control the content of advertisements displayed on our Service. Advertisements are automatically served by third-party ad networks based on various factors, including your browsing history, demographics, and interests.</p>
+            <p>While we strive to work with reputable ad networks, we are not responsible for the content, accuracy, or subject matter of any advertisements displayed on our Service. If you encounter an advertisement that you believe is inappropriate or offensive, please report it to us.</p>
+            
+            <h4 class="mt-4 mb-3">8.2 Interaction with Advertisements</h4>
+            <p>Any interaction you have with advertisements displayed on our Service, including clicking on ads and visiting advertised websites, is solely between you and the advertiser. We are not responsible for any loss or damage of any kind incurred as a result of your interactions with advertisers or your use of advertised products or services.</p>
+            
+            <h4 class="mt-4 mb-3">8.3 Ad Personalization</h4>
+            <p>The advertisements displayed on our Service may be personalized based on information collected about you, including your browsing history and interests. You can learn more about how your information is used for ad personalization in our <a href="/privacy">Privacy Policy</a>.</p>
+            
+            <div class="terms-highlight">
+                <p><strong>Ad Blocking Notice:</strong> The use of ad-blocking software or browser extensions while using our Service is prohibited. Ad revenue helps us maintain and improve the Service. If you use ad-blocking technology, we reserve the right to restrict your access to certain features of the Service.</p>
+            </div>
+        </div>
+        
+        <div class="terms-section" id="intellectual-property">
+            <h3>9. Intellectual Property</h3>
+            <p>The Service and its original content, features, and functionality are owned by MathTutor and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.</p>
+            <p>You may not modify, reproduce, distribute, create derivative works or adaptations of, publicly display or in any way exploit the Service in whole or in part except as expressly authorized by us.</p>
+            <p>We grant you a limited, non-exclusive, non-transferable, and revocable license to use the Service for its intended purposes subject to these Terms.</p>
+        </div>
+        
+        <div class="terms-section" id="disclaimer">
+            <h3>10. Disclaimer of Warranties</h3>
+            <p>THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+            <p>WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED, OR THAT THE SERVICE OR THE SERVERS THAT MAKE IT AVAILABLE ARE FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.</p>
+        </div>
+        
+        <div class="terms-section" id="limitation">
+            <h3>11. Limitation of Liability</h3>
+            <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL MATHTUTOR, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS, SUPPLIERS, OR AFFILIATES BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:</p>
+            <ul>
+                <li>YOUR ACCESS TO OR USE OF OR INABILITY TO ACCESS OR USE THE SERVICE</li>
+                <li>ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE SERVICE</li>
+                <li>ANY CONTENT OBTAINED FROM THE SERVICE</li>
+                <li>UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR CONTENT</li>
+            </ul>
+            <p>IN ANY CASE, OUR AGGREGATE LIABILITY SHALL NOT EXCEED THE AMOUNT YOU HAVE PAID TO US IN THE PAST SIX MONTHS, OR $100 IF YOU HAVE NOT MADE ANY PAYMENTS TO US.</p>
         </div>
 
-        <div class="terms-section">
-            <h3>7. Modifications to Service</h3>
-            <p>We reserve the right to modify or discontinue MathTutor at any time without notice. We will not be liable to you or any third party for any modification, suspension, or discontinuance of the service.</p>
+        <div class="terms-section" id="modifications">
+            <h3>12. Modifications to Service</h3>
+            <p>We reserve the right to modify, suspend, or discontinue MathTutor (or any part thereof) at any time with or without notice. This includes the right to:</p>
+            <ul>
+                <li>Add, modify, or remove features or functionality</li>
+                <li>Establish new limits on certain features</li>
+                <li>Change subscription plans and pricing</li>
+            </ul>
+            <p>We will not be liable to you or any third party for any modification, suspension, or discontinuance of the Service.</p>
         </div>
 
-        <div class="terms-section">
-            <h3>8. Termination</h3>
+        <div class="terms-section" id="termination">
+            <h3>13. Termination</h3>
             <p>We reserve the right to terminate or suspend your account and access to MathTutor at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties, or for any other reason.</p>
+            <p>Upon termination:</p>
+            <ul>
+                <li>Your right to use the Service will immediately cease</li>
+                <li>We may delete or archive your account data according to our data retention policies</li>
+                <li>All provisions of these Terms which by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section" id="governing-law">
+            <h3>14. Governing Law</h3>
+            <p>These Terms shall be governed by and construed in accordance with the laws of the State of California, without regard to its conflict of law provisions.</p>
+            <p>Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights. If any provision of these Terms is held to be invalid or unenforceable by a court, the remaining provisions of these Terms will remain in effect.</p>
+        </div>
+        
+        <div class="terms-section" id="dispute">
+            <h3>15. Dispute Resolution</h3>
+            <p>Any dispute arising from or relating to the subject matter of these Terms shall be finally settled by arbitration in San Francisco, California, using the English language in accordance with the Arbitration Rules and Procedures of the Judicial Arbitration and Mediation Services, Inc. (JAMS) then in effect, by one commercial arbitrator with substantial experience in resolving intellectual property and commercial contract disputes.</p>
+            <p>The prevailing party in any arbitration or other legal action arising out of these Terms shall be entitled to receive reimbursement of its reasonable attorneys' fees and costs.</p>
         </div>
 
-        <div class="terms-section">
-            <h3>9. Contact Information</h3>
-            <p>If you have any questions about these Terms, please contact us at support@mathtutor.com.</p>
+        <div class="terms-section" id="contact">
+            <h3>16. Contact Information</h3>
+            <p>If you have any questions about these Terms, please contact us at:</p>
+            <p>
+                MathTutor, Inc.<br>
+                123 Education Lane<br>
+                San Francisco, CA 94105<br>
+                Email: legal@mathtutor.com<br>
+                Phone: (555) 123-4567
+            </p>
         </div>
 
-        <div class="terms-section">
-            <p class="text-muted">Last updated: February 26, 2025</p>
+        <div class="terms-footer">
+            <p>Last updated: March 1, 2025</p>
+            <p>© 2025 MathTutor, Inc. All rights reserved.</p>
         </div>
     </div>
 </div>

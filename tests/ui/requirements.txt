@@ -1,0 +1,16 @@
+# Selenium and related dependencies
+selenium==4.18.1
+webdriver-manager==4.0.1
+pytest-selenium==4.0.2
+pytest-html==4.1.1
+pytest-xdist==3.5.0
+
+# PDF testing
+PyPDF2==3.0.1
+pdf2image==1.17.0
+pillow==10.2.0
+
+# Screenshot comparison
+pytest-failed-screenshot>=1.0.2
+# Alternative options (commented out):
+# pytest-screenshot-on-failure>=1.0.0 

@@ -4,6 +4,7 @@ import logging
 
 from flask import Blueprint, redirect, render_template, request, url_for
 
+from ..blog.manager import BlogManager
 from ..database import get_repository
 from ..database.models import Subscription
 from ..generator import ProblemGenerator
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Initialize components
 repository = get_repository()
 generator = ProblemGenerator()
+blog_manager = BlogManager()  # Initialize blog manager at module level
 
 # Create blueprint
 bp = Blueprint("pages", __name__, url_prefix="")
@@ -72,3 +74,57 @@ def privacy():
     """Render Privacy Policy page."""
     user = get_current_user()
     return render_template("privacy.html", user=user)
+
+
+@bp.route("/blog")
+def blog():
+    """Render Blog page with educational math content."""
+    user = get_current_user()
+    category = request.args.get("category")
+    tag = request.args.get("tag")
+
+    logger.info(f"Blog page requested with category={category}, tag={tag}")
+
+    articles = blog_manager.get_articles(category=category, tag=tag)
+    categories = blog_manager.get_categories()
+    tags = blog_manager.get_tags()
+
+    logger.info(
+        f"Found {len(articles)} articles, {len(categories)} categories, {len(tags)} tags"
+    )
+
+    return render_template(
+        "blog.html",
+        user=user,
+        articles=articles,
+        categories=categories,
+        tags=tags,
+        active_category=category,
+        active_tag=tag,
+    )
+
+
+@bp.route("/blog/article/<article_id>")
+def blog_article(article_id):
+    """Render individual blog article page."""
+    user = get_current_user()
+
+    logger.info(f"Blog article requested: {article_id}")
+
+    article = blog_manager.get_article(article_id)
+    if not article:
+        logger.warning(f"Article not found: {article_id}")
+        return render_template("404.html", user=user), 404
+
+    logger.info(f"Found article: {article_id} - {article.get('title')}")
+
+    related_articles = blog_manager.get_related_articles(article_id)
+    categories = blog_manager.get_categories()
+
+    return render_template(
+        "blog_article.html",
+        user=user,
+        article=article,
+        related_articles=related_articles,
+        categories=categories,
+    )

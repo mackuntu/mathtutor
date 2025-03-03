@@ -9,24 +9,97 @@
 {% block extra_css %}
 <style>
     .privacy-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 40px auto;
-        padding: 20px;
+        padding: 30px;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        border-radius: 8px;
     }
-    .privacy-section {
+    .privacy-header {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 20px;
         margin-bottom: 30px;
     }
+    .privacy-section {
+        margin-bottom: 35px;
+    }
     .privacy-section h3 {
-        color: #333;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-weight: 600;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f1f1f1;
+    }
+    .privacy-section p, .privacy-section li {
+        color: #505050;
+        line-height: 1.7;
+        margin-bottom: 10px;
+    }
+    .privacy-section ul, .privacy-section ol {
+        padding-left: 25px;
         margin-bottom: 15px;
     }
-    .privacy-section p {
-        color: #666;
-        line-height: 1.6;
+    .privacy-section li {
+        margin-bottom: 8px;
     }
-    .privacy-section ul {
-        color: #666;
-        line-height: 1.6;
+    .privacy-toc {
+        background-color: #f8f9fa;
+        padding: 20px 25px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+    .privacy-toc h4 {
+        margin-bottom: 15px;
+        color: #2c3e50;
+    }
+    .privacy-toc ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .privacy-toc li {
+        margin-bottom: 8px;
+    }
+    .privacy-toc a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    .privacy-toc a:hover {
+        text-decoration: underline;
+    }
+    .privacy-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .privacy-footer p {
+        margin-bottom: 5px;
+    }
+    .privacy-highlight {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-left: 4px solid #3498db;
+        margin: 15px 0;
+    }
+    .privacy-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+    }
+    .privacy-table th, .privacy-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .privacy-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    .privacy-table tr:hover {
+        background-color: #f8f9fa;
     }
 </style>
 {% endblock %}
@@ -34,80 +107,331 @@
 {% block content %}
 <div class="container">
     <div class="privacy-container">
-        <h1 class="mb-4">Privacy Policy</h1>
+        <div class="privacy-header">
+            <h1 class="mb-3">Privacy Policy</h1>
+            <p class="text-muted">Effective Date: March 1, 2025</p>
+        </div>
         
-        <div class="privacy-section">
+        <div class="privacy-highlight">
+            <p><strong>Your privacy matters to us.</strong> This Privacy Policy explains how MathTutor collects, uses, and protects your personal information and your children's information. We are committed to ensuring that your privacy is protected and that we comply with all applicable data protection laws.</p>
+        </div>
+        
+        <div class="privacy-toc">
+            <h4>Table of Contents</h4>
+            <ul>
+                <li><a href="#information">1. Information We Collect</a></li>
+                <li><a href="#use">2. How We Use Your Information</a></li>
+                <li><a href="#children">3. Children's Privacy</a></li>
+                <li><a href="#sharing">4. Information Sharing and Disclosure</a></li>
+                <li><a href="#storage">5. Data Storage and Security</a></li>
+                <li><a href="#third-party">6. Third-Party Services</a></li>
+                <li><a href="#cookies">7. Cookies and Tracking Technologies</a></li>
+                <li><a href="#retention">8. Data Retention</a></li>
+                <li><a href="#rights">9. Your Rights</a></li>
+                <li><a href="#international">10. International Data Transfers</a></li>
+                <li><a href="#changes">11. Changes to Privacy Policy</a></li>
+                <li><a href="#contact">12. Contact Us</a></li>
+            </ul>
+        </div>
+        
+        <div class="privacy-section" id="information">
             <h3>1. Information We Collect</h3>
-            <p>We collect the following types of information:</p>
+            <p>We collect several types of information for various purposes to provide and improve our Service to you:</p>
+            
+            <h4 class="mt-4 mb-3">1.1 Personal Information</h4>
+            <p>When you create an account or use our Service, we may collect the following types of personal information:</p>
             <ul>
-                <li>Account information (name, email) from your social login provider</li>
-                <li>Child information provided by parents/guardians (name, age, grade level)</li>
-                <li>Usage data and performance metrics on worksheets</li>
-                <li>Technical information about your device and browser</li>
+                <li><strong>Account Information:</strong> Name, email address, profile picture, and other information provided by your social login provider</li>
+                <li><strong>Contact Information:</strong> Email address, phone number (optional), and mailing address (optional)</li>
+                <li><strong>Payment Information:</strong> Credit card details, billing address, and transaction history (for premium subscriptions)</li>
+                <li><strong>Child Information:</strong> Name, age, grade level, and learning preferences of children registered by parents/guardians</li>
+            </ul>
+            
+            <h4 class="mt-4 mb-3">1.2 Usage Data</h4>
+            <p>We also collect information about how the Service is accessed and used, including:</p>
+            <ul>
+                <li>Worksheet generation history and preferences</li>
+                <li>Performance metrics and completion rates on worksheets</li>
+                <li>Time spent on various features of the Service</li>
+                <li>Feature usage patterns and preferences</li>
+            </ul>
+            
+            <h4 class="mt-4 mb-3">1.3 Technical Information</h4>
+            <p>Our servers automatically collect certain information when you use the Service:</p>
+            <ul>
+                <li>IP address and geographic location</li>
+                <li>Browser type and version</li>
+                <li>Device type and operating system</li>
+                <li>Time zone setting and language preference</li>
+                <li>Pages visited and features used</li>
+                <li>Referral source and exit pages</li>
             </ul>
         </div>
 
-        <div class="privacy-section">
+        <div class="privacy-section" id="use">
             <h3>2. How We Use Your Information</h3>
-            <p>We use the collected information to:</p>
+            <p>We use the collected information for various purposes, including:</p>
+            
+            <table class="privacy-table">
+                <thead>
+                    <tr>
+                        <th>Purpose</th>
+                        <th>Types of Data Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Providing and personalizing our educational services</td>
+                        <td>Account information, Child information, Usage data</td>
+                    </tr>
+                    <tr>
+                        <td>Generating age-appropriate math worksheets</td>
+                        <td>Child information, Usage data</td>
+                    </tr>
+                    <tr>
+                        <td>Tracking progress and adjusting difficulty levels</td>
+                        <td>Usage data, Performance metrics</td>
+                    </tr>
+                    <tr>
+                        <td>Processing payments and managing subscriptions</td>
+                        <td>Payment information, Account information</td>
+                    </tr>
+                    <tr>
+                        <td>Communicating with you about your account</td>
+                        <td>Account information, Contact information</td>
+                    </tr>
+                    <tr>
+                        <td>Improving our services and user experience</td>
+                        <td>Usage data, Technical information</td>
+                    </tr>
+                    <tr>
+                        <td>Ensuring the security of our Service</td>
+                        <td>Technical information, IP address</td>
+                    </tr>
+                    <tr>
+                        <td>Complying with legal obligations</td>
+                        <td>As required by applicable laws</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p class="mt-3">We process your personal information based on one or more of the following legal grounds:</p>
             <ul>
-                <li>Provide and personalize our educational services</li>
-                <li>Generate age-appropriate math worksheets</li>
-                <li>Track progress and adjust difficulty levels</li>
-                <li>Improve our services and user experience</li>
-                <li>Communicate with you about your account</li>
+                <li>Performance of a contract when we provide you with our Service</li>
+                <li>Your consent, which you can withdraw at any time</li>
+                <li>Legitimate interests in operating and improving our business</li>
+                <li>Compliance with legal obligations</li>
             </ul>
         </div>
 
-        <div class="privacy-section">
+        <div class="privacy-section" id="children">
             <h3>3. Children's Privacy</h3>
-            <p>We comply with the Children's Online Privacy Protection Act (COPPA). We only collect children's personal information with parental consent and use it solely for educational purposes. Parents can review, update, or delete their children's information at any time.</p>
-        </div>
-
-        <div class="privacy-section">
-            <h3>4. Data Storage and Security</h3>
-            <p>We use industry-standard security measures to protect your data. Information is stored in secure databases with encryption at rest and in transit. We regularly review and update our security practices.</p>
-        </div>
-
-        <div class="privacy-section">
-            <h3>5. Third-Party Services</h3>
-            <p>We use the following third-party services:</p>
+            <p>We take children's privacy very seriously and comply with the Children's Online Privacy Protection Act (COPPA) and other applicable laws regarding the collection and use of children's personal information.</p>
+            
+            <div class="privacy-highlight">
+                <p><strong>Important:</strong> Our Service is designed for use by parents, guardians, and educators. We do not knowingly collect personal information directly from children under the age of 13 without verifiable parental consent.</p>
+            </div>
+            
+            <p>Here's how we protect children's privacy:</p>
             <ul>
-                <li>Social login providers (Google, Facebook, X) for authentication</li>
-                <li>Amazon Web Services for data storage</li>
-                <li>Analytics tools to improve our service</li>
+                <li>We only collect children's personal information (name, age, grade level) with parental consent</li>
+                <li>We use this information solely for educational purposes to provide age-appropriate math worksheets</li>
+                <li>We do not require children to disclose more information than is reasonably necessary to use our Service</li>
+                <li>Parents can review, update, or delete their children's information at any time through their account settings</li>
+                <li>We do not use children's personal information for marketing or advertising purposes</li>
+                <li>We implement additional security measures to protect children's data</li>
+            </ul>
+            
+            <p>If you believe we have inadvertently collected personal information from a child under 13 without proper consent, please contact us immediately at <a href="mailto:privacy@mathtutor.com">privacy@mathtutor.com</a>, and we will promptly remove such information.</p>
+        </div>
+        
+        <div class="privacy-section" id="sharing">
+            <h3>4. Information Sharing and Disclosure</h3>
+            <p>We do not sell, trade, or rent your personal information to third parties. We may share your information in the following limited circumstances:</p>
+            
+            <h4 class="mt-4 mb-3">4.1 Service Providers</h4>
+            <p>We may share your information with third-party service providers who help us operate our Service, such as:</p>
+            <ul>
+                <li>Cloud hosting and storage providers</li>
+                <li>Payment processors</li>
+                <li>Analytics services</li>
+                <li>Customer support tools</li>
+                <li>Email service providers</li>
+            </ul>
+            <p>These service providers are contractually obligated to use your information only as necessary to provide services to us and in accordance with this Privacy Policy.</p>
+            
+            <h4 class="mt-4 mb-3">4.2 Legal Requirements</h4>
+            <p>We may disclose your information if required to do so by law or in response to valid requests by public authorities (e.g., a court or government agency).</p>
+            
+            <h4 class="mt-4 mb-3">4.3 Business Transfers</h4>
+            <p>If MathTutor is involved in a merger, acquisition, or sale of all or a portion of its assets, your information may be transferred as part of that transaction. We will notify you via email and/or a prominent notice on our website of any change in ownership or uses of your personal information.</p>
+            
+            <h4 class="mt-4 mb-3">4.4 With Your Consent</h4>
+            <p>We may share your information with third parties when we have your explicit consent to do so.</p>
+        </div>
+
+        <div class="privacy-section" id="storage">
+            <h3>5. Data Storage and Security</h3>
+            <p>We implement a variety of security measures to maintain the safety of your personal information:</p>
+            <ul>
+                <li>All information is stored in secure databases with encryption at rest</li>
+                <li>All data transmission between your device and our servers is encrypted using SSL/TLS protocols</li>
+                <li>Access to personal information is restricted to authorized personnel only</li>
+                <li>Regular security assessments and penetration testing</li>
+                <li>Continuous monitoring for suspicious activities</li>
+            </ul>
+            
+            <p>While we strive to use commercially acceptable means to protect your personal information, no method of transmission over the Internet or method of electronic storage is 100% secure. We cannot guarantee absolute security.</p>
+        </div>
+
+        <div class="privacy-section" id="third-party">
+            <h3>6. Third-Party Services</h3>
+            <p>Our Service integrates with various third-party services:</p>
+            
+            <h4 class="mt-4 mb-3">6.1 Authentication Providers</h4>
+            <p>We use the following social login providers for authentication:</p>
+            <ul>
+                <li>Google</li>
+                <li>Facebook</li>
+                <li>X (formerly Twitter)</li>
+            </ul>
+            <p>When you use these services to log in, they may collect information about you according to their own privacy policies.</p>
+            
+            <h4 class="mt-4 mb-3">6.2 Cloud Services</h4>
+            <p>We use Amazon Web Services (AWS) for data storage and processing. Your data is stored in secure AWS data centers with industry-standard security measures.</p>
+            
+            <h4 class="mt-4 mb-3">6.3 Ad Serving Networks</h4>
+            <p>We serve advertisements on our Service through the following ad networks:</p>
+            <ul>
+                <li><strong>Google AdSense:</strong> Displays text, image, and video advertisements on our Service</li>
+                <li><strong>Facebook Audience Network:</strong> Provides additional ad inventory on our Service</li>
+            </ul>
+            <p>These ad networks use cookies and similar technologies to:</p>
+            <ul>
+                <li>Serve ads based on your previous visits to our Service and other websites</li>
+                <li>Measure the effectiveness of ads served</li>
+                <li>Personalize the advertising content you may see</li>
+            </ul>
+            <p>We do not have access to or control over the cookies and similar technologies that these third-party ad networks may use. The information collected by these networks is governed by their respective privacy policies, not this Privacy Policy.</p>
+            
+            <div class="privacy-highlight">
+                <p><strong>Important:</strong> We do not sell your personal information to advertisers or allow advertisers to collect personal information directly from our Service beyond IP addresses, cookie identifiers, and other device identifiers.</p>
+            </div>
+            
+            <p>We encourage you to review the privacy policies of these third-party services:</p>
+            <ul>
+                <li><a href="https://policies.google.com/privacy" target="_blank">Google Privacy Policy</a></li>
+                <li><a href="https://www.facebook.com/policy.php" target="_blank">Facebook Privacy Policy</a></li>
+                <li><a href="https://twitter.com/privacy" target="_blank">X Privacy Policy</a></li>
+                <li><a href="https://aws.amazon.com/privacy/" target="_blank">AWS Privacy Policy</a></li>
+            </ul>
+        </div>
+        
+        <div class="privacy-section" id="cookies">
+            <h3>7. Cookies and Tracking Technologies</h3>
+            <p>We use cookies and similar tracking technologies to track activity on our Service and hold certain information.</p>
+            
+            <h4 class="mt-4 mb-3">7.1 Types of Cookies We Use</h4>
+            <ul>
+                <li><strong>Essential Cookies:</strong> Required for the operation of our Service, such as session management and security</li>
+                <li><strong>Preference Cookies:</strong> Remember your settings and preferences</li>
+                <li><strong>Analytics Cookies:</strong> Help us understand how users interact with our Service</li>
+                <li><strong>Advertising Cookies:</strong> Used by our ad serving partners to deliver advertisements, track ad campaign performance, and limit the number of times you see an ad</li>
+            </ul>
+            
+            <h4 class="mt-4 mb-3">7.2 Your Cookie Choices</h4>
+            <p>Most web browsers allow you to control cookies through their settings. You can:</p>
+            <ul>
+                <li>Delete existing cookies</li>
+                <li>Block cookies from being set</li>
+                <li>Set your browser to notify you when you receive a cookie</li>
+            </ul>
+            <p>Please note that if you choose to block or delete cookies, some features of our Service may not function properly, and the ads you see may be less relevant to you.</p>
+            
+            <h4 class="mt-4 mb-3">7.3 Do Not Track</h4>
+            <p>Some browsers have a "Do Not Track" feature that signals to websites that you visit that you do not want to have your online activity tracked. Due to the lack of a common understanding of how to interpret the DNT signal, our Service does not currently respond to browser DNT signals.</p>
+        </div>
+
+        <div class="privacy-section" id="retention">
+            <h3>8. Data Retention</h3>
+            <p>We retain your personal information for as long as your account is active or as needed to provide you with our Service. We will retain and use your information as necessary to comply with our legal obligations, resolve disputes, and enforce our agreements.</p>
+            
+            <p>If you delete your account, we will delete or anonymize your personal information within 30 days, except for:</p>
+            <ul>
+                <li>Information that we are legally required to retain</li>
+                <li>Aggregated, anonymized data that does not identify you</li>
+                <li>Information necessary for legitimate business purposes, such as fraud prevention</li>
             </ul>
         </div>
 
-        <div class="privacy-section">
-            <h3>6. Data Retention</h3>
-            <p>We retain your data for as long as your account is active or as needed to provide services. You can request deletion of your account and associated data at any time.</p>
-        </div>
-
-        <div class="privacy-section">
-            <h3>7. Your Rights</h3>
-            <p>You have the right to:</p>
+        <div class="privacy-section" id="rights">
+            <h3>9. Your Rights</h3>
+            <p>Depending on your location, you may have certain rights regarding your personal information:</p>
+            
+            <h4 class="mt-4 mb-3">9.1 Access and Control</h4>
+            <p>You can access, update, or delete your personal information through your account settings. You also have the right to:</p>
             <ul>
-                <li>Access your personal information</li>
-                <li>Correct inaccurate information</li>
-                <li>Request deletion of your data</li>
-                <li>Opt-out of non-essential data collection</li>
-                <li>Export your data</li>
+                <li>Access the personal information we have about you</li>
+                <li>Correct inaccurate or incomplete information</li>
+                <li>Request deletion of your personal information</li>
+                <li>Object to or restrict certain processing of your data</li>
+                <li>Request a copy of your personal information in a structured, machine-readable format</li>
+                <li>Withdraw consent where processing is based on consent</li>
+            </ul>
+            
+            <h4 class="mt-4 mb-3">9.2 How to Exercise Your Rights</h4>
+            <p>To exercise these rights, please:</p>
+            <ul>
+                <li>Use the relevant features in your account settings</li>
+                <li>Contact us at <a href="mailto:privacy@mathtutor.com">privacy@mathtutor.com</a></li>
+            </ul>
+            <p>We will respond to your request within 30 days. We may need to verify your identity before fulfilling your request.</p>
+        </div>
+        
+        <div class="privacy-section" id="international">
+            <h3>10. International Data Transfers</h3>
+            <p>MathTutor is based in the United States, and your information may be processed and stored in the United States or other countries where our service providers maintain facilities. These countries may have data protection laws that differ from those in your country.</p>
+            
+            <p>When we transfer personal information outside of the European Economic Area (EEA), United Kingdom, or Switzerland, we implement appropriate safeguards, such as:</p>
+            <ul>
+                <li>Standard Contractual Clauses approved by the European Commission</li>
+                <li>Binding Corporate Rules for transfers to data controllers</li>
+                <li>Other legally approved mechanisms</li>
             </ul>
         </div>
 
-        <div class="privacy-section">
-            <h3>8. Changes to Privacy Policy</h3>
-            <p>We may update this Privacy Policy from time to time. We will notify you of any significant changes via email or through the service.</p>
+        <div class="privacy-section" id="changes">
+            <h3>11. Changes to Privacy Policy</h3>
+            <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons.</p>
+            
+            <p>We will notify you of any significant changes by:</p>
+            <ul>
+                <li>Sending an email to the address associated with your account</li>
+                <li>Posting a notice on our website</li>
+                <li>Displaying a notification when you log in to the Service</li>
+            </ul>
+            
+            <p>The "Effective Date" at the top of this Privacy Policy indicates when it was last updated. We encourage you to review this Privacy Policy periodically to stay informed about how we protect your information.</p>
         </div>
 
-        <div class="privacy-section">
-            <h3>9. Contact Us</h3>
-            <p>If you have questions about this Privacy Policy or your data, please contact us at privacy@mathtutor.com.</p>
+        <div class="privacy-section" id="contact">
+            <h3>12. Contact Us</h3>
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our privacy practices, please contact us at:</p>
+            <p>
+                MathTutor, Inc.<br>
+                Attn: Privacy Officer<br>
+                123 Education Lane<br>
+                San Francisco, CA 94105<br>
+                Email: <a href="mailto:privacy@mathtutor.com">privacy@mathtutor.com</a><br>
+                Phone: (555) 123-4567
+            </p>
+            
+            <p>For urgent privacy matters, please include "Privacy Concern" in the subject line of your email.</p>
         </div>
 
-        <div class="privacy-section">
-            <p class="text-muted">Last updated: February 26, 2025</p>
+        <div class="privacy-footer">
+            <p>Last updated: March 1, 2025</p>
+            <p>© 2025 MathTutor, Inc. All rights reserved.</p>
         </div>
     </div>
 </div>

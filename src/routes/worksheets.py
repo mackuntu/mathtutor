@@ -488,19 +488,38 @@ def delete_worksheet(worksheet_id):
     """Delete a worksheet."""
     user = get_current_user()
     if not user:
+        logger.error("Delete worksheet failed: User not authenticated")
         return jsonify({"success": False, "error": "Not authenticated"}), 401
 
-    worksheet = repository.get_worksheet(worksheet_id)
-    if not worksheet:
-        return jsonify({"success": False, "error": "Worksheet not found"}), 404
+    logger.info(f"Attempting to delete worksheet with ID: {worksheet_id}")
 
-    child = repository.get_child_by_id(worksheet.child_id)
-    if not child or child.parent_email != user.email:
-        return jsonify({"success": False, "error": "Access denied"}), 403
+    try:
+        worksheet = repository.get_worksheet(worksheet_id)
+        if not worksheet:
+            logger.error(
+                f"Delete worksheet failed: Worksheet not found with ID: {worksheet_id}"
+            )
+            return jsonify({"success": False, "error": "Worksheet not found"}), 404
 
-    repository.delete_worksheet(worksheet_id)
-    flash("Worksheet deleted successfully!", "success")
-    return jsonify({"success": True})
+        child = repository.get_child_by_id(worksheet.child_id)
+        if not child or child.parent_email != user.email:
+            logger.error(
+                f"Delete worksheet failed: Access denied for user {user.email} to worksheet {worksheet_id}"
+            )
+            return jsonify({"success": False, "error": "Access denied"}), 403
+
+        logger.info(f"Deleting worksheet with ID: {worksheet_id}")
+        repository.delete_worksheet(worksheet_id)
+        logger.info(f"Successfully deleted worksheet with ID: {worksheet_id}")
+
+        flash("Worksheet deleted successfully!", "success")
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Error deleting worksheet {worksheet_id}: {str(e)}")
+        return (
+            jsonify({"success": False, "error": f"Error deleting worksheet: {str(e)}"}),
+            500,
+        )
 
 
 @bp.route("/bulk_delete", methods=["POST"])

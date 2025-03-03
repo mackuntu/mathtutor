@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 
+from . import config
 from .auth import AuthManager
 from .database import get_repository, init_db
 from .web import init_app as init_web_routes
@@ -30,6 +31,11 @@ def create_app():
     else:
         app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
         app.debug = flask_env == "development"
+
+    # Load configuration variables from config.py
+    for key in dir(config):
+        if key.isupper():
+            app.config[key] = getattr(config, key)
 
     # Initialize components
     auth_manager = AuthManager()

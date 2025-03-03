@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} | MathTutor Blog{% endblock %}
+{% set meta_description = article.meta_description %}
+{% set meta_keywords = article.meta_keywords %}
+{% block og_title %}{{ article.title }} | MathTutor Blog{% endblock %}
+{% block og_description %}{{ article.meta_description }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .article-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 30px;
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        border-radius: 8px;
+    }
+    .article-header {
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    .article-title {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-size: 2.5rem;
+    }
+    .article-meta {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+    .article-content {
+        color: #505050;
+        line-height: 1.8;
+    }
+    .article-content p {
+        margin-bottom: 20px;
+    }
+    .article-content h3 {
+        color: #2c3e50;
+        margin: 30px 0 15px;
+    }
+    .article-content ul, .article-content ol {
+        margin-bottom: 20px;
+        padding-left: 20px;
+    }
+    .article-content li {
+        margin-bottom: 10px;
+    }
+    .article-image {
+        width: 100%;
+        height: auto;
+        border-radius: 6px;
+        margin: 20px 0;
+    }
+    .article-tags {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+    .article-tag {
+        display: inline-block;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.8rem;
+    }
+    .related-articles {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid #e9ecef;
+    }
+    .related-articles h3 {
+        margin-bottom: 20px;
+        color: #2c3e50;
+    }
+    .blog-sidebar {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+    }
+    .blog-sidebar h4 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .blog-sidebar ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    .blog-sidebar li {
+        margin-bottom: 10px;
+    }
+    .blog-sidebar a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    .blog-sidebar a:hover {
+        text-decoration: underline;
+    }
+    .back-to-blog {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #3498db;
+    }
+    .author-info {
+        font-style: italic;
+    }
+    .filter-section {
+        margin-bottom: 20px;
+    }
+    .filter-section .btn {
+        margin-bottom: 5px;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="article-container">
+                <a href="{{ url_for('pages.blog') }}" class="back-to-blog">
+                    <i class="bi bi-arrow-left"></i> Back to Blog
+                </a>
+                
+                <div class="article-header">
+                    <h1 class="article-title">{{ article.title }}</h1>
+                    <div class="article-meta">
+                        <span>Published: {{ article.published_date }}</span> | 
+                        <span>Category: <a href="{{ url_for('pages.blog', category=article.category) }}">{{ article.category }}</a></span>
+                        {% if article.author %}
+                        | <span class="author-info">By {{ article.author }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% from "components/ads.html" import google_ad %}
+                {{ google_ad() }}
+                
+                <img src="{{ article.image_url }}" alt="{{ article.image_alt }}" class="article-image">
+                
+                <div class="article-content">
+                    {{ article.content|safe }}
+                </div>
+                
+                {% if article.tags %}
+                <div class="article-tags">
+                    {% for tag in article.tags %}
+                    <a href="{{ url_for('pages.blog', tag=tag) }}" class="article-tag">{{ tag }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% from "components/ads.html" import native_ad %}
+                {{ native_ad() }}
+                
+                {% if related_articles %}
+                <div class="related-articles">
+                    <h3>Related Articles</h3>
+                    <div class="row">
+                        {% for related in related_articles %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <img src="{{ related.image_url }}" class="card-img-top" alt="{{ related.image_alt }}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ related.title }}</h5>
+                                    <p class="card-text">{{ related.excerpt }}</p>
+                                    <a href="{{ url_for('pages.blog_article', article_id=related.id) }}" class="btn btn-primary btn-sm">Read Article</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="mt-5 pt-4">
+                <div class="blog-sidebar">
+                    <h4>Categories</h4>
+                    <div class="filter-section">
+                        {% for category in categories %}
+                        <a href="{{ url_for('pages.blog', category=category) }}" 
+                           class="btn btn-sm {% if article.category == category %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            {{ category }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="blog-sidebar">
+                    <h4>Share This Article</h4>
+                    <div class="d-flex">
+                        <a href="https://twitter.com/intent/tweet?url={{ request.url|urlencode }}&text={{ article.title|urlencode }}" 
+                           target="_blank" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}" 
+                           target="_blank" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="mailto:?subject={{ article.title|urlencode }}&body={{ request.url|urlencode }}" 
+                           class="btn btn-outline-primary me-2">
+                            <i class="bi bi-envelope"></i>
+                        </a>
+                        <button class="btn btn-outline-primary" onclick="navigator.clipboard.writeText('{{ request.url }}');alert('Link copied to clipboard!');">
+                            <i class="bi bi-link-45deg"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                {% from "components/ads.html" import sidebar_ad %}
+                {{ sidebar_ad() }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

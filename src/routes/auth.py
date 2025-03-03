@@ -1,6 +1,7 @@
 """Authentication routes for the MathTutor application."""
 
 import logging
+import os
 import secrets
 from typing import Optional
 
@@ -26,6 +27,52 @@ auth_manager = AuthManager()
 
 # Create blueprint
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+# Test authentication bypass key - should match the one in conftest.py
+TEST_BYPASS_KEY = os.environ.get("TEST_BYPASS_KEY", "test-bypass-key-for-selenium")
+
+
+@bp.route("/test-auth")
+def test_auth():
+    """Test-only endpoint for authentication bypass during UI testing."""
+    # Only allow this in development/testing environments
+    if (
+        os.environ.get("FLASK_ENV") != "development"
+        and os.environ.get("TESTING") != "true"
+    ):
+        return "Not available in production", 403
+
+    # Verify the bypass key
+    bypass_key = request.args.get("bypass_key")
+    if bypass_key != TEST_BYPASS_KEY:
+        return "Invalid bypass key", 403
+
+    # Get the user type from the request
+    user_type = request.args.get("user", "test-teacher")
+
+    # Create a test user based on the user type
+    if user_type == "test-teacher":
+        email = "test-teacher@example.com"
+        name = "Test Teacher"
+    elif user_type == "test-parent":
+        email = "test-parent@example.com"
+        name = "Test Parent"
+    else:
+        email = "test-user@example.com"
+        name = "Test User"
+
+    # Create or get the user
+    user = auth_manager.get_or_create_user(email, name)
+
+    # Create a session for the user
+    session_token = auth_manager.create_session(user.email)
+
+    # Set the session cookie
+    response = make_response(redirect(url_for("pages.index")))
+    response.set_cookie("session_token", session_token, httponly=True, path="/")
+
+    logger.info(f"Test authentication successful for {email}")
+    return response
 
 
 @bp.route("/login")

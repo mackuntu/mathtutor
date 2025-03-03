@@ -271,9 +271,16 @@ class DynamoDBRepository:
 
     def delete_worksheet(self, worksheet_id: str) -> None:
         """Delete a worksheet."""
-        self.dynamodb.delete_item(
-            TableName=WORKSHEETS_TABLE, Key={"id": {"S": worksheet_id}}
-        )
+        try:
+            print(f"Attempting to delete worksheet with ID: {worksheet_id}")
+            response = self.dynamodb.delete_item(
+                TableName=WORKSHEETS_TABLE, Key={"id": {"S": worksheet_id}}
+            )
+            print(f"Delete response: {response}")
+            print(f"Successfully deleted worksheet with ID: {worksheet_id}")
+        except Exception as e:
+            print(f"Error deleting worksheet {worksheet_id}: {str(e)}")
+            raise
 
     # Subscription operations
     def get_subscription_by_id(self, subscription_id: str) -> Optional[Subscription]:

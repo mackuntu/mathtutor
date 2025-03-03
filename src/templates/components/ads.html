@@ -1,56 +1,64 @@
-{% macro google_ad(slot_id, format='auto', responsive=true) %}
+{% macro google_ad(slot_id=None, format='auto', responsive=true) %}
+{% if config.GOOGLE_ADSENSE_CLIENT_ID %}
 <div class="ad-container">
     <span class="ad-label">Advertisement</span>
     <ins class="adsbygoogle"
          style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="{{ slot_id }}"
+         data-ad-client="{{ config.GOOGLE_ADSENSE_CLIENT_ID }}"
+         data-ad-slot="{{ slot_id or config.GOOGLE_ADSENSE_DEFAULT_SLOT }}"
          data-ad-format="{{ format }}"
          {% if responsive %}data-full-width-responsive="true"{% endif %}></ins>
     <script>
          (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
 </div>
+{% endif %}
 {% endmacro %}
 
-{% macro facebook_ad(placement_id, format='medium_rectangle') %}
+{% macro facebook_ad(placement_id=None, format='medium_rectangle') %}
+{% if config.FACEBOOK_AD_APP_ID %}
 <div class="ad-container">
     <span class="ad-label">Advertisement</span>
     <div class="fb-ad" 
-         data-placementid="{{ placement_id }}" 
+         data-placementid="{{ placement_id or config.FACEBOOK_AD_DEFAULT_PLACEMENT }}" 
          data-format="{{ format }}" 
          data-testmode="false"></div>
 </div>
+{% endif %}
 {% endmacro %}
 
 {% macro sidebar_ad() %}
+{% if config.GOOGLE_ADSENSE_CLIENT_ID and config.GOOGLE_ADSENSE_SIDEBAR_SLOT %}
 <div class="ad-container sidebar">
     <span class="ad-label">Advertisement</span>
     <!-- Google AdSense Sidebar Ad -->
     <ins class="adsbygoogle"
          style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="XXXXXXXXXX"
+         data-ad-client="{{ config.GOOGLE_ADSENSE_CLIENT_ID }}"
+         data-ad-slot="{{ config.GOOGLE_ADSENSE_SIDEBAR_SLOT }}"
          data-ad-format="vertical"
          data-full-width-responsive="false"></ins>
     <script>
          (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
 </div>
+{% endif %}
 {% endmacro %}
 
 {% macro native_ad() %}
+{% if config.GOOGLE_ADSENSE_CLIENT_ID and config.GOOGLE_ADSENSE_NATIVE_SLOT %}
 <div class="ad-container native-ad">
     <span class="ad-label">Sponsored Content</span>
     <!-- Google AdSense Native Ad -->
     <ins class="adsbygoogle"
          style="display:block"
-         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-         data-ad-slot="XXXXXXXXXX"
+         data-ad-client="{{ config.GOOGLE_ADSENSE_CLIENT_ID }}"
+         data-ad-slot="{{ config.GOOGLE_ADSENSE_NATIVE_SLOT }}"
          data-ad-format="fluid"
          data-ad-layout-key="-fb+5w+4e-db+86"></ins>
     <script>
          (adsbygoogle = window.adsbygoogle || []).push({});
     </script>
 </div>
+{% endif %}
 {% endmacro %} 

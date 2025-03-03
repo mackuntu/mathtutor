@@ -161,14 +161,17 @@ async function deleteWorksheet(worksheetId) {
             method: 'POST'
         });
 
+        const data = await response.json();
+        
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Failed to delete worksheet');
+            console.error('Failed to delete worksheet:', data);
+            alert(`Failed to delete worksheet: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred while deleting the worksheet');
+        alert(`An error occurred while deleting the worksheet: ${error.message}`);
     }
 }
 

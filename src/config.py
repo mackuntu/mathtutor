@@ -49,6 +49,16 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "testing")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "testing")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
+# Google AdSense configuration
+GOOGLE_ADSENSE_CLIENT_ID = os.getenv("GOOGLE_ADSENSE_CLIENT_ID", "")
+GOOGLE_ADSENSE_DEFAULT_SLOT = os.getenv("GOOGLE_ADSENSE_DEFAULT_SLOT", "")
+GOOGLE_ADSENSE_SIDEBAR_SLOT = os.getenv("GOOGLE_ADSENSE_SIDEBAR_SLOT", "")
+GOOGLE_ADSENSE_NATIVE_SLOT = os.getenv("GOOGLE_ADSENSE_NATIVE_SLOT", "")
+
+# Facebook Ad configuration
+FACEBOOK_AD_APP_ID = os.getenv("FACEBOOK_AD_APP_ID", "")
+FACEBOOK_AD_DEFAULT_PLACEMENT = os.getenv("FACEBOOK_AD_DEFAULT_PLACEMENT", "")
+
 # Flask configuration
 FLASK_ENV = os.getenv("FLASK_ENV", "development")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
