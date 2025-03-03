@@ -157,7 +157,9 @@ async function deleteWorksheet(worksheetId) {
     }
 
     try {
-        const response = await fetch(`{{ url_for('worksheets.delete_worksheet', worksheet_id='') }}${worksheetId}`, {
+        const url = `/worksheets/${worksheetId}/delete`;
+        
+        const response = await fetch(url, {
             method: 'POST'
         });
 
