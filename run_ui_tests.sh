@@ -3,7 +3,7 @@
 # Run UI tests for MathTutor application
 
 # Create directories for test reports and screenshots
-mkdir -p test-reports/screenshots
+mkdir -p tests/ui/test-reports/screenshots
 
 # Check if Flask server is running
 if ! curl -s http://localhost:5000 > /dev/null; then
@@ -46,7 +46,7 @@ if [ "$KILL_SERVER" = true ]; then
 fi
 
 # Print test report location
-echo "Test report available at: test-reports/ui-report.html"
+echo "Test report available at: file://$(pwd)/tests/ui/test-reports/ui-report.html"
 
 # Exit with the test result
 exit $TEST_RESULT 

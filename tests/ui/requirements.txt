@@ -6,7 +6,7 @@ pytest-html==4.1.1
 pytest-xdist==3.5.0
 
 # PDF testing
-PyPDF2==3.0.1
+pypdf==4.0.1
 pdf2image==1.17.0
 pillow==10.2.0
 

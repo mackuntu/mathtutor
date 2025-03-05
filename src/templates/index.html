@@ -243,7 +243,8 @@
             unit: 'in', 
             format: 'letter', 
             orientation: 'portrait',
-            compress: true
+            compress: true,
+            textRenderingMode: 'text'
         },
         output: 'blob'
     };
@@ -280,8 +281,13 @@
         document.body.appendChild(element);
 
         try {
+            console.log('Starting PDF generation with html2pdf.js');
             const pdf = await html2pdf().set(options).from(element).outputPdf('blob');
+            console.log('PDF generation completed successfully');
             return pdf;
+        } catch (error) {
+            console.error('Error in html2pdf generation:', error);
+            throw new Error(`PDF generation failed: ${error.message || 'Unknown error'}`);
         } finally {
             document.body.removeChild(element);
         }
@@ -331,30 +337,84 @@
     }
 
     async function generateAndPrint() {
-        const form = document.getElementById('worksheetForm');
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            return;
-        }
-
-        // Show loading state
         const loadingElement = document.getElementById('loading');
-        loadingElement.style.display = 'flex';
-
+        loadingElement.style.display = 'block';
+        
+        // Check if we're in test mode
+        const urlParams = new URLSearchParams(window.location.search);
+        const isTestMode = urlParams.get('test_mode') === 'true';
+        
         try {
-            const formData = new FormData(form);
-            formData.append('child_id', document.getElementById('childSelect').value);
+            // Get form values
+            const childId = document.getElementById('childSelect').value;
+            const count = document.getElementById('count').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const numWorksheets = document.getElementById('num_worksheets').value;
             
+            // Validate inputs
+            if (!childId || childId === "Select a child...") {
+                alert('Please select a child');
+                loadingElement.style.display = 'none';
+                return;
+            }
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('child_id', childId);
+            formData.append('count', count);
+            formData.append('difficulty', difficulty);
+            formData.append('num_worksheets', numWorksheets);
+            
+            console.log('Sending request to /worksheets/generate_both with data:', {
+                child_id: childId,
+                count: count,
+                difficulty: difficulty,
+                num_worksheets: numWorksheets
+            });
+            
+            // Send request to server
             const response = await fetch('/worksheets/generate_both', {
                 method: 'POST',
                 body: formData
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', [...response.headers.entries()]);
+            
+            // Parse response as text first to ensure we can see the error message even if it's not valid JSON
+            const responseText = await response.text();
+            console.log('Raw response text:', responseText);
+            
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                console.error('Server error response:', responseText);
+                let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                
+                try {
+                    // Try to parse the error response as JSON
+                    const errorData = JSON.parse(responseText);
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing error response:', parseError);
+                }
+                
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
+            // Parse the response text as JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Response data:', data);
+            } catch (parseError) {
+                console.error('Error parsing response JSON:', parseError);
+                throw new Error('Invalid response format from server');
+            }
+            
+            if (!data.worksheets || !Array.isArray(data.worksheets) || data.worksheets.length === 0) {
+                throw new Error('No worksheet data received from server');
+            }
             
             // Process each worksheet
             for (const worksheetData of data.worksheets) {
@@ -367,20 +427,54 @@
                     ...pdfOptions, 
                     filename: `worksheet-${worksheetData.serial_number}.pdf` 
                 };
-                const worksheetPdf = await generatePDF(worksheetContent, worksheetOptions);
-                await openAndPrint(worksheetPdf, true); // Open and print worksheet
-
-                // Generate answer key PDF and just open it
-                const answerKeyOptions = { 
-                    ...pdfOptions, 
-                    filename: `answer-key-${worksheetData.serial_number}.pdf` 
-                };
-                const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
-                await openAndPrint(answerKeyPdf, false); // Just open answer key
+                
+                try {
+                    const worksheetPdf = await generatePDF(worksheetContent, worksheetOptions);
+                    
+                    if (isTestMode) {
+                        // In test mode, download both PDFs with different filenames
+                        const worksheetLink = document.createElement('a');
+                        worksheetLink.href = URL.createObjectURL(worksheetPdf);
+                        worksheetLink.download = 'worksheet.pdf';
+                        document.body.appendChild(worksheetLink);
+                        worksheetLink.click();
+                        document.body.removeChild(worksheetLink);
+                        
+                        // Generate answer key PDF
+                        const answerKeyOptions = { 
+                            ...pdfOptions, 
+                            filename: `answer-key-${worksheetData.serial_number}.pdf` 
+                        };
+                        const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
+                        
+                        // Download answer key PDF
+                        const answerKeyLink = document.createElement('a');
+                        answerKeyLink.href = URL.createObjectURL(answerKeyPdf);
+                        answerKeyLink.download = 'answer_key.pdf';
+                        document.body.appendChild(answerKeyLink);
+                        answerKeyLink.click();
+                        document.body.removeChild(answerKeyLink);
+                    } else {
+                        // Normal mode: open and print worksheet
+                        await openAndPrint(worksheetPdf, true);
+                        
+                        // Generate answer key PDF and just open it
+                        const answerKeyOptions = { 
+                            ...pdfOptions, 
+                            filename: `answer-key-${worksheetData.serial_number}.pdf` 
+                        };
+                        const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
+                        await openAndPrint(answerKeyPdf, false); // Just open answer key
+                    }
+                } catch (pdfError) {
+                    console.error('Error generating PDF:', pdfError);
+                    throw new Error(`Error generating PDF: ${pdfError.message}`);
+                }
             }
 
         } catch (error) {
-            alert('Error generating PDFs: ' + error);
+            console.error('Error in worksheet generation:', error);
+            alert('Error generating PDFs: ' + error.message);
         } finally {
             loadingElement.style.display = 'none';
         }
@@ -425,6 +519,38 @@
     async function openAndPrint(pdfBlob, shouldPrint) {
         // Create a URL for the PDF blob
         const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        // Check if we're in test mode (for automated testing)
+        const urlParams = new URLSearchParams(window.location.search);
+        const isTestMode = urlParams.get('test_mode') === 'true';
+        
+        if (isTestMode) {
+            console.log('Test mode detected, triggering direct download');
+            // In test mode, trigger a direct download instead of opening in a new tab
+            const a = document.createElement('a');
+            a.href = pdfUrl;
+            a.download = shouldPrint ? 'worksheet.pdf' : 'answer_key.pdf';
+            document.body.appendChild(a);
+            
+            // Log before clicking to download
+            console.log(`Downloading ${shouldPrint ? 'worksheet.pdf' : 'answer_key.pdf'}`);
+            
+            // Force a small delay before clicking to ensure browser is ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Click to download
+            a.click();
+            
+            // Log after clicking
+            console.log(`Download initiated for ${shouldPrint ? 'worksheet.pdf' : 'answer_key.pdf'}`);
+            
+            // Force a small delay after clicking to ensure download starts
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Clean up
+            document.body.removeChild(a);
+            return;
+        }
         
         // Open the PDF in a new tab
         const newTab = window.open(pdfUrl, '_blank');

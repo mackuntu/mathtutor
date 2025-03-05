@@ -59,47 +59,80 @@ def generate_both():
     """Generate both worksheet and answer key HTML."""
     user = get_current_user()
     if not user:
+        logger.error("User not authenticated in generate_both endpoint")
         return redirect(url_for("auth.login"))
 
     try:
         start_time = time.time()
+        logger.info("Starting generate_both request")
 
         # Get form data
-        age = int(request.form["age"])
-        count = int(request.form.get("count", 30))
-        difficulty = float(
-            request.form.get("difficulty", generator.get_school_year_progress())
-        )
-        num_worksheets = int(request.form.get("num_worksheets", 1))
+        form_data = request.form.to_dict()
+        logger.info(f"Received form data: {form_data}")
+
+        # Get child_id first since we need it to get the age
         child_id = request.form.get("child_id")
-
         if not child_id:
-            return {"error": "Child ID is required"}, 400
+            logger.error("Child ID is required but was not provided")
+            return jsonify({"error": "Child ID is required", "success": False}), 400
 
+        # Get child information
         child = repository.get_child_by_id(child_id)
         if not child or child.parent_email != user.email:
-            return {"error": "Child not found"}, 404
+            logger.error(f"Child not found or does not belong to user: {child_id}")
+            return jsonify({"error": "Child not found", "success": False}), 404
+
+        # Get age from child object instead of form data
+        age = child.age
+
+        # Parse other form parameters with better error handling
+        try:
+            count = int(request.form.get("count", 30))
+            difficulty = float(
+                request.form.get("difficulty", generator.get_school_year_progress())
+            )
+            num_worksheets = int(request.form.get("num_worksheets", 1))
+        except ValueError as e:
+            error_msg = f"Invalid parameter format: {str(e)}"
+            logger.error(error_msg)
+            return jsonify({"error": error_msg, "success": False}), 400
+
+        logger.info(
+            f"Parsed parameters: age={age}, count={count}, difficulty={difficulty}, "
+            f"num_worksheets={num_worksheets}, child_id={child_id}"
+        )
 
         # Check subscription status
         subscription = repository.get_user_subscription(user.email)
         if not subscription:
             # Create a free tier subscription if none exists
+            logger.info(f"Creating free tier subscription for user: {user.email}")
             subscription = Subscription(user_email=user.email)
             repository.create_subscription(subscription)
 
         # Check if user can generate more worksheets
         if not subscription.can_generate_worksheet():
-            return {
-                "error": "You have reached your worksheet generation limit. "
-                "Please upgrade to premium for unlimited worksheets.",
-                "limit_reached": True,
-            }, 403
+            logger.warning(f"User {user.email} has reached worksheet generation limit")
+            return (
+                jsonify(
+                    {
+                        "error": "You have reached your worksheet generation limit. "
+                        "Please upgrade to premium for unlimited worksheets.",
+                        "limit_reached": True,
+                        "success": False,
+                    }
+                ),
+                403,
+            )
 
         # Generate multiple worksheets
         worksheets_data = []
         for _ in range(num_worksheets):
             # Generate problems
             prob_start = time.time()
+            logger.info(
+                f"Generating problems for age={age}, count={count}, difficulty={difficulty}"
+            )
             problems, answers = generator.generate_math_problems(
                 age=age,
                 count=count,
@@ -109,15 +142,20 @@ def generate_both():
             logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
             # Create worksheet in database
+            logger.info(f"Creating worksheet in database for child_id={child_id}")
             worksheet = WorksheetModel.create(
                 child_id=child_id, problems=json.dumps(problems)
             )
             repository.create_worksheet(worksheet)
+            logger.info(
+                f"Worksheet created with serial_number={worksheet.serial_number}"
+            )
 
             problem_list = [{"text": p} for p in problems]
 
             # Generate worksheet HTML
             html_start = time.time()
+            logger.info("Generating worksheet HTML")
             worksheet_html = render_template(
                 "worksheet.html",
                 problems=problem_list,
@@ -129,6 +167,7 @@ def generate_both():
             )
 
             # Generate answer key HTML
+            logger.info("Generating answer key HTML")
             answer_key_html = render_template(
                 "worksheet.html",
                 problems=problem_list,
@@ -148,26 +187,30 @@ def generate_both():
                     "serial_number": worksheet.serial_number,
                 }
             )
+            logger.info(
+                f"Added worksheet data for serial_number={worksheet.serial_number}"
+            )
 
         # Increment the worksheets generated count
+        logger.info(f"Incrementing worksheets count for user {user.email}")
         subscription.increment_worksheets_count()
         repository.update_subscription(subscription)
 
         total_time = time.time() - start_time
         logger.info(f"Total request took: {total_time:.2f} seconds")
 
-        return jsonify(
-            {
-                "worksheets": worksheets_data,
-                "remaining": subscription.worksheets_limit
-                - subscription.worksheets_generated,
-                "is_premium": subscription.plan == Subscription.PLAN_PREMIUM,
-            }
-        )
+        response_data = {
+            "worksheets": worksheets_data,
+            "remaining": subscription.worksheets_limit
+            - subscription.worksheets_generated,
+            "is_premium": subscription.plan == Subscription.PLAN_PREMIUM,
+        }
+        logger.info(f"Returning response with {len(worksheets_data)} worksheets")
+        return jsonify(response_data)
 
     except Exception as e:
-        logger.error(f"Error generating HTMLs: {str(e)}")
-        return {"error": str(e)}, 500
+        logger.error(f"Error generating HTMLs: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e), "success": False}), 500
 
 
 @bp.route("/generate")

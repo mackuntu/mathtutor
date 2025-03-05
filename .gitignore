@@ -258,3 +258,9 @@ data/mnist/
 *.h5
 checkpoints/
 logs/
+
+# Test reports and screenshots
+test-reports/
+tests/ui/test-reports/
+error_*.png
+*_screenshot.png
