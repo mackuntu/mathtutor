@@ -2,24 +2,30 @@
 
 import os
 import sys
-import time
 from pathlib import Path
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.database.models import Worksheet
 from src.generator import ProblemGenerator
 
 
 def generate_test_pdf():
     """Generate a test PDF file for UI tests."""
     try:
-        import html2pdf
-        from jinja2 import Environment, FileSystemLoader
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import (
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+        )
     except ImportError:
-        print("Please install the required packages: jinja2, html2pdf")
-        print("pip install jinja2 html2pdf")
+        print("Please install the required package: reportlab")
+        print("pip install reportlab")
         return
 
     # Create the test-downloads directory if it doesn't exist
@@ -32,50 +38,86 @@ def generate_test_pdf():
         age=8, count=10, difficulty=0.5
     )
 
-    # Create a Jinja2 environment
-    env = Environment(loader=FileSystemLoader("src/templates"))
-
-    # Load the worksheet template
-    template = env.get_template("worksheet.html")
-
-    # Render the worksheet HTML
-    problem_list = [{"text": p} for p in problems]
-    worksheet_html = template.render(
-        problems=problem_list,
-        answers=None,
-        is_answer_key=False,
-        is_preview=False,
-        serial_number="TEST-123",
+    # Create a PDF document
+    pdf_path = download_dir / "worksheet.pdf"
+    doc = SimpleDocTemplate(
+        str(pdf_path),
+        pagesize=letter,
+        topMargin=0.4 * 72,
+        leftMargin=0.4 * 72,
+        rightMargin=0.4 * 72,
+        bottomMargin=0.4 * 72,
     )
 
-    # Create a temporary HTML file
-    temp_html_path = download_dir / "temp_worksheet.html"
-    with open(temp_html_path, "w") as f:
-        f.write(worksheet_html)
+    # Get styles
+    styles = getSampleStyleSheet()
+    title_style = styles["Title"]
+    normal_style = styles["Normal"]
 
-    # Generate the PDF
-    pdf_path = download_dir / "worksheet.pdf"
+    # Create content
+    content = []
 
-    try:
-        # Try to use html2pdf
-        from html2pdf import HTMLToPDF
+    # Add title
+    content.append(Paragraph("MathTutor Worksheet", title_style))
+    content.append(Spacer(1, 12))
 
-        converter = HTMLToPDF()
-        converter.convert(temp_html_path, pdf_path)
-    except Exception as e:
-        print(f"Error using html2pdf: {e}")
-        try:
-            # Fallback to using weasyprint
-            from weasyprint import HTML
+    # Add info row
+    info_data = [
+        [
+            Paragraph("Name: ___________________", normal_style),
+            Paragraph("Date: ___________________", normal_style),
+            Paragraph("Score: _____/10", normal_style),
+        ]
+    ]
+    info_table = Table(info_data, colWidths=[doc.width / 3.0] * 3)
+    info_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
+    content.append(info_table)
+    content.append(Spacer(1, 24))
 
-            HTML(temp_html_path).write_pdf(pdf_path)
-        except Exception as e:
-            print(f"Error using weasyprint: {e}")
-            print("Could not generate PDF. Please install weasyprint or html2pdf.")
-            return
+    # Create problem grid (5 columns x 2 rows)
+    problem_data = []
+    row = []
+    for i, problem in enumerate(problems):
+        # Create a cell with the problem and answer space
+        problem_text = Paragraph(problem, normal_style)
+        cell_content = [problem_text, Paragraph("_______", normal_style)]
+        row.append(cell_content)
 
-    # Clean up the temporary HTML file
-    temp_html_path.unlink()
+        # Start a new row after every 5 problems
+        if (i + 1) % 5 == 0:
+            problem_data.append(row)
+            row = []
+
+    # Add any remaining problems
+    if row:
+        # Fill the row with empty cells if needed
+        while len(row) < 5:
+            row.append(["", ""])
+        problem_data.append(row)
+
+    # Create the problem grid table
+    problem_grid = Table(problem_data, colWidths=[doc.width / 5.0] * 5)
+    problem_grid.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+            ]
+        )
+    )
+    content.append(problem_grid)
+
+    # Build the PDF
+    doc.build(content)
 
     print(f"Generated test PDF at: {pdf_path}")
     return pdf_path

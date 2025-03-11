@@ -17,8 +17,8 @@ class ProblemGenerator:
     # Base problem types by age group (will be adjusted by difficulty)
     PROBLEM_TYPES = {
         5: {  # Kindergarten
-            "addition": (1, 10),  # Numbers up to 10
-            "subtraction": (1, 10),  # Numbers up to 10
+            "addition": (1, 20),  # Numbers up to 20 (increased from 10)
+            "subtraction": (1, 20),  # Numbers up to 20 (increased from 10)
         },
         6: {  # First grade
             "addition": (1, 20),  # Numbers up to 20
@@ -147,16 +147,16 @@ class ProblemGenerator:
         """
         range_size = max_val - min_val
 
-        # For age 5, keep ranges smaller and more manageable
+        # For age 5, provide a more gradual progression to double-digit numbers
         if age == 5:
             if difficulty <= 0.3:
-                # Very easy: numbers 1-5
-                return 1, 5
-            elif difficulty <= 0.7:
-                # Medium: numbers 1-7
-                return 1, 7
+                # Very easy: numbers 1-10
+                return 1, 10
+            elif difficulty <= 0.6:
+                # Medium: numbers 1-15
+                return 1, 15
             else:
-                # Hard: full range (1-10)
+                # Hard: full range (1-20)
                 return min_val, max_val
         else:
             # Scale ranges more aggressively with difficulty
@@ -241,12 +241,24 @@ class ProblemGenerator:
             if age == 5:
                 if problem_type == "addition":
                     # For addition, ensure sum is <= max_val
-                    num1 = random.randint(min_val, max_val - 1)
-                    num2 = random.randint(min_val, min(max_val - num1, max_val))
+                    # For lower difficulties, keep one number single-digit
+                    if difficulty <= 0.5:
+                        num1 = random.randint(min_val, 9)
+                        num2 = random.randint(min_val, min(max_val - num1, max_val))
+                    else:
+                        # For higher difficulties, allow both numbers to be double-digit
+                        num1 = random.randint(min_val, max_val - 1)
+                        num2 = random.randint(min_val, min(max_val - num1, max_val))
                 else:  # subtraction
                     # For subtraction, ensure first number is larger and result is positive
-                    num1 = random.randint(min_val + 1, max_val)
-                    num2 = random.randint(min_val, num1 - 1)
+                    if difficulty <= 0.5:
+                        # For lower difficulties, keep second number single-digit
+                        num2 = random.randint(min_val, 9)
+                        num1 = random.randint(num2 + 1, max_val)
+                    else:
+                        # For higher difficulties, allow both numbers to be double-digit
+                        num1 = random.randint(min_val + 1, max_val)
+                        num2 = random.randint(min_val, num1 - 1)
             else:
                 # Generate both numbers in the full range
                 num1 = random.randint(min_val, max_val)
