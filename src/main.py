@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 
 from src.document.renderer import DocumentRenderer
 from src.document.template import LayoutChoice
-from src.generator import ProblemGenerator
+from src.problem_generator import ProblemGenerator
 
 logger = logging.getLogger(__name__)
 

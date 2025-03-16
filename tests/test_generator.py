@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.generator import ProblemGenerator
+from src.problem_generator import ProblemGenerator
 
 
 def test_age_5_problem_ranges():

@@ -7,7 +7,7 @@ from pathlib import Path
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.generator import ProblemGenerator
+from src.problem_generator import ProblemGenerator
 
 
 def generate_test_pdf():

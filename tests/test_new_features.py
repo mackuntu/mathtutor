@@ -6,7 +6,7 @@ from datetime import datetime
 import pytest
 
 from src.database.models import Worksheet
-from src.generator import ProblemGenerator
+from src.problem_generator import ProblemGenerator
 
 
 def test_worksheet_serial_number():
