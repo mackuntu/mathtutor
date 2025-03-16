@@ -7,7 +7,7 @@ from flask import Blueprint, redirect, render_template, request, url_for
 from ..blog.manager import BlogManager
 from ..database import get_repository
 from ..database.models import Subscription
-from ..generator import ProblemGenerator
+from ..problem_generator import ProblemGenerator
 from .common import get_current_user
 
 # Configure logging

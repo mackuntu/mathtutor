@@ -2,15 +2,30 @@
 
 import json
 import logging
+import os
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import List
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
 
 from ..database import get_repository
-from ..database.models import Subscription
+from ..database.models import Child, Subscription
 from ..database.models import Worksheet as WorksheetModel
-from ..generator import ProblemGenerator
+from ..document.renderer import DocumentRenderer
+from ..document.template import LayoutChoice
+from ..problem_generator import ProblemGenerator
 from .common import get_current_user
 
 # Configure logging
