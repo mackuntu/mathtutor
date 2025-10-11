@@ -416,60 +416,78 @@
                 throw new Error('No worksheet data received from server');
             }
             
-            // Process each worksheet
-            for (const worksheetData of data.worksheets) {
+            // Combine all worksheets and answer keys into single PDFs
+            let allWorksheetsContent = '';
+            let allAnswerKeysContent = '';
+            
+            // Process each worksheet and combine content
+            for (let i = 0; i < data.worksheets.length; i++) {
+                const worksheetData = data.worksheets[i];
+                
                 // Prepare content for PDF generation
                 const worksheetContent = preparePdfContent(worksheetData.worksheet);
                 const answerKeyContent = preparePdfContent(worksheetData.answer_key);
                 
-                // Generate worksheet PDF and send to print
-                const worksheetOptions = { 
-                    ...pdfOptions, 
-                    filename: `worksheet-${worksheetData.serial_number}.pdf` 
-                };
+                // Wrap each worksheet in a container with page break (except for the first one)
+                const pageBreakStyle = i > 0 ? 'style="page-break-before: always;"' : '';
+                const worksheetWrapper = `<div ${pageBreakStyle}>${worksheetContent}</div>`;
+                const answerKeyWrapper = `<div ${pageBreakStyle}>${answerKeyContent}</div>`;
                 
-                try {
-                    const worksheetPdf = await generatePDF(worksheetContent, worksheetOptions);
+                // Add wrapped content to combined documents
+                allWorksheetsContent += worksheetWrapper;
+                allAnswerKeysContent += answerKeyWrapper;
+            }
+            
+            try {
+                if (isTestMode) {
+                    // In test mode, download both combined PDFs
+                    const worksheetOptions = { 
+                        ...pdfOptions, 
+                        filename: 'all-worksheets.pdf' 
+                    };
+                    const worksheetPdf = await generatePDF(allWorksheetsContent, worksheetOptions);
                     
-                    if (isTestMode) {
-                        // In test mode, download both PDFs with different filenames
-                        const worksheetLink = document.createElement('a');
-                        worksheetLink.href = URL.createObjectURL(worksheetPdf);
-                        worksheetLink.download = 'worksheet.pdf';
-                        document.body.appendChild(worksheetLink);
-                        worksheetLink.click();
-                        document.body.removeChild(worksheetLink);
-                        
-                        // Generate answer key PDF
-                        const answerKeyOptions = { 
-                            ...pdfOptions, 
-                            filename: `answer-key-${worksheetData.serial_number}.pdf` 
-                        };
-                        const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
-                        
-                        // Download answer key PDF
-                        const answerKeyLink = document.createElement('a');
-                        answerKeyLink.href = URL.createObjectURL(answerKeyPdf);
-                        answerKeyLink.download = 'answer_key.pdf';
-                        document.body.appendChild(answerKeyLink);
-                        answerKeyLink.click();
-                        document.body.removeChild(answerKeyLink);
-                    } else {
-                        // Normal mode: open and print worksheet
-                        await openAndPrint(worksheetPdf, true);
-                        
-                        // Generate answer key PDF and just open it
-                        const answerKeyOptions = { 
-                            ...pdfOptions, 
-                            filename: `answer-key-${worksheetData.serial_number}.pdf` 
-                        };
-                        const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
-                        await openAndPrint(answerKeyPdf, false); // Just open answer key
-                    }
-                } catch (pdfError) {
-                    console.error('Error generating PDF:', pdfError);
-                    throw new Error(`Error generating PDF: ${pdfError.message}`);
+                    const worksheetLink = document.createElement('a');
+                    worksheetLink.href = URL.createObjectURL(worksheetPdf);
+                    worksheetLink.download = 'all-worksheets.pdf';
+                    document.body.appendChild(worksheetLink);
+                    worksheetLink.click();
+                    document.body.removeChild(worksheetLink);
+                    
+                    // Generate combined answer key PDF
+                    const answerKeyOptions = { 
+                        ...pdfOptions, 
+                        filename: 'all-answer-keys.pdf' 
+                    };
+                    const answerKeyPdf = await generatePDF(allAnswerKeysContent, answerKeyOptions);
+                    
+                    // Download answer key PDF
+                    const answerKeyLink = document.createElement('a');
+                    answerKeyLink.href = URL.createObjectURL(answerKeyPdf);
+                    answerKeyLink.download = 'all-answer-keys.pdf';
+                    document.body.appendChild(answerKeyLink);
+                    answerKeyLink.click();
+                    document.body.removeChild(answerKeyLink);
+                } else {
+                    // Normal mode: open combined worksheets PDF and print it
+                    const worksheetOptions = { 
+                        ...pdfOptions, 
+                        filename: 'all-worksheets.pdf' 
+                    };
+                    const worksheetPdf = await generatePDF(allWorksheetsContent, worksheetOptions);
+                    await openAndPrint(worksheetPdf, true);
+                    
+                    // Generate combined answer key PDF and just open it
+                    const answerKeyOptions = { 
+                        ...pdfOptions, 
+                        filename: 'all-answer-keys.pdf' 
+                    };
+                    const answerKeyPdf = await generatePDF(allAnswerKeysContent, answerKeyOptions);
+                    await openAndPrint(answerKeyPdf, false); // Just open answer key
                 }
+            } catch (pdfError) {
+                console.error('Error generating PDF:', pdfError);
+                throw new Error(`Error generating PDF: ${pdfError.message}`);
             }
 
         } catch (error) {
@@ -494,7 +512,18 @@
             }
         });
         
-        // Add inline CSS to ensure content starts at the top
+        // Wrap the content in a relative positioned container to fix serial number positioning
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.width = '100%';
+        
+        // Move all content into the wrapper
+        while (tempDiv.firstChild) {
+            wrapper.appendChild(tempDiv.firstChild);
+        }
+        tempDiv.appendChild(wrapper);
+        
+        // Add inline CSS to ensure content starts at the top and fix serial number positioning
         const style = document.createElement('style');
         style.textContent = `
             body, html, div {
@@ -508,6 +537,14 @@
             .container, .row, .col {
                 margin-top: 0 !important;
                 padding-top: 0 !important;
+            }
+            .serial-number {
+                position: absolute !important;
+                top: 10px !important;
+                right: 10px !important;
+                font-size: 10pt !important;
+                color: #666 !important;
+                z-index: 10 !important;
             }
         `;
         tempDiv.insertBefore(style, tempDiv.firstChild);
