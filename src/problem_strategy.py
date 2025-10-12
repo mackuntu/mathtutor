@@ -57,20 +57,20 @@ def adjust_range_by_difficulty(
     else:
         # Scale ranges more aggressively with difficulty
         if difficulty > 0.5:  # For higher difficulties, extend the maximum
-            extension_factor = 1.0 + (difficulty - 0.5) * 2  # Up to 2x extension
-            adjusted_max = min(
-                max_val * extension_factor,  # Extend range
-                PROBLEM_TYPES[min(age + 1, 9)].get(  # But don't exceed next age level
-                    list(PROBLEM_TYPES[min(age + 1, 9)].keys())[0]
-                )[1],
-            )
+            extension_factor = 1.0 + (difficulty - 0.5) * 1.5  # Up to 1.5x extension
+            adjusted_max = int(max_val * extension_factor)
         else:
             adjusted_max = max_val
 
         # Adjust minimum value to make problems harder
         if difficulty > 0.7:  # For very high difficulties, raise the minimum
-            adjusted_min = min_val + int(range_size * 0.3)  # Start from 30% of range
+            adjusted_min = min_val + int(range_size * 0.2)  # Start from 20% of range
         else:
             adjusted_min = min_val
+
+        # Ensure we don't have invalid ranges
+        if adjusted_min >= adjusted_max:
+            adjusted_min = min_val
+            adjusted_max = max_val
 
         return int(adjusted_min), int(adjusted_max)

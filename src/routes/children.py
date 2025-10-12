@@ -19,6 +19,41 @@ repository = get_repository()
 bp = Blueprint("children", __name__, url_prefix="/children")
 
 
+def calculate_age_at_end_of_school_year(birthday_date: datetime) -> int:
+    """Calculate the age a child will be at the end of the current school year.
+
+    School year typically ends in May/June, so we use June 30th as the reference date.
+    This ensures consistent age calculation throughout the school year.
+
+    Args:
+        birthday_date: The child's birthday
+
+    Returns:
+        The age the child will be at the end of the current school year
+    """
+    today = datetime.now()
+
+    # Determine the end of the current school year
+    # If we're before June, use June 30th of current year
+    # If we're June or later, use June 30th of next year
+    if today.month < 6:
+        school_year_end = datetime(today.year, 6, 30)
+    else:
+        school_year_end = datetime(today.year + 1, 6, 30)
+
+    # Calculate age at the end of school year
+    age = (
+        school_year_end.year
+        - birthday_date.year
+        - (
+            (school_year_end.month, school_year_end.day)
+            < (birthday_date.month, birthday_date.day)
+        )
+    )
+
+    return age
+
+
 @bp.route("/")
 def list_children():
     """Render children management page."""
@@ -47,14 +82,9 @@ def register_child():
         return redirect(url_for("children.list_children"))
 
     try:
-        # Calculate age from birthday
+        # Calculate age from birthday (age at end of school year)
         birthday_date = datetime.strptime(birthday, "%Y-%m-%d")
-        today = datetime.now()
-        age = (
-            today.year
-            - birthday_date.year
-            - ((today.month, today.day) < (birthday_date.month, birthday_date.day))
-        )
+        age = calculate_age_at_end_of_school_year(birthday_date)
 
         child = Child(
             parent_email=user.email,
@@ -96,17 +126,9 @@ def edit_child(child_id):
             flash(message, "error")
         else:
             try:
-                # Calculate age from birthday
+                # Calculate age from birthday (age at end of school year)
                 birthday_date = datetime.strptime(birthday, "%Y-%m-%d")
-                today = datetime.now()
-                age = (
-                    today.year
-                    - birthday_date.year
-                    - (
-                        (today.month, today.day)
-                        < (birthday_date.month, birthday_date.day)
-                    )
-                )
+                age = calculate_age_at_end_of_school_year(birthday_date)
 
                 if age < 4 or age > 18:
                     message = "Child must be between 4 and 18 years old."

@@ -10,6 +10,10 @@
         <label for="edit_birthday" class="form-label">Birthday</label>
         <input type="date" class="form-control" id="edit_birthday" name="birthday" 
                value="{{ child.birthday.strftime('%Y-%m-%d') }}" required>
+        <div class="form-text">
+            <i class="bi bi-info-circle me-1"></i>
+            Age will be calculated as the age at the end of the current school year (June 30th)
+        </div>
     </div>
 
     <div class="mb-3">
