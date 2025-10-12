@@ -39,7 +39,9 @@ def adjust_range_by_difficulty(
     Returns:
         Tuple of (adjusted_min, adjusted_max)
     """
-    from src.problem_types import PROBLEM_TYPES
+    # Ensure we have valid input ranges
+    if min_val >= max_val:
+        return max(1, min_val), max(min_val + 1, max_val)
 
     range_size = max_val - min_val
 
@@ -55,16 +57,20 @@ def adjust_range_by_difficulty(
             # Hard: numbers 1-10
             return 1, 10
     else:
-        # Scale ranges more aggressively with difficulty
+        # Scale ranges more conservatively with difficulty
         if difficulty > 0.5:  # For higher difficulties, extend the maximum
-            extension_factor = 1.0 + (difficulty - 0.5) * 1.5  # Up to 1.5x extension
+            extension_factor = (
+                1.0 + (difficulty - 0.5) * 0.5
+            )  # Up to 0.5x extension (more conservative)
             adjusted_max = int(max_val * extension_factor)
         else:
             adjusted_max = max_val
 
         # Adjust minimum value to make problems harder
         if difficulty > 0.7:  # For very high difficulties, raise the minimum
-            adjusted_min = min_val + int(range_size * 0.2)  # Start from 20% of range
+            adjusted_min = min_val + int(
+                range_size * 0.1
+            )  # Start from 10% of range (more conservative)
         else:
             adjusted_min = min_val
 
@@ -72,5 +78,10 @@ def adjust_range_by_difficulty(
         if adjusted_min >= adjusted_max:
             adjusted_min = min_val
             adjusted_max = max_val
+
+        # Final safety check
+        if adjusted_min >= adjusted_max:
+            adjusted_min = 1
+            adjusted_max = max(2, max_val)
 
         return int(adjusted_min), int(adjusted_max)

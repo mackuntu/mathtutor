@@ -30,7 +30,7 @@ class AdditionStrategy(ProblemStrategy):
         if age == 5:
             # For lower difficulties, keep one number single-digit
             if difficulty <= 0.5:
-                num1 = random.randint(min_val, 9)
+                num1 = random.randint(min_val, min(9, max_val))
                 num2 = random.randint(min_val, min(max_val - num1, max_val))
             else:
                 # For higher difficulties, allow both numbers to be double-digit
@@ -73,18 +73,19 @@ class SubtractionStrategy(ProblemStrategy):
             if difficulty <= 0.5:
                 # For lower difficulties, keep second number single-digit
                 num2 = random.randint(min_val, min(9, max_val - 1))
-                num1 = random.randint(num2 + 1, max_val)
+                num1 = random.randint(max(num2 + 1, min_val), max_val)
             else:
                 # For higher difficulties, allow both numbers to be double-digit
-                num1 = random.randint(min_val + 1, max_val)
-                num2 = random.randint(min_val, num1 - 1)
+                num1 = random.randint(max(min_val + 1, min_val), max_val)
+                num2 = random.randint(min_val, max(num1 - 1, min_val))
         else:
             # Generate both numbers in the full range
             num1 = random.randint(min_val, max_val)
             num2 = random.randint(min_val, max_val)
 
             # Ensure first number is larger
-            num1, num2 = max(num1, num2), min(num1, num2)
+            if num1 <= num2:
+                num1, num2 = num2, num1
 
         operator = OPERATORS["subtraction"]
         problem = f"{num1} {operator} {num2}"

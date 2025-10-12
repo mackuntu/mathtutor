@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
-from moto import mock_aws
+from moto import mock_dynamodb
 
 from src.auth import AuthManager
 from src.database.models import Child, Session, User, Worksheet
@@ -27,7 +27,7 @@ def aws_credentials():
 @pytest.fixture(scope="function")
 def dynamodb(aws_credentials):
     """Create a mock DynamoDB instance."""
-    with mock_aws():
+    with mock_dynamodb():
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
         # Create Users table
@@ -180,19 +180,33 @@ def sample_problems():
 
 @pytest.fixture
 def cleanup_sessions(repository):
-    """Clean up all sessions before each test."""
-    # Get all sessions and delete them
-    sessions = repository.scan_sessions()
-    for session in sessions:
-        repository.delete_session(session.token)
+    """Clean up test sessions before each test."""
+    # Only clean up sessions with test email addresses
+    test_emails = ["test@example.com", "testuser@example.com", "mock@example.com"]
+
+    for email in test_emails:
+        try:
+            sessions = repository.get_user_sessions(email)
+            for session in sessions:
+                repository.delete_session(session.token)
+        except Exception:
+            # Ignore errors if no sessions exist
+            pass
     yield
 
 
 @pytest.fixture
 def cleanup_children(repository):
-    """Clean up all children before each test."""
-    # Get all children and delete them
-    children = repository.scan_children()
-    for child in children:
-        repository.delete_child(child.id)
+    """Clean up test children before each test."""
+    # Only clean up children with test email addresses
+    test_emails = ["test@example.com", "testuser@example.com", "mock@example.com"]
+
+    for email in test_emails:
+        try:
+            children = repository.get_children_by_parent(email)
+            for child in children:
+                repository.delete_child(child.id)
+        except Exception:
+            # Ignore errors if user doesn't exist
+            pass
     yield
