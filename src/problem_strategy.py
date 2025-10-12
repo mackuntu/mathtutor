@@ -46,14 +46,14 @@ def adjust_range_by_difficulty(
     # For age 5, provide a more gradual progression to double-digit numbers
     if age == 5:
         if difficulty <= 0.3:
-            # Very easy: numbers 1-10
-            return 1, 10
+            # Very easy: numbers 1-5
+            return 1, 5
         elif difficulty <= 0.6:
-            # Medium: numbers 1-15
-            return 1, 15
+            # Medium: numbers 1-7
+            return 1, 7
         else:
-            # Hard: full range (1-20)
-            return min_val, max_val
+            # Hard: numbers 1-10
+            return 1, 10
     else:
         # Scale ranges more aggressively with difficulty
         if difficulty > 0.5:  # For higher difficulties, extend the maximum

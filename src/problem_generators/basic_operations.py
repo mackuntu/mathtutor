@@ -72,7 +72,7 @@ class SubtractionStrategy(ProblemStrategy):
             # For subtraction, ensure first number is larger and result is positive
             if difficulty <= 0.5:
                 # For lower difficulties, keep second number single-digit
-                num2 = random.randint(min_val, 9)
+                num2 = random.randint(min_val, min(9, max_val - 1))
                 num1 = random.randint(num2 + 1, max_val)
             else:
                 # For higher difficulties, allow both numbers to be double-digit

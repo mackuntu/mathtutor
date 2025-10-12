@@ -44,7 +44,7 @@ class DynamoDBModel:
 
     @staticmethod
     def from_dynamodb_item(
-        item: Optional[Dict[str, Dict[str, Any]]]
+        item: Optional[Dict[str, Dict[str, Any]]],
     ) -> Optional[Dict[str, Any]]:
         """Convert a DynamoDB item to a Python dictionary."""
         if not item:
@@ -261,7 +261,7 @@ class Worksheet(DynamoDBModel):
         self.id = self.generate_id()
         self.child_id = child_id
         self.problems = problems or []
-        self.answers = answers or []
+        self.answers = answers
         self.completed = completed
         self.incorrect_problems = incorrect_problems or []
         self.created_at = self.utc_now()

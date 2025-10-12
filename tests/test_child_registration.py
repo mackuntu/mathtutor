@@ -36,7 +36,7 @@ def test_create_child(repository, test_user):
     assert saved_child.preferred_color == "#FF5733"
 
 
-def test_get_children_by_parent(repository, test_user):
+def test_get_children_by_parent(repository, test_user, cleanup_children):
     """Test retrieving all children for a parent."""
     # Create two children
     child1 = Child(
@@ -129,7 +129,7 @@ def test_get_child(child_manager, test_user, test_child_dynamodb):
     assert child.grade == test_child_dynamodb.grade
 
 
-def test_get_children(child_manager, test_user, test_child_dynamodb):
+def test_get_children(cleanup_children, child_manager, test_user, test_child_dynamodb):
     """Test getting all children for a parent."""
     # Create another child
     child2 = Child(

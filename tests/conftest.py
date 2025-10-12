@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
-from moto import mock_dynamodb
+from moto import mock_aws
 
 from src.auth import AuthManager
 from src.database.models import Child, Session, User, Worksheet
@@ -27,7 +27,7 @@ def aws_credentials():
 @pytest.fixture(scope="function")
 def dynamodb(aws_credentials):
     """Create a mock DynamoDB instance."""
-    with mock_dynamodb():
+    with mock_aws():
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
         # Create Users table
