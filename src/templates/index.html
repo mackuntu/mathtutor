@@ -16,6 +16,8 @@
 {{ super() }}
 <!-- html2pdf.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- PDF-lib for PDF merging -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 {% endblock %}
 
 {% block extra_css %}
@@ -148,8 +150,8 @@
                         <div class="mb-3">
                             <label for="num_worksheets" class="form-label">Number of Worksheets</label>
                             <input type="number" class="form-control" id="num_worksheets" name="num_worksheets" 
-                                   value="1" min="1" max="5" required>
-                            <div class="invalid-feedback">Please enter a number between 1 and 5.</div>
+                                   value="1" min="1" max="20" required>
+                            <div class="invalid-feedback">Please enter a number between 1 and 20.</div>
                         </div>
 
                         <!-- Difficulty Slider -->
@@ -416,78 +418,81 @@
                 throw new Error('No worksheet data received from server');
             }
             
-            // Combine all worksheets and answer keys into single PDFs
-            let allWorksheetsContent = '';
-            let allAnswerKeysContent = '';
+            // Generate individual PDFs for each worksheet
+            const worksheetPdfs = [];
+            const answerKeyPdfs = [];
             
-            // Process each worksheet and combine content
+            console.log(`Generating ${data.worksheets.length} individual PDFs...`);
+            
             for (let i = 0; i < data.worksheets.length; i++) {
                 const worksheetData = data.worksheets[i];
+                console.log(`Generating PDF ${i + 1} of ${data.worksheets.length}`);
                 
                 // Prepare content for PDF generation
                 const worksheetContent = preparePdfContent(worksheetData.worksheet);
                 const answerKeyContent = preparePdfContent(worksheetData.answer_key);
                 
-                // Wrap each worksheet in a container with page break (except for the first one)
-                const pageBreakStyle = i > 0 ? 'style="page-break-before: always;"' : '';
-                const worksheetWrapper = `<div ${pageBreakStyle}>${worksheetContent}</div>`;
-                const answerKeyWrapper = `<div ${pageBreakStyle}>${answerKeyContent}</div>`;
+                // Generate individual PDFs
+                const worksheetOptions = { 
+                    ...pdfOptions, 
+                    filename: `worksheet-${i + 1}.pdf` 
+                };
+                const answerKeyOptions = { 
+                    ...pdfOptions, 
+                    filename: `answer-key-${i + 1}.pdf` 
+                };
                 
-                // Add wrapped content to combined documents
-                allWorksheetsContent += worksheetWrapper;
-                allAnswerKeysContent += answerKeyWrapper;
+                try {
+                    const worksheetPdf = await generatePDF(worksheetContent, worksheetOptions);
+                    const answerKeyPdf = await generatePDF(answerKeyContent, answerKeyOptions);
+                    
+                    worksheetPdfs.push(worksheetPdf);
+                    answerKeyPdfs.push(answerKeyPdf);
+                    
+                    console.log(`PDF ${i + 1} generated successfully`);
+                } catch (pdfError) {
+                    console.error(`Error generating PDF ${i + 1}:`, pdfError);
+                    throw new Error(`Error generating PDF ${i + 1}: ${pdfError.message}`);
+                }
             }
+            
+            console.log(`All ${data.worksheets.length} PDFs generated, now merging...`);
             
             try {
                 if (isTestMode) {
-                    // In test mode, download both combined PDFs
-                    const worksheetOptions = { 
-                        ...pdfOptions, 
-                        filename: 'all-worksheets.pdf' 
-                    };
-                    const worksheetPdf = await generatePDF(allWorksheetsContent, worksheetOptions);
+                    // In test mode, download merged PDFs
+                    const mergedWorksheetPdf = await mergePDFs(worksheetPdfs);
+                    const mergedAnswerKeyPdf = await mergePDFs(answerKeyPdfs);
                     
+                    // Download merged worksheets PDF
                     const worksheetLink = document.createElement('a');
-                    worksheetLink.href = URL.createObjectURL(worksheetPdf);
+                    worksheetLink.href = URL.createObjectURL(mergedWorksheetPdf);
                     worksheetLink.download = 'all-worksheets.pdf';
                     document.body.appendChild(worksheetLink);
                     worksheetLink.click();
                     document.body.removeChild(worksheetLink);
                     
-                    // Generate combined answer key PDF
-                    const answerKeyOptions = { 
-                        ...pdfOptions, 
-                        filename: 'all-answer-keys.pdf' 
-                    };
-                    const answerKeyPdf = await generatePDF(allAnswerKeysContent, answerKeyOptions);
-                    
-                    // Download answer key PDF
+                    // Download merged answer key PDF
                     const answerKeyLink = document.createElement('a');
-                    answerKeyLink.href = URL.createObjectURL(answerKeyPdf);
+                    answerKeyLink.href = URL.createObjectURL(mergedAnswerKeyPdf);
                     answerKeyLink.download = 'all-answer-keys.pdf';
                     document.body.appendChild(answerKeyLink);
                     answerKeyLink.click();
                     document.body.removeChild(answerKeyLink);
                 } else {
-                    // Normal mode: open combined worksheets PDF and print it
-                    const worksheetOptions = { 
-                        ...pdfOptions, 
-                        filename: 'all-worksheets.pdf' 
-                    };
-                    const worksheetPdf = await generatePDF(allWorksheetsContent, worksheetOptions);
-                    await openAndPrint(worksheetPdf, true);
+                    // Normal mode: merge PDFs and open for printing
+                    const mergedWorksheetPdf = await mergePDFs(worksheetPdfs);
+                    const mergedAnswerKeyPdf = await mergePDFs(answerKeyPdfs);
                     
-                    // Generate combined answer key PDF and just open it
-                    const answerKeyOptions = { 
-                        ...pdfOptions, 
-                        filename: 'all-answer-keys.pdf' 
-                    };
-                    const answerKeyPdf = await generatePDF(allAnswerKeysContent, answerKeyOptions);
-                    await openAndPrint(answerKeyPdf, false); // Just open answer key
+                    // Open merged worksheets PDF and print it
+                    await openAndPrint(mergedWorksheetPdf, true);
+                    
+                    // Open merged answer key PDF (just open, don't print)
+                    await openAndPrint(mergedAnswerKeyPdf, false);
                 }
-            } catch (pdfError) {
-                console.error('Error generating PDF:', pdfError);
-                throw new Error(`Error generating PDF: ${pdfError.message}`);
+            } catch (mergeError) {
+                console.error('Error merging PDFs:', mergeError);
+                throw new Error(`Error merging PDFs: ${mergeError.message}`);
             }
 
         } catch (error) {
@@ -498,6 +503,34 @@
         }
     }
     
+    // Function to merge multiple PDFs into a single PDF
+    async function mergePDFs(pdfBlobs) {
+        try {
+            // Check if PDF-lib is available
+            if (typeof PDFLib === 'undefined') {
+                console.log('PDF-lib not available, using simple concatenation approach');
+                // Fallback: return the first PDF if PDF-lib is not available
+                return pdfBlobs[0];
+            }
+            
+            const mergedPdf = await PDFLib.PDFDocument.create();
+            
+            for (let i = 0; i < pdfBlobs.length; i++) {
+                const pdfBytes = await pdfBlobs[i].arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(pdfBytes);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
+            }
+            
+            const mergedPdfBytes = await mergedPdf.save();
+            return new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        } catch (error) {
+            console.error('Error merging PDFs:', error);
+            // Fallback: return the first PDF if merging fails
+            return pdfBlobs[0];
+        }
+    }
+
     // Function to prepare HTML content for PDF generation
     function preparePdfContent(htmlContent) {
         // Create a temporary container
