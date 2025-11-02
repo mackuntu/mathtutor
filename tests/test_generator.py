@@ -127,22 +127,23 @@ def test_age_5_problem_distribution():
     # At low difficulty, should have more addition than subtraction
     # Note: Due to limited unique problems (only 35 total with numbers 1-5),
     # we expect more addition but not necessarily 80% due to constraint
-    assert (
-        low_add >= low_sub
-    ), f"Expected at least as many addition as subtraction at low difficulty, got {low_add} addition and {low_sub} subtraction"
+    assert low_add >= low_sub, (
+        f"Expected at least as many addition as subtraction at low difficulty, "
+        f"got {low_add} addition and {low_sub} subtraction"
+    )
 
     # At medium difficulty, should be more balanced
     assert (
         0.3 <= med_add / len(med_problems) <= 0.7
-    ), f"Expected balanced distribution at medium difficulty, got {med_add/len(med_problems):.1%} addition"
+    ), f"Expected balanced distribution at medium difficulty, got {med_add / len(med_problems):.1%} addition"
     assert (
         0.3 <= med_sub / len(med_problems) <= 0.7
-    ), f"Expected balanced distribution at medium difficulty, got {med_sub/len(med_problems):.1%} subtraction"
+    ), f"Expected balanced distribution at medium difficulty, got {med_sub / len(med_problems):.1%} subtraction"
 
     # At high difficulty, should be roughly equal
     assert (
         0.3 <= high_add / len(high_problems) <= 0.7
-    ), f"Expected balanced distribution at high difficulty, got {high_add/len(high_problems):.1%} addition"
+    ), f"Expected balanced distribution at high difficulty, got {high_add / len(high_problems):.1%} addition"
     assert (
         0.3 <= high_sub / len(high_problems) <= 0.7
-    ), f"Expected balanced distribution at high difficulty, got {high_sub/len(high_problems):.1%} subtraction"
+    ), f"Expected balanced distribution at high difficulty, got {high_sub / len(high_problems):.1%} subtraction"
