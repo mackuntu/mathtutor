@@ -29,7 +29,7 @@ class AdditionStrategy(ProblemStrategy):
         # For age 5, ensure the sum is within their range
         if age == 5:
             # For lower difficulties, keep one number single-digit
-            if difficulty <= 0.5:
+            if difficulty <= 0.3:
                 num1 = random.randint(min_val, min(9, max_val))
                 num2 = random.randint(min_val, min(max_val - num1, max_val))
             else:
@@ -70,7 +70,7 @@ class SubtractionStrategy(ProblemStrategy):
         # For age 5, ensure the difference is appropriate
         if age == 5:
             # For subtraction, ensure first number is larger and result is positive
-            if difficulty <= 0.5:
+            if difficulty <= 0.3:
                 # For lower difficulties, keep second number single-digit
                 num2 = random.randint(min_val, min(9, max_val - 1))
                 num1 = random.randint(max(num2 + 1, min_val), max_val)

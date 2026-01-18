@@ -5,22 +5,22 @@ from typing import Dict, Tuple
 # Base problem types by age group (ranges are now used for basic bounds, complexity is handled in strategies)
 PROBLEM_TYPES = {
     5: {  # Kindergarten
-        "addition": (1, 20),  # Numbers up to 20
-        "subtraction": (1, 20),  # Numbers up to 20
+        "addition": (1, 30),  # Numbers up to 30
+        "subtraction": (1, 30),  # Numbers up to 30
     },
     6: {  # First grade
-        "addition": (1, 20),  # Numbers up to 20
-        "subtraction": (1, 20),  # Numbers up to 20
+        "addition": (1, 30),  # Numbers up to 30
+        "subtraction": (1, 30),  # Numbers up to 30
     },
     7: {  # Second grade
-        "addition": (1, 50),
-        "subtraction": (1, 50),
-        "multiplication": (1, 10),  # Basic multiplication facts
+        "addition": (1, 75),
+        "subtraction": (1, 75),
+        "multiplication": (1, 12),  # Basic multiplication facts
     },
     8: {  # Third grade
-        "addition": (1, 100),
-        "subtraction": (1, 100),
-        "multiplication": (1, 25),  # Multiples of 5 and 10
+        "addition": (1, 150),
+        "subtraction": (1, 150),
+        "multiplication": (1, 30),  # Multiples of 5 and 10
         "division": (1, 10),  # Simple division facts
     },
     9: {  # Fourth grade

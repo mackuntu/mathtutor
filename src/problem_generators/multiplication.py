@@ -44,127 +44,127 @@ class MultiplicationStrategy(ProblemStrategy):
             # Age 7: Introduce 10s and simple patterns with sliding window
             if difficulty < 0.3:
                 # Easier: small numbers with occasional 10s
-                num1 = random.choice([random.randint(1, 3), 10])
-                num2 = random.randint(1, 4)
+                num1 = random.choice([random.randint(2, 5), 10])
+                num2 = random.randint(2, 6)
             elif difficulty < 0.7:
                 # Medium: more 10s and 20s
-                num1 = random.choice([10, 20, random.randint(2, 5)])
-                num2 = random.randint(2, 6)
+                num1 = random.choice([10, 20, random.randint(4, 7)])
+                num2 = random.randint(4, 8)
             else:
                 # Harder: more 10s and 20s with larger multipliers
-                num1 = random.choice([10, 20, random.randint(3, 7)])
-                num2 = random.randint(3, 8)
+                num1 = random.choice([10, 20, random.randint(5, 9)])
+                num2 = random.randint(5, 10)
 
         elif age == 8:
             # Age 8: Multiples of 5 and 10 with sliding window
             if difficulty < 0.3:
                 # Easy: small single digits
-                num1 = random.randint(1, 4)
-                num2 = random.randint(1, 5)
+                num1 = random.randint(3, 6)
+                num2 = random.randint(3, 7)
             elif difficulty < 0.7:
                 # Medium: multiples of 5 with sliding window
-                base_min, base_max = 2, 4
+                base_min, base_max = 4, 6
                 num1 = random.choice([5, 10, random.randint(base_min, base_max)])
-                num2 = random.randint(base_min, min(base_max + 2, 8))
+                num2 = random.randint(base_min, min(base_max + 3, 9))
             else:
                 # Hard: multiples of 5 and 10 with higher base
-                base_min, base_max = 3, 6
+                base_min, base_max = 5, 8
                 num1 = random.choice(
                     [5, 10, 15, 20, random.randint(base_min, base_max)]
                 )
-                num2 = random.randint(base_min, min(base_max + 3, 9))
+                num2 = random.randint(base_min, min(base_max + 4, 9))
 
         elif age == 9:
             # Age 9: Double-digit × single digit with sliding window
             if difficulty < 0.3:
                 # Easier: small single digits
-                num1 = random.randint(1, 4)
-                num2 = random.randint(1, 5)
+                num1 = random.randint(2, 5)
+                num2 = random.randint(2, 6)
             elif difficulty < 0.7:
                 # Medium: double-digit × single digit with sliding window
-                base_min, base_max = 3, 6
-                num1 = random.randint(10 + base_min, 15 + base_max)
-                num2 = random.randint(base_min, min(base_max + 2, 8))
+                base_min, base_max = 4, 7
+                num1 = random.randint(12 + base_min, 18 + base_max)
+                num2 = random.randint(base_min, min(base_max + 3, 9))
             else:
                 # Harder: larger double-digit × single digit
-                base_min, base_max = 4, 8
-                num1 = random.randint(15 + base_min, 25 + base_max)
-                num2 = random.randint(base_min, min(base_max + 1, 9))
+                base_min, base_max = 5, 9
+                num1 = random.randint(18 + base_min, 28 + base_max)
+                num2 = random.randint(base_min, min(base_max + 2, 9))
 
         elif age == 10:
             # Age 10: Double-digit × double-digit with sliding window
             if difficulty < 0.3:
                 # Easier: single × double with sliding window
-                base_min, base_max = 2, 4
-                num1 = random.randint(base_min, min(base_max + 1, 6))
-                num2 = random.randint(10 + base_min, 15 + base_max)
+                base_min, base_max = 3, 5
+                num1 = random.randint(base_min, min(base_max + 2, 7))
+                num2 = random.randint(12 + base_min, 18 + base_max)
             elif difficulty < 0.7:
                 # Medium: double × double, avoid "easy" numbers with sliding window
-                base_min, base_max = 3, 6
-                num1 = random.randint(11 + base_min, 18 + base_max)
-                num2 = random.randint(11 + base_min, 18 + base_max)
+                base_min, base_max = 4, 7
+                num1 = random.randint(14 + base_min, 22 + base_max)
+                num2 = random.randint(14 + base_min, 22 + base_max)
                 # Avoid "easy" combinations like 12×10, 15×10, etc.
                 while (num1 % 10 == 0 and num2 <= 15) or (
                     num2 % 10 == 0 and num1 <= 15
                 ):
-                    num1 = random.randint(11 + base_min, 18 + base_max)
-                    num2 = random.randint(11 + base_min, 18 + base_max)
+                    num1 = random.randint(14 + base_min, 22 + base_max)
+                    num2 = random.randint(14 + base_min, 22 + base_max)
             else:
                 # Harder: larger double-digit × double-digit with sliding window
-                base_min, base_max = 4, 8
-                num1 = random.randint(15 + base_min, 25 + base_max)
-                num2 = random.randint(15 + base_min, 25 + base_max)
+                base_min, base_max = 5, 9
+                num1 = random.randint(18 + base_min, 28 + base_max)
+                num2 = random.randint(18 + base_min, 28 + base_max)
 
         elif age == 11:
             # Age 11: Larger numbers with sliding window, focus on "hard" combinations
             if difficulty < 0.3:
                 # Easier: double × double with sliding window
-                base_min, base_max = 2, 5
-                num1 = random.randint(12 + base_min, 20 + base_max)
-                num2 = random.randint(12 + base_min, 20 + base_max)
+                base_min, base_max = 3, 6
+                num1 = random.randint(15 + base_min, 23 + base_max)
+                num2 = random.randint(15 + base_min, 23 + base_max)
             elif difficulty < 0.7:
                 # Medium: larger numbers, avoid "easy" patterns with sliding window
-                base_min, base_max = 4, 8
-                num1 = random.randint(20 + base_min, 30 + base_max)
-                num2 = random.randint(20 + base_min, 30 + base_max)
+                base_min, base_max = 5, 9
+                num1 = random.randint(23 + base_min, 33 + base_max)
+                num2 = random.randint(23 + base_min, 33 + base_max)
                 # Avoid multiples of 10
                 while num1 % 10 == 0 or num2 % 10 == 0:
-                    num1 = random.randint(20 + base_min, 30 + base_max)
-                    num2 = random.randint(20 + base_min, 30 + base_max)
+                    num1 = random.randint(23 + base_min, 33 + base_max)
+                    num2 = random.randint(23 + base_min, 33 + base_max)
             else:
                 # Harder: complex multi-digit with sliding window
-                base_min, base_max = 5, 10
-                num1 = random.randint(25 + base_min, 35 + base_max)
-                num2 = random.randint(25 + base_min, 35 + base_max)
+                base_min, base_max = 6, 12
+                num1 = random.randint(28 + base_min, 38 + base_max)
+                num2 = random.randint(28 + base_min, 38 + base_max)
 
         else:  # age >= 12
             # Age 12+: Complex multi-digit with sliding window and strategic number choices
             if difficulty < 0.3:
                 # Easier: double × double with sliding window
-                base_min, base_max = 3, 6
-                num1 = random.randint(15 + base_min, 25 + base_max)
-                num2 = random.randint(15 + base_min, 25 + base_max)
+                base_min, base_max = 4, 7
+                num1 = random.randint(18 + base_min, 28 + base_max)
+                num2 = random.randint(18 + base_min, 28 + base_max)
             elif difficulty < 0.7:
                 # Medium: larger numbers, avoid "easy" patterns with sliding window
-                base_min, base_max = 5, 10
-                num1 = random.randint(25 + base_min, 35 + base_max)
-                num2 = random.randint(25 + base_min, 35 + base_max)
+                base_min, base_max = 6, 12
+                num1 = random.randint(28 + base_min, 38 + base_max)
+                num2 = random.randint(28 + base_min, 38 + base_max)
                 # Avoid multiples of 5 and 10
                 while (num1 % 5 == 0 and num1 % 10 == 0) or (
                     num2 % 5 == 0 and num2 % 10 == 0
                 ):
-                    num1 = random.randint(25 + base_min, 35 + base_max)
-                    num2 = random.randint(25 + base_min, 35 + base_max)
+                    num1 = random.randint(28 + base_min, 38 + base_max)
+                    num2 = random.randint(28 + base_min, 38 + base_max)
             else:
                 # Harder: complex multi-digit with "hard" numbers and sliding window
-                base_min, base_max = 8, 15
-                num1 = random.randint(35 + base_min, 45 + base_max)
-                num2 = random.randint(35 + base_min, 45 + base_max)
+                base_min, base_max = 10, 18
+                num1 = random.randint(40 + base_min, 50 + base_max)
+                num2 = random.randint(40 + base_min, 50 + base_max)
                 # Prefer "hard" numbers (primes, numbers ending in 3, 7, 9)
-                hard_numbers = [37, 41, 43, 47, 53, 59, 61, 67, 71, 73]
-                if random.random() < 0.3:  # 30% chance of using "hard" numbers
+                hard_numbers = [37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
+                if random.random() < 0.5:  # 50% chance of using "hard" numbers
                     num1 = random.choice(hard_numbers)
-                    num2 = random.randint(35 + base_min, 45 + base_max)
+                    num2 = random.randint(40 + base_min, 50 + base_max)
 
         operator = OPERATORS["multiplication"]
         problem = f"{num1} {operator} {num2}"
