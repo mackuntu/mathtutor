@@ -2,14 +2,9 @@
 
 import logging
 from datetime import datetime
-from io import BytesIO
-from pathlib import Path
 from typing import List, Optional, Tuple
 
-import qrcode
-from PIL import Image, ImageDraw, ImageFont
 from reportlab.lib.pagesizes import letter, portrait
-from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from src.document.template import LayoutChoice, TemplateManager
@@ -27,31 +22,6 @@ class DocumentRenderer:
             template_manager: Optional template manager. If None, creates a new one.
         """
         self.template_manager = template_manager or TemplateManager()
-
-    def _create_qr_code(self, worksheet_id: str) -> BytesIO:
-        """Generate a QR code for worksheet identification.
-
-        Args:
-            worksheet_id: Unique identifier for worksheet.
-
-        Returns:
-            BytesIO containing QR code image.
-        """
-        qr = qrcode.QRCode(
-            version=1,
-            box_size=10,
-            border=4,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-        )
-        qr.add_data(worksheet_id)
-        qr.make(fit=True)
-
-        qr_image = qr.make_image(fill_color="black", back_color="white")
-        byte_stream = BytesIO()
-        qr_image.save(byte_stream, format="PNG")
-        byte_stream.seek(0)
-
-        return byte_stream
 
     def _render_text(
         self,
@@ -152,10 +122,6 @@ class DocumentRenderer:
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         pdf.drawString(50, 720, f"Name: _______________    Date: {current_datetime}")
 
-        # Add QR code in the top-right corner
-        qr_code = self._create_qr_code(worksheet_id)
-        pdf.drawImage(ImageReader(qr_code), 500, 730, width=40, height=40)
-
         # Calculate layout
         positions, rois = self.template_manager.calculate_layout(
             len(problems), problems, layout
@@ -199,10 +165,6 @@ class DocumentRenderer:
         # Add header
         pdf.setFont("Helvetica", 18)
         pdf.drawString(200, 750, "Math Worksheet - Answer Key")
-
-        # Add QR code in the top-right corner
-        qr_code = self._create_qr_code(worksheet_id)
-        pdf.drawImage(ImageReader(qr_code), 500, 730, width=40, height=40)
 
         # Calculate layout
         positions, rois = self.template_manager.calculate_layout(

@@ -1,0 +1,58 @@
+{# Scantron Card Component #}
+{# Usage: {% from "components/scantron_card.html" import scantron_card %}
+         {{ scantron_card(index, problem_text, student_answer, correct_answer, status) }}
+#}
+
+{% macro scantron_card(index, problem_text, student_answer, correct_answer, status) %}
+{#
+    Parameters:
+    - index: Problem number (0-based)
+    - problem_text: The math problem text (e.g., "5 + 3")
+    - student_answer: OCR-extracted or user-entered answer
+    - correct_answer: The correct answer
+    - status: 'correct', 'incorrect', 'suspected_incorrect', or 'no_answer'
+#}
+{% set card_class = {
+    'correct': 'correct',
+    'incorrect': 'incorrect',
+    'suspected_incorrect': 'suspected',
+    'no_answer': 'no-answer'
+}.get(status, 'suspected') %}
+
+<div class="scantron-card {{ card_class }}"
+     data-index="{{ index }}"
+     data-correct-answer="{{ correct_answer }}">
+    <span class="problem-badge">#{{ index + 1 }}</span>
+
+    <div class="problem-text">{{ problem_text }} = ?</div>
+
+    <div class="answer-row">
+        <span class="answer-label">Student:</span>
+        <input type="text"
+               class="student-answer-input"
+               value="{{ student_answer if student_answer else '' }}"
+               data-index="{{ index }}"
+               placeholder="No answer detected">
+    </div>
+
+    <div class="answer-row">
+        <span class="answer-label">Correct:</span>
+        <div class="correct-answer-display">{{ correct_answer }}</div>
+    </div>
+
+    <div class="status-toggle">
+        <button type="button"
+                class="status-btn correct-btn {{ 'active' if status == 'correct' else '' }}"
+                data-index="{{ index }}"
+                onclick="setStatus({{ index }}, 'correct')">
+            <i class="bi bi-check-lg"></i> Correct
+        </button>
+        <button type="button"
+                class="status-btn incorrect-btn {{ 'active' if status != 'correct' else '' }}"
+                data-index="{{ index }}"
+                onclick="setStatus({{ index }}, 'incorrect')">
+            <i class="bi bi-x-lg"></i> Wrong
+        </button>
+    </div>
+</div>
+{% endmacro %}

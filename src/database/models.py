@@ -255,6 +255,8 @@ class Worksheet(DynamoDBModel):
         answers: list = None,
         completed: bool = False,
         incorrect_problems: list = None,
+        correct_answers: list = None,
+        student_answers: list = None,
     ):
         """Initialize a worksheet."""
         super().__init__()
@@ -264,6 +266,8 @@ class Worksheet(DynamoDBModel):
         self.answers = answers
         self.completed = completed
         self.incorrect_problems = incorrect_problems or []
+        self.correct_answers = correct_answers  # Store correct answers at creation time
+        self.student_answers = student_answers  # Store OCR-extracted student answers
         self.created_at = self.utc_now()
         self.updated_at = self.created_at
 
@@ -321,6 +325,20 @@ class Worksheet(DynamoDBModel):
             except json.JSONDecodeError:
                 incorrect_problems = []
 
+        correct_answers = data.get("correct_answers", [])
+        if isinstance(correct_answers, str):
+            try:
+                correct_answers = json.loads(correct_answers)
+            except json.JSONDecodeError:
+                correct_answers = []
+
+        student_answers = data.get("student_answers", [])
+        if isinstance(student_answers, str):
+            try:
+                student_answers = json.loads(student_answers)
+            except json.JSONDecodeError:
+                student_answers = []
+
         # Create and return the worksheet instance
         worksheet = cls(
             child_id=child_id,
@@ -328,6 +346,8 @@ class Worksheet(DynamoDBModel):
             answers=answers,
             completed=data.get("completed", False),
             incorrect_problems=incorrect_problems,
+            correct_answers=correct_answers if correct_answers else None,
+            student_answers=student_answers if student_answers else None,
         )
 
         # Set the id, created_at, and updated_at fields
@@ -339,7 +359,7 @@ class Worksheet(DynamoDBModel):
 
     def to_item(self) -> dict:
         """Convert the worksheet to a DynamoDB item."""
-        return {
+        item = {
             "id": self.id,
             "child_id": self.child_id,
             "problems": json.dumps(self.problems),
@@ -349,16 +369,27 @@ class Worksheet(DynamoDBModel):
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+        if self.correct_answers is not None:
+            item["correct_answers"] = json.dumps(self.correct_answers)
+        if self.student_answers is not None:
+            item["student_answers"] = json.dumps(self.student_answers)
+        return item
 
     @classmethod
     def from_item(cls, item: dict) -> "Worksheet":
         """Create a worksheet from a DynamoDB item."""
+        correct_answers_str = item.get("correct_answers", "null")
+        correct_answers = json.loads(correct_answers_str) if correct_answers_str else None
+        student_answers_str = item.get("student_answers", "null")
+        student_answers = json.loads(student_answers_str) if student_answers_str else None
         worksheet = cls(
             child_id=item.get("child_id", ""),
             problems=json.loads(item.get("problems", "[]")),
             answers=json.loads(item.get("answers", "[]")),
             completed=item.get("completed", False),
             incorrect_problems=json.loads(item.get("incorrect_problems", "[]")),
+            correct_answers=correct_answers,
+            student_answers=student_answers,
         )
         worksheet.id = item.get("id", "")
         worksheet.created_at = item.get("created_at", "")

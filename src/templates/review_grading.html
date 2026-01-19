@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Review Grading - {{ child.name }}'s Worksheet{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Stats summary bar */
+.stats-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.stats-bar .stat-item {
+    text-align: center;
+}
+
+.stats-bar .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.stats-bar .stat-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* Scantron card grid */
+.scantron-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+    padding: 10px 0;
+}
+
+/* Individual scantron card */
+.scantron-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 15px;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+    position: relative;
+}
+
+.scantron-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+/* Card states */
+.scantron-card.correct {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f8fff8 0%, #e8f5e9 100%);
+}
+
+.scantron-card.incorrect {
+    border-color: #dc3545;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffebee 100%);
+}
+
+.scantron-card.suspected {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fffdf5 0%, #fff8e1 100%);
+    animation: pulse-yellow 2s infinite;
+}
+
+.scantron-card.no-answer {
+    border-color: #6c757d;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+@keyframes pulse-yellow {
+    0%, 100% { box-shadow: 0 2px 8px rgba(255,193,7,0.3); }
+    50% { box-shadow: 0 4px 20px rgba(255,193,7,0.5); }
+}
+
+/* Problem number badge */
+.problem-badge {
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: #343a40;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+/* Problem text */
+.problem-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 15px 0 10px;
+    color: #333;
+}
+
+/* Answer section */
+.answer-row {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.answer-label {
+    width: 100px;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.student-answer-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.student-answer-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.correct-answer-display {
+    flex: 1;
+    padding: 8px 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Status toggle button */
+.status-toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.status-btn {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-weight: 500;
+}
+
+.status-btn.correct-btn {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.status-btn.correct-btn:hover,
+.status-btn.correct-btn.active {
+    background: #28a745;
+    color: white;
+}
+
+.status-btn.incorrect-btn {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.status-btn.incorrect-btn:hover,
+.status-btn.incorrect-btn.active {
+    background: #dc3545;
+    color: white;
+}
+
+/* Sticky submit bar */
+.submit-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    padding: 15px 0;
+    z-index: 100;
+}
+
+.submit-bar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.submit-bar .score-preview {
+    font-size: 1.1rem;
+}
+
+.submit-bar .score-value {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+/* Add bottom padding to content for sticky bar */
+.main-content {
+    padding-bottom: 100px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .scantron-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-bar .row {
+        gap: 15px;
+    }
+
+    .submit-bar .container {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 main-content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Review OCR Results</h2>
+            <p class="text-muted mb-0">{{ child.name }}'s Worksheet ({{ worksheet.serial_number }})</p>
+        </div>
+        <a href="{{ url_for('worksheets.grade_worksheet', worksheet_id=worksheet.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil-square me-1"></i> Manual Grading
+        </a>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="stats-bar">
+        <div class="row">
+            <div class="col-3 stat-item">
+                <div class="stat-value" id="totalCount">{{ total_problems }}</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="col-3 stat-item">
+                <div class="stat-value" id="correctCount">{{ correct_count }}</div>
+                <div class="stat-label">Correct</div>
+            </div>
+            <div class="col-3 stat-item">
+                <div class="stat-value" id="incorrectCount">{{ incorrect_count }}</div>
+                <div class="stat-label">Incorrect</div>
+            </div>
+            <div class="col-3 stat-item">
+                <div class="stat-value" id="reviewCount">{{ needs_review_count }}</div>
+                <div class="stat-label">Needs Review</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Review Instructions:</strong> Yellow cards need your attention. Click the check or X buttons to confirm each answer, or edit the student's answer if OCR made a mistake.
+    </div>
+
+    <!-- Scantron Cards Grid -->
+    <div class="scantron-grid" id="scantronGrid">
+        {% for card in problem_cards %}
+        <div class="scantron-card {{ 'correct' if card.status == 'correct' else ('suspected' if card.status == 'suspected_incorrect' else 'no-answer') }}"
+             data-index="{{ card.index }}"
+             data-correct-answer="{{ card.correct_answer }}">
+            <span class="problem-badge">#{{ card.index + 1 }}</span>
+
+            <div class="problem-text">{{ card.problem_text }} = ?</div>
+
+            <div class="answer-row">
+                <span class="answer-label">Student:</span>
+                <input type="text"
+                       class="student-answer-input"
+                       value="{{ card.student_answer if card.student_answer else '' }}"
+                       data-index="{{ card.index }}"
+                       placeholder="No answer detected">
+            </div>
+
+            <div class="answer-row">
+                <span class="answer-label">Correct:</span>
+                <div class="correct-answer-display">{{ card.correct_answer }}</div>
+            </div>
+
+            <div class="status-toggle">
+                <button type="button"
+                        class="status-btn correct-btn {{ 'active' if card.status == 'correct' else '' }}"
+                        data-index="{{ card.index }}"
+                        onclick="setStatus({{ card.index }}, 'correct')">
+                    <i class="bi bi-check-lg"></i> Correct
+                </button>
+                <button type="button"
+                        class="status-btn incorrect-btn {{ 'active' if card.status != 'correct' else '' }}"
+                        data-index="{{ card.index }}"
+                        onclick="setStatus({{ card.index }}, 'incorrect')">
+                    <i class="bi bi-x-lg"></i> Wrong
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Sticky Submit Bar -->
+<div class="submit-bar">
+    <div class="container">
+        <div class="score-preview">
+            Score: <span class="score-value text-success" id="scorePreview">{{ ((correct_count / total_problems) * 100)|round(1) if total_problems > 0 else 0 }}%</span>
+            (<span id="correctPreview">{{ correct_count }}</span> / {{ total_problems }} correct)
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('worksheets.upload_for_grading_page') }}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+            <button type="button" class="btn btn-success btn-lg" id="submitBtn" onclick="submitGrades()">
+                <i class="bi bi-check-circle me-1"></i> Save Grades
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const worksheetId = "{{ worksheet.id }}";
+const totalProblems = {{ total_problems }};
+
+// Track card states
+const cardStates = {};
+{% for card in problem_cards %}
+cardStates[{{ card.index }}] = {
+    studentAnswer: "{{ card.student_answer if card.student_answer else '' }}",
+    correctAnswer: {{ card.correct_answer if card.correct_answer is not none else 'null' }},
+    isCorrect: {{ 'true' if card.status == 'correct' else 'false' }}
+};
+{% endfor %}
+
+function setStatus(index, status) {
+    const card = document.querySelector(`.scantron-card[data-index="${index}"]`);
+    const correctBtn = card.querySelector('.correct-btn');
+    const incorrectBtn = card.querySelector('.incorrect-btn');
+
+    // Update button states
+    if (status === 'correct') {
+        correctBtn.classList.add('active');
+        incorrectBtn.classList.remove('active');
+        card.classList.remove('incorrect', 'suspected', 'no-answer');
+        card.classList.add('correct');
+        cardStates[index].isCorrect = true;
+    } else {
+        correctBtn.classList.remove('active');
+        incorrectBtn.classList.add('active');
+        card.classList.remove('correct', 'suspected', 'no-answer');
+        card.classList.add('incorrect');
+        cardStates[index].isCorrect = false;
+    }
+
+    updateStats();
+}
+
+function updateStats() {
+    let correct = 0;
+    let incorrect = 0;
+    let review = 0;
+
+    for (const [index, state] of Object.entries(cardStates)) {
+        if (state.isCorrect) {
+            correct++;
+        } else {
+            incorrect++;
+        }
+    }
+
+    document.getElementById('correctCount').textContent = correct;
+    document.getElementById('incorrectCount').textContent = incorrect;
+    document.getElementById('reviewCount').textContent = review;
+    document.getElementById('correctPreview').textContent = correct;
+
+    const percentage = totalProblems > 0 ? ((correct / totalProblems) * 100).toFixed(1) : 0;
+    document.getElementById('scorePreview').textContent = percentage + '%';
+
+    // Update score color
+    const scoreEl = document.getElementById('scorePreview');
+    scoreEl.classList.remove('text-success', 'text-warning', 'text-danger');
+    if (percentage >= 70) {
+        scoreEl.classList.add('text-success');
+    } else if (percentage >= 50) {
+        scoreEl.classList.add('text-warning');
+    } else {
+        scoreEl.classList.add('text-danger');
+    }
+}
+
+// Handle student answer input changes
+document.querySelectorAll('.student-answer-input').forEach(input => {
+    input.addEventListener('input', function() {
+        const index = parseInt(this.dataset.index);
+        const value = this.value.trim();
+        cardStates[index].studentAnswer = value;
+
+        // Auto-compare with correct answer
+        const correctAnswer = cardStates[index].correctAnswer;
+        if (value && correctAnswer !== null) {
+            try {
+                const parsed = parseFloat(value);
+                if (!isNaN(parsed) && Math.abs(parsed - correctAnswer) < 0.0001) {
+                    setStatus(index, 'correct');
+                } else {
+                    setStatus(index, 'incorrect');
+                }
+            } catch (e) {
+                // Can't parse, leave as is
+            }
+        }
+    });
+});
+
+async function submitGrades() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+    // Collect data
+    const studentAnswers = [];
+    const incorrectIndices = [];
+
+    for (let i = 0; i < totalProblems; i++) {
+        studentAnswers.push(cardStates[i].studentAnswer || null);
+        if (!cardStates[i].isCorrect) {
+            incorrectIndices.push(i);
+        }
+    }
+
+    try {
+        const response = await fetch(`/worksheets/${worksheetId}/submit-reviewed-grades`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                student_answers: studentAnswers,
+                incorrect_indices: incorrectIndices
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert('Error saving grades: ' + (data.error || 'Unknown error'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Grades';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Grades';
+    }
+}
+
+// Initialize stats on page load
+updateStats();
+</script>
+{% endblock %}

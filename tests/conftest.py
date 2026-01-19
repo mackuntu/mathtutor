@@ -5,7 +5,10 @@ from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
-from moto import mock_dynamodb
+try:
+    from moto import mock_dynamodb
+except ImportError:
+    from moto import mock_aws as mock_dynamodb
 
 from src.auth import AuthManager
 from src.database.models import Child, Session, User, Worksheet

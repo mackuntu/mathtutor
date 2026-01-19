@@ -3,7 +3,7 @@
 import json
 
 from src.database.models import Worksheet
-from src.models import Worksheet as WorksheetModel
+from src.database.models import Worksheet as WorksheetModel
 
 
 def test_create_worksheet(repository, test_child_dynamodb, cleanup_children):

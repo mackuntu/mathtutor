@@ -8,9 +8,14 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Past Worksheets for {{ child.name }}</h2>
-        <button onclick="deleteSelected()" class="btn btn-danger" id="bulk-delete" style="display: none;">
-            Delete Selected
-        </button>
+        <div>
+            <a href="{{ url_for('worksheets.upload_for_grading_page') }}" class="btn btn-success me-2">
+                <i class="bi bi-camera"></i> Upload for Grading
+            </a>
+            <button onclick="deleteSelected()" class="btn btn-danger" id="bulk-delete" style="display: none;">
+                Delete Selected
+            </button>
+        </div>
     </div>
 
     <div class="row">

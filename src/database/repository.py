@@ -153,6 +153,8 @@ class DynamoDBRepository:
                 "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
                 "answers": item.get("answers", {}).get("S"),
                 "completed": item.get("completed", {}).get("BOOL", False),
+                "correct_answers": item.get("correct_answers", {}).get("S"),
+                "student_answers": item.get("student_answers", {}).get("S"),
             }
         )
 
@@ -176,6 +178,8 @@ class DynamoDBRepository:
                     "incorrect_problems": item.get("incorrect_problems", {}).get("S"),
                     "answers": item.get("answers", {}).get("S"),
                     "completed": item.get("completed", {}).get("BOOL", False),
+                    "correct_answers": item.get("correct_answers", {}).get("S"),
+                    "student_answers": item.get("student_answers", {}).get("S"),
                 }
             )
             for item in response.get("Items", [])
@@ -218,6 +222,14 @@ class DynamoDBRepository:
         # Always include answers, even if it's an empty list
         if worksheet.answers is not None:
             item["answers"] = {"S": json.dumps(worksheet.answers)}
+
+        # Include correct_answers if present
+        if worksheet.correct_answers is not None:
+            item["correct_answers"] = {"S": json.dumps(worksheet.correct_answers)}
+
+        # Include student_answers if present
+        if worksheet.student_answers is not None:
+            item["student_answers"] = {"S": json.dumps(worksheet.student_answers)}
 
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,
@@ -263,6 +275,14 @@ class DynamoDBRepository:
         # Always include answers, even if it's an empty list
         if worksheet.answers is not None:
             item["answers"] = {"S": json.dumps(worksheet.answers)}
+
+        # Include correct_answers if present
+        if worksheet.correct_answers is not None:
+            item["correct_answers"] = {"S": json.dumps(worksheet.correct_answers)}
+
+        # Include student_answers if present
+        if worksheet.student_answers is not None:
+            item["student_answers"] = {"S": json.dumps(worksheet.student_answers)}
 
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,

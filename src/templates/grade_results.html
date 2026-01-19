@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Grading Results - {{ worksheet.serial_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.score-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.score-hero.excellent {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.score-hero.good {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.score-hero.needs-work {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.score-hero.poor {
+    background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+}
+
+.score-value {
+    font-size: 4rem;
+    font-weight: bold;
+}
+
+.problem-card {
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.problem-card.correct {
+    border-color: #198754;
+    background-color: #d1e7dd;
+}
+
+.problem-card.incorrect {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.problem-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.problem-number {
+    font-weight: bold;
+    color: #6c757d;
+    margin-right: 10px;
+}
+
+.problem-text {
+    font-size: 1.1rem;
+    font-family: 'Courier New', monospace;
+}
+
+.answer-badge {
+    font-size: 0.9rem;
+    padding: 5px 12px;
+}
+
+.student-answer {
+    font-family: 'Courier New', monospace;
+    color: #333;
+}
+
+.student-answer.wrong {
+    text-decoration: line-through;
+    color: #dc3545;
+}
+
+.stats-card {
+    text-align: center;
+    padding: 20px;
+}
+
+.stats-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.stats-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.filter-btn.active {
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Grading Results</h2>
+            <p class="text-muted mb-0">
+                {{ worksheet.serial_number }} - {{ child.name }}
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('worksheets.past_worksheets', child_id=child.id) }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i> Back to Worksheets
+            </a>
+            <a href="{{ url_for('worksheets.upload_for_grading_page') }}" class="btn btn-primary">
+                <i class="bi bi-upload me-1"></i> Grade Another
+            </a>
+        </div>
+    </div>
+
+    <!-- Score hero section -->
+    <div class="score-hero {% if score_percentage >= 90 %}excellent{% elif score_percentage >= 70 %}good{% elif score_percentage >= 50 %}needs-work{% else %}poor{% endif %}">
+        <div class="score-value">{{ score_percentage|round(1) }}%</div>
+        <p class="mb-0">
+            {% if score_percentage >= 90 %}
+                Excellent work!
+            {% elif score_percentage >= 70 %}
+                Good job!
+            {% elif score_percentage >= 50 %}
+                Keep practicing!
+            {% else %}
+                Let's review these problems together.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="stats-value text-success">{{ correct_count }}</div>
+                <div class="stats-label">Correct</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="stats-value text-danger">{{ incorrect_count }}</div>
+                <div class="stats-label">Incorrect</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="stats-value text-primary">{{ total_problems }}</div>
+                <div class="stats-label">Total Problems</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter buttons -->
+    <div class="mb-3">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">
+                All ({{ total_problems }})
+            </button>
+            <button type="button" class="btn btn-outline-success filter-btn" data-filter="correct">
+                Correct ({{ correct_count }})
+            </button>
+            <button type="button" class="btn btn-outline-danger filter-btn" data-filter="incorrect">
+                Incorrect ({{ incorrect_count }})
+            </button>
+        </div>
+    </div>
+
+    <!-- Problem results -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Problem Breakdown</h5>
+            <small class="text-muted">Click a problem to toggle correct/incorrect</small>
+        </div>
+        <div class="card-body">
+            {% for result in problem_results %}
+            <div class="problem-card {% if result.is_correct %}correct{% else %}incorrect{% endif %}"
+                 data-index="{{ result.index }}"
+                 data-correct="{{ result.is_correct|lower }}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="problem-number">#{{ result.index + 1 }}</span>
+                        <span class="problem-text">{{ result.text }} = </span>
+                        {% if result.student_answer is defined and result.student_answer is not none %}
+                            {% if result.is_correct %}
+                                <span class="student-answer">{{ result.student_answer }}</span>
+                            {% else %}
+                                <span class="student-answer wrong">{{ result.student_answer }}</span>
+                                <i class="bi bi-arrow-right mx-1"></i>
+                                <span class="badge answer-badge bg-success">{{ result.correct_answer }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge answer-badge {% if result.is_correct %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ result.correct_answer }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if result.is_correct %}
+                        <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                        {% else %}
+                        <i class="bi bi-x-circle-fill text-danger fs-4"></i>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Save changes button (hidden by default) -->
+    <div class="mt-3 d-none" id="saveChangesContainer">
+        <button class="btn btn-primary" id="saveChangesBtn">
+            <i class="bi bi-check me-1"></i> Save Changes
+        </button>
+        <button class="btn btn-outline-secondary ms-2" onclick="location.reload()">
+            Cancel
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const problemCards = document.querySelectorAll('.problem-card');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const saveContainer = document.getElementById('saveChangesContainer');
+    const saveBtn = document.getElementById('saveChangesBtn');
+
+    let hasChanges = false;
+    let originalStates = {};
+
+    // Store original states
+    problemCards.forEach(card => {
+        originalStates[card.dataset.index] = card.dataset.correct === 'true';
+    });
+
+    // Filter functionality
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const filter = this.dataset.filter;
+            problemCards.forEach(card => {
+                if (filter === 'all') {
+                    card.style.display = '';
+                } else if (filter === 'correct') {
+                    card.style.display = card.classList.contains('correct') ? '' : 'none';
+                } else if (filter === 'incorrect') {
+                    card.style.display = card.classList.contains('incorrect') ? '' : 'none';
+                }
+            });
+        });
+    });
+
+    // Toggle correct/incorrect on click
+    problemCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const isCurrentlyCorrect = this.classList.contains('correct');
+
+            if (isCurrentlyCorrect) {
+                this.classList.remove('correct');
+                this.classList.add('incorrect');
+                this.dataset.correct = 'false';
+                this.querySelector('.badge').classList.remove('bg-success');
+                this.querySelector('.badge').classList.add('bg-danger');
+                this.querySelector('i').classList.remove('bi-check-circle-fill', 'text-success');
+                this.querySelector('i').classList.add('bi-x-circle-fill', 'text-danger');
+            } else {
+                this.classList.remove('incorrect');
+                this.classList.add('correct');
+                this.dataset.correct = 'true';
+                this.querySelector('.badge').classList.remove('bg-danger');
+                this.querySelector('.badge').classList.add('bg-success');
+                this.querySelector('i').classList.remove('bi-x-circle-fill', 'text-danger');
+                this.querySelector('i').classList.add('bi-check-circle-fill', 'text-success');
+            }
+
+            checkForChanges();
+        });
+    });
+
+    function checkForChanges() {
+        hasChanges = false;
+        problemCards.forEach(card => {
+            const currentState = card.dataset.correct === 'true';
+            if (currentState !== originalStates[card.dataset.index]) {
+                hasChanges = true;
+            }
+        });
+
+        if (hasChanges) {
+            saveContainer.classList.remove('d-none');
+        } else {
+            saveContainer.classList.add('d-none');
+        }
+    }
+
+    // Save changes
+    saveBtn.addEventListener('click', async function() {
+        const incorrectIndices = [];
+        problemCards.forEach(card => {
+            if (card.dataset.correct === 'false') {
+                incorrectIndices.push(parseInt(card.dataset.index));
+            }
+        });
+
+        try {
+            const response = await fetch('{{ url_for("worksheets.update_grade", worksheet_id=worksheet.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    incorrect_indices: incorrectIndices
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update the page with new scores
+                location.reload();
+            } else {
+                alert('Error saving changes: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Network error. Please try again.');
+        }
+    });
+});
+</script>
+{% endblock %}

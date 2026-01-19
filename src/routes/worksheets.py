@@ -156,11 +156,12 @@ def generate_both():
             prob_time = time.time() - prob_start
             logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
-            # Create worksheet in database
+            # Create worksheet in database with correct answers
             logger.info(f"Creating worksheet in database for child_id={child_id}")
             worksheet = WorksheetModel.create(
                 child_id=child_id, problems=json.dumps(problems)
             )
+            worksheet.correct_answers = answers  # Store correct answers for grading
             repository.create_worksheet(worksheet)
             logger.info(
                 f"Worksheet created with serial_number={worksheet.serial_number}"
@@ -252,6 +253,7 @@ def generate_worksheet_route():
     )
 
     worksheet = WorksheetModel.create(child_id=child.id, problems=problems)
+    worksheet.correct_answers = answers  # Store correct answers for grading
     repository.create_worksheet(worksheet)
 
     return render_template(
@@ -609,3 +611,422 @@ def bulk_delete_worksheets():
 
     flash(f"{len(worksheet_ids)} worksheets deleted successfully!", "success")
     return jsonify({"success": True})
+
+
+@bp.route("/upload-for-grading", methods=["GET"])
+def upload_for_grading_page():
+    """Display the worksheet upload page for grading."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+
+    # Get all children for the user to show in the dropdown
+    children = repository.get_children_by_parent(user.email)
+
+    return render_template(
+        "upload_worksheet.html",
+        user=user,
+        children=children,
+    )
+
+
+@bp.route("/upload-for-grading", methods=["POST"])
+def upload_for_grading():
+    """Process an uploaded worksheet image for automatic grading."""
+    from io import BytesIO
+    from PIL import Image
+    from ..grading import Grader
+
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    # Check if file was uploaded
+    if "image" not in request.files:
+        return jsonify({"success": False, "error": "No image file provided"}), 400
+
+    file = request.files["image"]
+    if file.filename == "":
+        return jsonify({"success": False, "error": "No file selected"}), 400
+
+    # Get worksheet_id from form or QR code
+    worksheet_id = request.form.get("worksheet_id")
+
+    try:
+        # Load the image
+        image_data = file.read()
+        image = Image.open(BytesIO(image_data))
+
+        # Initialize grader
+        grader = Grader()
+
+        if not worksheet_id:
+            return jsonify({
+                "success": False,
+                "error": "Please provide a worksheet ID to grade."
+            }), 400
+
+        # Find the worksheet - try both full ID and prefix match
+        worksheet = repository.get_worksheet(worksheet_id)
+
+        # If not found by full ID, the QR might have the partial ID
+        if not worksheet:
+            # Try to find worksheet by serial number prefix
+            # This requires scanning through worksheets - not ideal but works for now
+            children = repository.get_children_by_parent(user.email)
+            for child in children:
+                worksheets = repository.get_child_worksheets(child.id)
+                for ws in worksheets:
+                    if ws.id.startswith(worksheet_id) or ws.serial_number == f"WS-{worksheet_id}":
+                        worksheet = ws
+                        break
+                if worksheet:
+                    break
+
+        if not worksheet:
+            return jsonify({
+                "success": False,
+                "error": f"Worksheet not found with ID: {worksheet_id}"
+            }), 404
+
+        # Verify ownership
+        child = repository.get_child_by_id(worksheet.child_id)
+        if not child or child.parent_email != user.email:
+            return jsonify({"success": False, "error": "Access denied"}), 403
+
+        # Get problems and correct answers
+        if isinstance(worksheet.problems, str):
+            problems = json.loads(worksheet.problems)
+        else:
+            problems = worksheet.problems
+
+        # Get correct answers - either from stored field or compute them
+        correct_answers = worksheet.correct_answers
+        if not correct_answers:
+            # Fall back to computing answers from problem text
+            correct_answers = []
+            for p in problems:
+                problem_text = p if isinstance(p, str) else p.get("text", "")
+                try:
+                    calc_text = problem_text.replace("×", "*").replace("÷", "/").replace(" ", "")
+                    answer = eval(calc_text)
+                    correct_answers.append(answer)
+                except Exception:
+                    correct_answers.append(None)
+
+        # Extract problem text for display
+        problem_texts = []
+        for p in problems:
+            if isinstance(p, str):
+                problem_texts.append(p)
+            elif isinstance(p, dict):
+                problem_texts.append(p.get("text", str(p)))
+            else:
+                problem_texts.append(str(p))
+
+        # Grade the worksheet
+        grading_result = grader.grade_worksheet_image(
+            image=image,
+            problems=problem_texts,
+            correct_answers=correct_answers,
+            worksheet_id=worksheet.id,
+        )
+
+        # Extract student answers from grading result
+        student_answers = []
+        suspected_incorrect = []
+        for pr in grading_result.problem_results:
+            student_answers.append(pr.student_answer)
+            if not pr.is_correct and pr.student_answer is not None:
+                suspected_incorrect.append(pr.problem_index)
+
+        # Store the OCR-extracted student answers but don't mark as completed yet
+        # User will review and confirm before final save
+        worksheet.student_answers = student_answers
+        repository.update_worksheet(worksheet)
+
+        return jsonify({
+            "success": True,
+            "redirect_url": url_for("worksheets.review_ocr_grading", worksheet_id=worksheet.id),
+            "result": grading_result.to_dict(),
+            "worksheet_id": worksheet.id,
+            "child_name": child.name,
+            "student_answers": student_answers,
+            "suggested_incorrect": suspected_incorrect,
+        })
+
+    except Exception as e:
+        logger.error(f"Error processing uploaded worksheet: {str(e)}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": f"Error processing image: {str(e)}"
+        }), 500
+
+
+@bp.route("/<worksheet_id>/grade-results")
+def grade_results(worksheet_id):
+    """Display grading results for a worksheet."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        flash("Worksheet not found.", "error")
+        return redirect(url_for("pages.index"))
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        flash("Access denied.", "error")
+        return redirect(url_for("pages.index"))
+
+    # Get problems and correct answers
+    if isinstance(worksheet.problems, str):
+        problems = json.loads(worksheet.problems)
+    else:
+        problems = worksheet.problems
+
+    # Get correct answers
+    correct_answers = worksheet.correct_answers
+    if not correct_answers:
+        # Fall back to computing answers from problem text
+        correct_answers = []
+        for p in problems:
+            problem_text = p if isinstance(p, str) else p.get("text", "")
+            try:
+                calc_text = problem_text.replace("×", "*").replace("÷", "/").replace(" ", "")
+                answer = eval(calc_text)
+                correct_answers.append(answer)
+            except Exception:
+                correct_answers.append(None)
+
+    # Get student answers if available
+    student_answers = worksheet.student_answers or []
+
+    # Build problem list with results
+    problem_results = []
+    incorrect_set = set(worksheet.incorrect_problems or [])
+
+    for i, p in enumerate(problems):
+        problem_text = p if isinstance(p, str) else p.get("text", str(p))
+        correct_answer = correct_answers[i] if i < len(correct_answers) else None
+        student_answer = student_answers[i] if i < len(student_answers) else None
+        is_correct = i not in incorrect_set
+
+        problem_results.append({
+            "index": i,
+            "text": problem_text,
+            "correct_answer": correct_answer,
+            "student_answer": student_answer,
+            "is_correct": is_correct,
+        })
+
+    # Calculate score
+    total = len(problems)
+    incorrect_count = len(incorrect_set)
+    correct_count = total - incorrect_count
+    score_percentage = (correct_count / total * 100) if total > 0 else 0
+
+    return render_template(
+        "grade_results.html",
+        user=user,
+        child=child,
+        worksheet=worksheet,
+        problem_results=problem_results,
+        total_problems=total,
+        correct_count=correct_count,
+        incorrect_count=incorrect_count,
+        score_percentage=score_percentage,
+    )
+
+
+@bp.route("/<worksheet_id>/update-grade", methods=["POST"])
+def update_grade(worksheet_id):
+    """Update grading results after manual correction."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        return jsonify({"success": False, "error": "Worksheet not found"}), 404
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+
+    try:
+        data = request.get_json()
+        incorrect_indices = data.get("incorrect_indices", [])
+
+        worksheet.incorrect_problems = incorrect_indices
+        worksheet.completed = True
+        repository.update_worksheet(worksheet)
+
+        # Calculate new score
+        if isinstance(worksheet.problems, str):
+            problems = json.loads(worksheet.problems)
+        else:
+            problems = worksheet.problems
+
+        total = len(problems)
+        incorrect_count = len(incorrect_indices)
+        correct_count = total - incorrect_count
+        score_percentage = (correct_count / total * 100) if total > 0 else 0
+
+        return jsonify({
+            "success": True,
+            "correct_count": correct_count,
+            "incorrect_count": incorrect_count,
+            "score_percentage": round(score_percentage, 1),
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating grade: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route("/<worksheet_id>/review-grading")
+def review_ocr_grading(worksheet_id):
+    """Display the scantron-style review page for OCR grading results."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        flash("Worksheet not found.", "error")
+        return redirect(url_for("pages.index"))
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        flash("Access denied.", "error")
+        return redirect(url_for("pages.index"))
+
+    # Get problems
+    if isinstance(worksheet.problems, str):
+        problems = json.loads(worksheet.problems)
+    else:
+        problems = worksheet.problems
+
+    # Get correct answers
+    correct_answers = worksheet.correct_answers
+    if not correct_answers:
+        # Fall back to computing answers from problem text
+        correct_answers = []
+        for p in problems:
+            problem_text = p if isinstance(p, str) else p.get("text", "")
+            try:
+                calc_text = problem_text.replace("×", "*").replace("÷", "/").replace(" ", "")
+                answer = eval(calc_text)
+                correct_answers.append(answer)
+            except Exception:
+                correct_answers.append(None)
+
+    # Get student answers from OCR (stored in worksheet)
+    student_answers = worksheet.student_answers or [None] * len(problems)
+
+    # Build problem cards data
+    problem_cards = []
+    correct_count = 0
+    incorrect_count = 0
+    needs_review_count = 0
+
+    for i, p in enumerate(problems):
+        problem_text = p if isinstance(p, str) else p.get("text", str(p))
+        correct_answer = correct_answers[i] if i < len(correct_answers) else None
+        student_answer = student_answers[i] if i < len(student_answers) else None
+
+        # Determine status
+        if student_answer is None or (isinstance(student_answer, str) and student_answer.strip() == ""):
+            status = "no_answer"
+            needs_review_count += 1
+        else:
+            # Try to compare answers
+            try:
+                # Parse student answer to number if possible
+                if isinstance(student_answer, str):
+                    parsed_answer = float(student_answer.strip())
+                else:
+                    parsed_answer = float(student_answer)
+
+                if correct_answer is not None and abs(parsed_answer - float(correct_answer)) < 0.0001:
+                    status = "correct"
+                    correct_count += 1
+                else:
+                    status = "suspected_incorrect"
+                    needs_review_count += 1
+            except (ValueError, TypeError):
+                # Can't parse, mark as needs review
+                status = "suspected_incorrect"
+                needs_review_count += 1
+
+        problem_cards.append({
+            "index": i,
+            "problem_text": problem_text,
+            "correct_answer": correct_answer,
+            "student_answer": student_answer,
+            "status": status,
+        })
+
+    return render_template(
+        "review_grading.html",
+        user=user,
+        child=child,
+        worksheet=worksheet,
+        problem_cards=problem_cards,
+        correct_count=correct_count,
+        incorrect_count=incorrect_count,
+        needs_review_count=needs_review_count,
+        total_problems=len(problems),
+    )
+
+
+@bp.route("/<worksheet_id>/submit-reviewed-grades", methods=["POST"])
+def submit_reviewed_grades(worksheet_id):
+    """Submit the reviewed grades after human confirmation."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    worksheet = repository.get_worksheet(worksheet_id)
+    if not worksheet:
+        return jsonify({"success": False, "error": "Worksheet not found"}), 404
+
+    child = repository.get_child_by_id(worksheet.child_id)
+    if not child or child.parent_email != user.email:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+
+    try:
+        data = request.get_json()
+        student_answers = data.get("student_answers", [])
+        incorrect_indices = data.get("incorrect_indices", [])
+
+        # Update worksheet with confirmed data
+        worksheet.student_answers = student_answers
+        worksheet.incorrect_problems = incorrect_indices
+        worksheet.completed = True
+        repository.update_worksheet(worksheet)
+
+        # Calculate score
+        if isinstance(worksheet.problems, str):
+            problems = json.loads(worksheet.problems)
+        else:
+            problems = worksheet.problems
+
+        total = len(problems)
+        incorrect_count = len(incorrect_indices)
+        correct_count = total - incorrect_count
+        score_percentage = (correct_count / total * 100) if total > 0 else 0
+
+        return jsonify({
+            "success": True,
+            "redirect_url": url_for("worksheets.grade_results", worksheet_id=worksheet.id),
+            "correct_count": correct_count,
+            "incorrect_count": incorrect_count,
+            "score_percentage": round(score_percentage, 1),
+        })
+
+    except Exception as e:
+        logger.error(f"Error submitting reviewed grades: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
