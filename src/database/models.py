@@ -257,6 +257,9 @@ class Worksheet(DynamoDBModel):
         incorrect_problems: list = None,
         correct_answers: list = None,
         student_answers: list = None,
+        answer_regions: list = None,
+        pdf_dimensions: tuple = None,
+        answer_images: list = None,
     ):
         """Initialize a worksheet."""
         super().__init__()
@@ -268,6 +271,9 @@ class Worksheet(DynamoDBModel):
         self.incorrect_problems = incorrect_problems or []
         self.correct_answers = correct_answers  # Store correct answers at creation time
         self.student_answers = student_answers  # Store OCR-extracted student answers
+        self.answer_regions = answer_regions  # List of (x1, y1, x2, y2) PDF coordinates
+        self.pdf_dimensions = pdf_dimensions  # (width, height) for coordinate transformation
+        self.answer_images = answer_images  # List of base64-encoded cropped answer images
         self.created_at = self.utc_now()
         self.updated_at = self.created_at
 
@@ -339,6 +345,29 @@ class Worksheet(DynamoDBModel):
             except json.JSONDecodeError:
                 student_answers = []
 
+        answer_regions = data.get("answer_regions", [])
+        if isinstance(answer_regions, str):
+            try:
+                answer_regions = json.loads(answer_regions)
+            except json.JSONDecodeError:
+                answer_regions = []
+
+        pdf_dimensions = data.get("pdf_dimensions")
+        if isinstance(pdf_dimensions, str):
+            try:
+                pdf_dimensions = tuple(json.loads(pdf_dimensions))
+            except json.JSONDecodeError:
+                pdf_dimensions = None
+        elif isinstance(pdf_dimensions, list):
+            pdf_dimensions = tuple(pdf_dimensions)
+
+        answer_images = data.get("answer_images", [])
+        if isinstance(answer_images, str):
+            try:
+                answer_images = json.loads(answer_images)
+            except json.JSONDecodeError:
+                answer_images = []
+
         # Create and return the worksheet instance
         worksheet = cls(
             child_id=child_id,
@@ -348,6 +377,9 @@ class Worksheet(DynamoDBModel):
             incorrect_problems=incorrect_problems,
             correct_answers=correct_answers if correct_answers else None,
             student_answers=student_answers if student_answers else None,
+            answer_regions=answer_regions if answer_regions else None,
+            pdf_dimensions=pdf_dimensions,
+            answer_images=answer_images if answer_images else None,
         )
 
         # Set the id, created_at, and updated_at fields
@@ -373,6 +405,12 @@ class Worksheet(DynamoDBModel):
             item["correct_answers"] = json.dumps(self.correct_answers)
         if self.student_answers is not None:
             item["student_answers"] = json.dumps(self.student_answers)
+        if self.answer_regions is not None:
+            item["answer_regions"] = json.dumps(self.answer_regions)
+        if self.pdf_dimensions is not None:
+            item["pdf_dimensions"] = json.dumps(list(self.pdf_dimensions))
+        if self.answer_images is not None:
+            item["answer_images"] = json.dumps(self.answer_images)
         return item
 
     @classmethod
@@ -382,6 +420,13 @@ class Worksheet(DynamoDBModel):
         correct_answers = json.loads(correct_answers_str) if correct_answers_str else None
         student_answers_str = item.get("student_answers", "null")
         student_answers = json.loads(student_answers_str) if student_answers_str else None
+        answer_regions_str = item.get("answer_regions", "null")
+        answer_regions = json.loads(answer_regions_str) if answer_regions_str else None
+        pdf_dimensions_str = item.get("pdf_dimensions", "null")
+        pdf_dimensions_list = json.loads(pdf_dimensions_str) if pdf_dimensions_str else None
+        pdf_dimensions = tuple(pdf_dimensions_list) if pdf_dimensions_list else None
+        answer_images_str = item.get("answer_images", "null")
+        answer_images = json.loads(answer_images_str) if answer_images_str else None
         worksheet = cls(
             child_id=item.get("child_id", ""),
             problems=json.loads(item.get("problems", "[]")),
@@ -390,6 +435,9 @@ class Worksheet(DynamoDBModel):
             incorrect_problems=json.loads(item.get("incorrect_problems", "[]")),
             correct_answers=correct_answers,
             student_answers=student_answers,
+            answer_regions=answer_regions,
+            pdf_dimensions=pdf_dimensions,
+            answer_images=answer_images,
         )
         worksheet.id = item.get("id", "")
         worksheet.created_at = item.get("created_at", "")

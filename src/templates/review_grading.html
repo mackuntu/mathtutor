@@ -280,6 +280,19 @@
 
             <div class="problem-text">{{ card.problem_text }} = ?</div>
 
+            {% if card.answer_image %}
+            <div class="answer-preview mb-2">
+                <img src="data:image/png;base64,{{ card.answer_image }}"
+                     class="answer-crop img-thumbnail"
+                     style="max-height: 60px; max-width: 100%; border: 2px solid #dee2e6; background: #fff;"
+                     alt="Student's handwritten answer">
+            </div>
+            {% else %}
+            <div class="answer-preview mb-2">
+                <div class="text-muted small fst-italic" style="font-size: 0.75rem;">No image available</div>
+            </div>
+            {% endif %}
+
             <div class="answer-row">
                 <span class="answer-label">Student:</span>
                 <input type="text"

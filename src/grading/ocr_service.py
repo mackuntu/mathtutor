@@ -1,7 +1,7 @@
 """OCR service for extracting handwritten answers from worksheet images."""
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import easyocr
 from PIL import Image
@@ -100,8 +100,12 @@ class OCRService:
             return None
 
     def extract_answers_from_worksheet(
-        self, image: Image.Image, num_problems: int, answer_regions: List[Tuple[int, int, int, int]] = None
-    ) -> List[Optional[str]]:
+        self,
+        image: Image.Image,
+        num_problems: int,
+        answer_regions: List[Tuple[int, int, int, int]] = None,
+        return_crops: bool = False,
+    ) -> Union[List[Optional[str]], Tuple[List[Optional[str]], List[Image.Image]]]:
         """
         Extract answers from a worksheet image.
 
@@ -112,16 +116,36 @@ class OCRService:
             image: PIL Image object of the worksheet
             num_problems: Expected number of problems/answers
             answer_regions: Optional list of (left, top, right, bottom) tuples for answer locations
+            return_crops: If True, also return the cropped images for each answer region
 
         Returns:
-            List of extracted answer strings (may contain None for unreadable answers)
+            If return_crops is False: List of extracted answer strings
+            If return_crops is True: Tuple of (answers list, cropped images list)
         """
+        cropped_images = []
+
         if answer_regions:
             # Extract from specific regions
             answers = []
             for region in answer_regions:
-                text = self.extract_text_from_region(image, region)
+                # Crop the region
+                x1, y1, x2, y2 = region
+                # Ensure valid crop region
+                x1 = max(0, min(x1, image.width - 1))
+                y1 = max(0, min(y1, image.height - 1))
+                x2 = max(x1 + 1, min(x2, image.width))
+                y2 = max(y1 + 1, min(y2, image.height))
+
+                cropped = image.crop((x1, y1, x2, y2))
+                if return_crops:
+                    cropped_images.append(cropped)
+
+                # Extract text from the cropped region
+                text = self._extract_text_from_crop(cropped)
                 answers.append(text)
+
+            if return_crops:
+                return answers, cropped_images
             return answers
 
         # Full image extraction - get all text
@@ -143,7 +167,42 @@ class OCRService:
         while len(answers) < num_problems:
             answers.append(None)
 
+        if return_crops:
+            # No specific regions, so no crops to return
+            return answers, [None] * num_problems
         return answers
+
+    def _extract_text_from_crop(self, cropped: Image.Image) -> Optional[str]:
+        """
+        Extract text from a cropped image region.
+
+        Args:
+            cropped: PIL Image object (already cropped)
+
+        Returns:
+            Extracted text or None if extraction failed
+        """
+        try:
+            results = self.extract_text_from_image(cropped)
+
+            if results:
+                # Find the best result (highest confidence, cleaned)
+                best_text = None
+                best_confidence = 0.0
+
+                for text, confidence in results:
+                    cleaned = self._clean_answer_text(text)
+                    if cleaned and confidence > best_confidence:
+                        best_text = cleaned
+                        best_confidence = confidence
+
+                return best_text
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error extracting text from crop: {str(e)}")
+            return None
 
     def _clean_answer_text(self, text: str) -> Optional[str]:
         """

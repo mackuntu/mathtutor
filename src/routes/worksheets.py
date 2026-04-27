@@ -157,6 +157,7 @@ def generate_both():
             logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
             # Create worksheet in database with correct answers
+            # Note: ROIs are calculated dynamically during grading based on image dimensions
             logger.info(f"Creating worksheet in database for child_id={child_id}")
             worksheet = WorksheetModel.create(
                 child_id=child_id, problems=json.dumps(problems)
@@ -252,6 +253,8 @@ def generate_worksheet_route():
         difficulty=generator.get_school_year_progress(),
     )
 
+    # Create worksheet in database with correct answers
+    # Note: ROIs are calculated dynamically during grading based on image dimensions
     worksheet = WorksheetModel.create(child_id=child.id, problems=problems)
     worksheet.correct_answers = answers  # Store correct answers for grading
     repository.create_worksheet(worksheet)
@@ -635,7 +638,7 @@ def upload_for_grading():
     """Process an uploaded worksheet image for automatic grading."""
     from io import BytesIO
     from PIL import Image
-    from ..grading import Grader
+    from ..grading import Grader, calculate_html_grid_rois, image_to_base64, WorksheetAligner
 
     user = get_current_user()
     if not user:
@@ -656,6 +659,19 @@ def upload_for_grading():
         # Load the image
         image_data = file.read()
         image = Image.open(BytesIO(image_data))
+
+        # Apply image alignment to correct rotation/skew
+        aligner = WorksheetAligner()
+        aligned_image, alignment_metadata = aligner.preprocess_image(image)
+        logger.info(
+            f"Alignment: rotation={alignment_metadata.rotation_detected:.2f}°, "
+            f"applied={alignment_metadata.rotation_applied:.2f}°, "
+            f"confidence={alignment_metadata.confidence:.2f}, "
+            f"skipped={alignment_metadata.skipped}"
+        )
+
+        # Use aligned image for subsequent processing
+        image = aligned_image
 
         # Initialize grader
         grader = Grader()
@@ -724,13 +740,36 @@ def upload_for_grading():
             else:
                 problem_texts.append(str(p))
 
-        # Grade the worksheet
-        grading_result = grader.grade_worksheet_image(
-            image=image,
-            problems=problem_texts,
-            correct_answers=correct_answers,
-            worksheet_id=worksheet.id,
+        # Calculate ROIs based on HTML grid layout and image dimensions
+        num_problems = len(problem_texts)
+        image_width, image_height = image.size
+        cropped_images = []
+
+        logger.info(f"Calculating {num_problems} ROIs for image size {image.size}")
+        image_regions = calculate_html_grid_rois(
+            num_problems=num_problems,
+            page_width_px=image_width,
+            page_height_px=image_height,
         )
+        logger.info(f"Calculated ROIs: {image_regions[:3]}...")  # Log first 3 for debugging
+
+        # Grade the worksheet with region-based OCR if available
+        if image_regions:
+            grading_result, cropped_images = grader.grade_worksheet_image(
+                image=image,
+                problems=problem_texts,
+                correct_answers=correct_answers,
+                worksheet_id=worksheet.id,
+                answer_regions=image_regions,
+                return_crops=True,
+            )
+        else:
+            grading_result = grader.grade_worksheet_image(
+                image=image,
+                problems=problem_texts,
+                correct_answers=correct_answers,
+                worksheet_id=worksheet.id,
+            )
 
         # Extract student answers from grading result
         student_answers = []
@@ -740,9 +779,20 @@ def upload_for_grading():
             if not pr.is_correct and pr.student_answer is not None:
                 suspected_incorrect.append(pr.problem_index)
 
-        # Store the OCR-extracted student answers but don't mark as completed yet
+        # Convert cropped images to base64 for storage and display
+        answer_images_base64 = []
+        if cropped_images:
+            for crop in cropped_images:
+                if crop is not None:
+                    answer_images_base64.append(image_to_base64(crop))
+                else:
+                    answer_images_base64.append(None)
+
+        # Store the OCR-extracted student answers and cropped images
         # User will review and confirm before final save
         worksheet.student_answers = student_answers
+        if answer_images_base64:
+            worksheet.answer_images = answer_images_base64
         repository.update_worksheet(worksheet)
 
         return jsonify({
@@ -926,6 +976,9 @@ def review_ocr_grading(worksheet_id):
     # Get student answers from OCR (stored in worksheet)
     student_answers = worksheet.student_answers or [None] * len(problems)
 
+    # Get cropped answer images (stored in worksheet)
+    answer_images = worksheet.answer_images or [None] * len(problems)
+
     # Build problem cards data
     problem_cards = []
     correct_count = 0
@@ -936,6 +989,7 @@ def review_ocr_grading(worksheet_id):
         problem_text = p if isinstance(p, str) else p.get("text", str(p))
         correct_answer = correct_answers[i] if i < len(correct_answers) else None
         student_answer = student_answers[i] if i < len(student_answers) else None
+        answer_image = answer_images[i] if i < len(answer_images) else None
 
         # Determine status
         if student_answer is None or (isinstance(student_answer, str) and student_answer.strip() == ""):
@@ -967,6 +1021,7 @@ def review_ocr_grading(worksheet_id):
             "correct_answer": correct_answer,
             "student_answer": student_answer,
             "status": status,
+            "answer_image": answer_image,
         })
 
     return render_template(

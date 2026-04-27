@@ -10,6 +10,9 @@ Pillow==10.2.0
 # OCR dependencies
 easyocr==1.7.1
 
+# Image processing
+opencv-python-headless==4.9.0.80
+
 # OAuth dependencies
 google-auth==2.27.0
 google-auth-oauthlib==1.2.0

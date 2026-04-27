@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple, Union
 
 from PIL import Image
 
@@ -89,7 +89,9 @@ class Grader:
         problems: List[str],
         correct_answers: List[Any],
         worksheet_id: Optional[str] = None,
-    ) -> GradingResult:
+        answer_regions: Optional[List[Tuple[int, int, int, int]]] = None,
+        return_crops: bool = False,
+    ) -> Union[GradingResult, Tuple[GradingResult, List[Image.Image]]]:
         """
         Grade a worksheet from an uploaded image.
 
@@ -98,11 +100,15 @@ class Grader:
             problems: List of problem text strings
             correct_answers: List of correct answers
             worksheet_id: Optional worksheet ID
+            answer_regions: Optional list of (x1, y1, x2, y2) tuples for answer box locations
+            return_crops: If True, also return the cropped images for each answer
 
         Returns:
-            GradingResult with detailed grading information
+            If return_crops is False: GradingResult with detailed grading information
+            If return_crops is True: Tuple of (GradingResult, list of cropped images)
         """
         result = GradingResult()
+        cropped_images = []
 
         try:
             result.worksheet_id = worksheet_id
@@ -110,9 +116,14 @@ class Grader:
 
             # Extract answers from the image using OCR
             logger.info(f"Extracting {len(problems)} answers from image")
-            extracted_answers = self.ocr_service.extract_answers_from_worksheet(
-                image, num_problems=len(problems)
-            )
+            if return_crops:
+                extracted_answers, cropped_images = self.ocr_service.extract_answers_from_worksheet(
+                    image, num_problems=len(problems), answer_regions=answer_regions, return_crops=True
+                )
+            else:
+                extracted_answers = self.ocr_service.extract_answers_from_worksheet(
+                    image, num_problems=len(problems), answer_regions=answer_regions
+                )
 
             # Grade each problem
             correct_count = 0
@@ -166,6 +177,8 @@ class Grader:
             logger.error(f"Error during grading: {str(e)}")
             result.error = str(e)
 
+        if return_crops:
+            return result, cropped_images
         return result
 
     def grade_with_manual_answers(
