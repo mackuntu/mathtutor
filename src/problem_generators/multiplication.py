@@ -1,9 +1,14 @@
 """Strategies for generating multiplication and division problems."""
 
 import random
-from typing import Tuple
+from typing import Dict, Tuple
 
-from src.problem_strategy import ProblemStrategy, adjust_range_by_difficulty
+from src.problem_strategy import (
+    ProblemStrategy,
+    adjust_range_by_difficulty,
+    make_expression,
+    make_operands,
+)
 from src.problem_types import OPERATORS
 
 
@@ -56,23 +61,39 @@ class MultiplicationStrategy(ProblemStrategy):
                 num2 = random.randint(5, 10)
 
         elif age == 8:
-            # Age 8: Multiples of 5 and 10 with sliding window
+            # Age 8 (grade 3): tables to 12, 2-digit x 1-digit, x10 / x100
             if difficulty < 0.3:
-                # Easy: small single digits
-                num1 = random.randint(3, 6)
-                num2 = random.randint(3, 7)
+                # Easy: single-digit facts
+                num1 = random.randint(2, 9)
+                num2 = random.randint(2, 9)
             elif difficulty < 0.7:
-                # Medium: multiples of 5 with sliding window
-                base_min, base_max = 4, 6
-                num1 = random.choice([5, 10, random.randint(base_min, base_max)])
-                num2 = random.randint(base_min, min(base_max + 3, 9))
+                mode = random.random()
+                if mode < 0.5:
+                    # Tables to 12
+                    num1 = random.randint(2, 12)
+                    num2 = random.randint(2, 12)
+                elif mode < 0.8:
+                    # 2-digit x 1-digit
+                    num1 = random.randint(11, 99)
+                    num2 = random.randint(2, 9)
+                else:
+                    # x10 / x100
+                    num1 = random.choice([10, 100])
+                    num2 = random.randint(2, 9)
             else:
-                # Hard: multiples of 5 and 10 with higher base
-                base_min, base_max = 5, 8
-                num1 = random.choice(
-                    [5, 10, 15, 20, random.randint(base_min, base_max)]
-                )
-                num2 = random.randint(base_min, min(base_max + 4, 9))
+                mode = random.random()
+                if mode < 0.45:
+                    # 2-digit x 1-digit (harder)
+                    num1 = random.randint(11, 99)
+                    num2 = random.randint(3, 9)
+                elif mode < 0.75:
+                    # Upper tables
+                    num1 = random.randint(6, 12)
+                    num2 = random.randint(6, 12)
+                else:
+                    # x10 / x100 with larger multiplier
+                    num1 = random.choice([10, 100])
+                    num2 = random.randint(2, 99)
 
         elif age == 9:
             # Age 9: Double-digit × single digit with sliding window
@@ -167,10 +188,16 @@ class MultiplicationStrategy(ProblemStrategy):
                     num2 = random.randint(40 + base_min, 50 + base_max)
 
         operator = OPERATORS["multiplication"]
-        problem = f"{num1} {operator} {num2}"
-        answer = num1 * num2
+        product = num1 * num2
 
-        return problem, str(answer)
+        # Grade 3+: sometimes hide a factor -> "6 × ? = 42" (answer = hidden).
+        if age >= 8 and random.random() < (0.12 + 0.18 * difficulty):
+            if random.random() < 0.5:
+                return make_expression(f"{num1} {operator} ? = {product}"), str(num2)
+            return make_expression(f"? {operator} {num2} = {product}"), str(num1)
+
+        problem = f"{num1} {operator} {num2}"
+        return make_operands(problem), str(product)
 
 
 class DivisionStrategy(ProblemStrategy):
@@ -221,35 +248,45 @@ class DivisionStrategy(ProblemStrategy):
             dividend = answer * divisor
 
         elif age == 8:
-            # Age 8: Division with remainders, but simple divisors with sliding window
+            # Age 8 (grade 3): facts to 12, remainders, ÷10 / ÷100
             if difficulty < 0.3:
-                # Easier: whole number division with sliding window
+                # Easier: whole-number facts
                 divisor = random.choice([2, 3, 4, 5])
-                answer = random.randint(1, 6)
+                answer = random.randint(2, 9)
                 dividend = answer * divisor
             elif difficulty < 0.7:
-                # Medium: introduce remainders occasionally with sliding window
-                divisor = random.choice([3, 4, 5, 6])
-                answer = random.randint(2, 8)
-                if random.random() < 0.3:  # 30% chance of remainder
-                    remainder = random.randint(1, divisor - 1)
-                    dividend = answer * divisor + remainder
-                    operator = OPERATORS["division"]
-                    problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                if random.random() < 0.2:
+                    # ÷10 (clean)
+                    divisor = 10
+                    answer = random.randint(2, 9)
+                    dividend = answer * divisor
                 else:
+                    # Facts to 12 with occasional remainder
+                    divisor = random.randint(3, 12)
+                    answer = random.randint(2, 12)
+                    if random.random() < 0.3:  # 30% chance of remainder
+                        remainder = random.randint(1, divisor - 1)
+                        dividend = answer * divisor + remainder
+                        operator = OPERATORS["division"]
+                        problem = f"{dividend} {operator} {divisor}"
+                        return make_operands(problem), f"{answer} R{remainder}"
                     dividend = answer * divisor
             else:
-                # Harder: more remainders with sliding window
-                divisor = random.choice([4, 5, 6, 7, 8])
-                answer = random.randint(3, 10)
-                if random.random() < 0.6:  # 60% chance of remainder
-                    remainder = random.randint(1, divisor - 1)
-                    dividend = answer * divisor + remainder
-                    operator = OPERATORS["division"]
-                    problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                if random.random() < 0.2:
+                    # ÷10 / ÷100 (clean)
+                    divisor = random.choice([10, 100])
+                    answer = random.randint(2, 9)
+                    dividend = answer * divisor
                 else:
+                    # Facts to 12 with frequent remainders
+                    divisor = random.randint(4, 12)
+                    answer = random.randint(3, 12)
+                    if random.random() < 0.55:  # 55% chance of remainder
+                        remainder = random.randint(1, divisor - 1)
+                        dividend = answer * divisor + remainder
+                        operator = OPERATORS["division"]
+                        problem = f"{dividend} {operator} {divisor}"
+                        return make_operands(problem), f"{answer} R{remainder}"
                     dividend = answer * divisor
 
         elif age == 9:
@@ -268,7 +305,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
             else:
@@ -280,7 +317,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
 
@@ -300,7 +337,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
             else:
@@ -312,7 +349,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
 
@@ -332,7 +369,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
             else:
@@ -344,7 +381,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
 
@@ -364,7 +401,7 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
             else:
@@ -377,11 +414,11 @@ class DivisionStrategy(ProblemStrategy):
                     dividend = answer * divisor + remainder
                     operator = OPERATORS["division"]
                     problem = f"{dividend} {operator} {divisor}"
-                    return problem, f"{answer} R{remainder}"
+                    return make_operands(problem), f"{answer} R{remainder}"
                 else:
                     dividend = answer * divisor
 
         operator = OPERATORS["division"]
         problem = f"{dividend} {operator} {divisor}"
 
-        return problem, str(answer)
+        return make_operands(problem), str(answer)

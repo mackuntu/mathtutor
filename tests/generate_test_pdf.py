@@ -86,7 +86,7 @@ def generate_test_pdf():
     row = []
     for i, problem in enumerate(problems):
         # Create a cell with the problem and answer space
-        problem_text = Paragraph(problem, normal_style)
+        problem_text = Paragraph(problem["text"], normal_style)
         cell_content = [problem_text, Paragraph("_______", normal_style)]
         row.append(cell_content)
 

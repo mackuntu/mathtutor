@@ -1,7 +1,38 @@
 """Base strategy for problem generation."""
 
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Dict, Optional, Tuple
+
+
+def make_operands(text: str) -> Dict[str, str]:
+    """Two-operand arithmetic problem rendered with the legacy vertical layout.
+
+    This is the ``kind == "operands"`` branch in ``problem_grid.html`` and keeps
+    the byte-for-byte layout that existing worksheets rely on.
+    """
+    return {"text": text, "kind": "operands"}
+
+
+def make_expression(text: str, prompt: Optional[str] = None) -> Dict[str, str]:
+    """Inline expression rendered as-is (no operator split).
+
+    Used for order-of-operations, missing-operand, roman numerals, conversions,
+    place value, etc. ``prompt`` is an optional tiny instruction line.
+    """
+    problem: Dict[str, str] = {"text": text, "kind": "expression"}
+    if prompt:
+        problem["prompt"] = prompt
+    return problem
+
+
+def make_visual(
+    svg: str, prompt: Optional[str] = None, text: str = ""
+) -> Dict[str, str]:
+    """Tiny inline-SVG problem (geometry, graphing, clock, fraction-identify)."""
+    problem: Dict[str, str] = {"text": text, "kind": "visual", "svg": svg}
+    if prompt:
+        problem["prompt"] = prompt
+    return problem
 
 
 class ProblemStrategy(ABC):
@@ -10,7 +41,7 @@ class ProblemStrategy(ABC):
     @abstractmethod
     def generate(
         self, min_val: int, max_val: int, difficulty: float, age: int
-    ) -> Tuple[str, str]:
+    ) -> Tuple[Dict[str, str], str]:
         """Generate a math problem.
 
         Args:
@@ -20,7 +51,9 @@ class ProblemStrategy(ABC):
             age: Student age for context-appropriate scaling
 
         Returns:
-            Tuple of (problem, answer)
+            Tuple of (problem_dict, answer). The dict always has ``text`` and
+            ``kind`` keys (see ``make_operands`` / ``make_expression`` /
+            ``make_visual``).
         """
         pass
 

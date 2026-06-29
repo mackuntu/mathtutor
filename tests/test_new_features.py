@@ -51,15 +51,18 @@ def test_age_5_problem_generation():
 
     for problem, answer in zip(problems, answers):
         # Check that problems only contain addition and subtraction
-        assert any(op in problem for op in ["+", "-"])
+        assert any(op in problem["text"] for op in ["+", "-"])
         # Check that numbers are within appropriate range (1-10)
-        nums = [int(n) for n in problem.replace("+", " ").replace("-", " ").split()]
+        nums = [
+            int(n)
+            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+        ]
         assert all(1 <= n <= 10 for n in nums)
         # For addition, check sum is within range
-        if "+" in problem:
+        if "+" in problem["text"]:
             assert int(answer) <= 10
         # For subtraction, check result is positive
-        if "-" in problem:
+        if "-" in problem["text"]:
             assert int(answer) >= 0
 
 
@@ -72,7 +75,10 @@ def test_age_5_difficulty_levels():
         age=5, count=10, difficulty=0.0
     )
     for problem in problems:
-        nums = [int(n) for n in problem.replace("+", " ").replace("-", " ").split()]
+        nums = [
+            int(n)
+            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+        ]
         assert all(1 <= n <= 5 for n in nums)  # Should use numbers 1-5
 
     # Test medium difficulty (0.5)
@@ -80,7 +86,10 @@ def test_age_5_difficulty_levels():
         age=5, count=10, difficulty=0.5
     )
     for problem in problems:
-        nums = [int(n) for n in problem.replace("+", " ").replace("-", " ").split()]
+        nums = [
+            int(n)
+            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+        ]
         assert all(1 <= n <= 7 for n in nums)  # Should use numbers 1-7
 
     # Test hard difficulty (1.0)
@@ -88,7 +97,10 @@ def test_age_5_difficulty_levels():
         age=5, count=10, difficulty=1.0
     )
     for problem in problems:
-        nums = [int(n) for n in problem.replace("+", " ").replace("-", " ").split()]
+        nums = [
+            int(n)
+            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+        ]
         assert all(1 <= n <= 10 for n in nums)  # Should use numbers 1-10
 
 

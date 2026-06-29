@@ -9,11 +9,20 @@ from src.problem_generators.basic_operations import (
     AdditionStrategy,
     SubtractionStrategy,
 )
+from src.problem_generators.data_graphing import DataGraphingStrategy
 from src.problem_generators.fractions import FractionStrategy
+from src.problem_generators.geometry import GeometryStrategy
+from src.problem_generators.measurement import MeasurementStrategy
+from src.problem_generators.money import MoneyStrategy
 from src.problem_generators.multiplication import (
     DivisionStrategy,
     MultiplicationStrategy,
 )
+from src.problem_generators.order_of_operations import OrderOfOperationsStrategy
+from src.problem_generators.place_value import PlaceValueStrategy
+from src.problem_generators.roman_numerals import RomanNumeralStrategy
+from src.problem_generators.rounding import RoundingStrategy
+from src.problem_generators.time_problems import TimeStrategy
 from src.problem_strategy import ProblemStrategy
 from src.problem_types import get_difficulty_weights, get_problem_types_for_age
 
@@ -30,6 +39,15 @@ class ProblemGenerator:
         "multiplication": MultiplicationStrategy,
         "division": DivisionStrategy,
         "fractions": FractionStrategy,
+        "place_value": PlaceValueStrategy,
+        "rounding": RoundingStrategy,
+        "order_of_operations": OrderOfOperationsStrategy,
+        "roman_numerals": RomanNumeralStrategy,
+        "measurement": MeasurementStrategy,
+        "money": MoneyStrategy,
+        "time": TimeStrategy,
+        "geometry": GeometryStrategy,
+        "data_graphing": DataGraphingStrategy,
     }
 
     def __init__(self, seed: Optional[int] = None):
@@ -54,7 +72,7 @@ class ProblemGenerator:
 
     def generate_math_problems(
         self, age: int, count: Optional[int] = 30, difficulty: Optional[float] = None
-    ) -> Tuple[List[str], List[str]]:
+    ) -> Tuple[List[Dict[str, str]], List[str]]:
         """Generate age-appropriate math problems.
 
         Args:
@@ -106,11 +124,13 @@ class ProblemGenerator:
                     range_tuple[0], range_tuple[1], difficulty, age
                 )
 
-                # Only add if we haven't seen this problem before
-                if problem not in used_problems:
+                # Only add if we haven't seen this problem before.
+                # Dedup on the display text since problems are now dicts.
+                problem_key = problem["text"]
+                if problem_key not in used_problems:
                     problems.append(problem)
                     answers.append(answer)
-                    used_problems.add(problem)
+                    used_problems.add(problem_key)
             except ValueError as e:
                 logger.warning(f"Failed to generate problem: {e}")
                 continue
