@@ -7,12 +7,13 @@ from typing import Dict, Tuple
 from src.problem_strategy import ProblemStrategy, make_expression, make_visual
 
 # (from_unit, to_unit, factor)
+# Abbreviated units keep the inline expression inside one grid column.
 _CONVERSIONS = [
     ("h", "min", 60),
     ("min", "s", 60),
     ("day", "h", 24),
-    ("week", "days", 7),
-    ("year", "months", 12),
+    ("wk", "days", 7),
+    ("yr", "mo", 12),
 ]
 
 

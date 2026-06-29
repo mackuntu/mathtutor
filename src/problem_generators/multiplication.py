@@ -61,39 +61,40 @@ class MultiplicationStrategy(ProblemStrategy):
                 num2 = random.randint(5, 10)
 
         elif age == 8:
-            # Age 8 (grade 3): tables to 12, 2-digit x 1-digit, x10 / x100
+            # Age 8 (grade 3): tables to 12, 2-digit x 1-digit, x10/x100,
+            # 3-digit x 1-digit. No trivial single-digit-only facts.
             if difficulty < 0.3:
-                # Easy: single-digit facts
-                num1 = random.randint(2, 9)
-                num2 = random.randint(2, 9)
+                # Times tables to 12
+                num1 = random.randint(2, 12)
+                num2 = random.randint(2, 12)
             elif difficulty < 0.7:
                 mode = random.random()
-                if mode < 0.5:
-                    # Tables to 12
-                    num1 = random.randint(2, 12)
-                    num2 = random.randint(2, 12)
-                elif mode < 0.8:
+                if mode < 0.6:
                     # 2-digit x 1-digit
                     num1 = random.randint(11, 99)
                     num2 = random.randint(2, 9)
+                elif mode < 0.85:
+                    # Upper tables
+                    num1 = random.randint(3, 12)
+                    num2 = random.randint(6, 12)
                 else:
                     # x10 / x100
                     num1 = random.choice([10, 100])
                     num2 = random.randint(2, 9)
             else:
                 mode = random.random()
-                if mode < 0.45:
+                if mode < 0.55:
                     # 2-digit x 1-digit (harder)
                     num1 = random.randint(11, 99)
                     num2 = random.randint(3, 9)
-                elif mode < 0.75:
-                    # Upper tables
-                    num1 = random.randint(6, 12)
-                    num2 = random.randint(6, 12)
+                elif mode < 0.8:
+                    # 3-digit x 1-digit
+                    num1 = random.randint(100, 999)
+                    num2 = random.randint(2, 9)
                 else:
                     # x10 / x100 with larger multiplier
                     num1 = random.choice([10, 100])
-                    num2 = random.randint(2, 99)
+                    num2 = random.randint(11, 99)
 
         elif age == 9:
             # Age 9: Double-digit × single digit with sliding window
@@ -188,16 +189,19 @@ class MultiplicationStrategy(ProblemStrategy):
                     num2 = random.randint(40 + base_min, 50 + base_max)
 
         operator = OPERATORS["multiplication"]
-        product = num1 * num2
 
         # Grade 3+: sometimes hide a factor -> "6 × ? = 42" (answer = hidden).
+        # Uses small factors so the inline expression fits one column.
         if age >= 8 and random.random() < (0.12 + 0.18 * difficulty):
+            f1 = random.randint(2, 12)
+            f2 = random.randint(2, 12)
+            prod = f1 * f2
             if random.random() < 0.5:
-                return make_expression(f"{num1} {operator} ? = {product}"), str(num2)
-            return make_expression(f"? {operator} {num2} = {product}"), str(num1)
+                return make_expression(f"{f1} {operator} ? = {prod}"), str(f2)
+            return make_expression(f"? {operator} {f2} = {prod}"), str(f1)
 
         problem = f"{num1} {operator} {num2}"
-        return make_operands(problem), str(product)
+        return make_operands(problem), str(num1 * num2)
 
 
 class DivisionStrategy(ProblemStrategy):

@@ -283,3 +283,76 @@ def test_visual_svgs_have_explicit_dimensions():
         open_tag = svg[: svg.index(">") + 1]
         assert re.search(r'\bwidth="\d', open_tag), f"no width attr: {open_tag}"
         assert re.search(r'\bheight="\d', open_tag), f"no height attr: {open_tag}"
+
+
+# --- Layout ordering + harder grade-3 arithmetic -------------------------
+
+
+def test_right_column_holds_only_short_problems():
+    """Rightmost grid column never gets a long expression (would clip)."""
+    from src.problem_generator import LAYOUT_COLUMNS, _is_short
+
+    generator = ProblemGenerator(seed=8)
+    problems, _ = generator.generate_math_problems(age=8, count=40, difficulty=0.8)
+    for i, p in enumerate(problems):
+        if i % LAYOUT_COLUMNS == LAYOUT_COLUMNS - 1:
+            assert _is_short(p), f"long problem in right column at {i}: {p}"
+
+
+def test_arrange_keeps_pairs_and_short_right_column():
+    from src.problem_generator import LAYOUT_COLUMNS, _arrange_for_layout, _is_short
+
+    probs = []
+    ans = []
+    for i in range(12):
+        if i % 2 == 0:
+            probs.append({"text": f"{i} ft = ? in", "kind": "expression"})  # long
+        else:
+            probs.append({"text": f"{i}+{i}", "kind": "operands"})  # short
+        ans.append(str(i))
+    p2, a2 = _arrange_for_layout(probs, ans)
+    # pairing preserved: each problem's leading number equals its answer
+    for p, a in zip(p2, a2):
+        leading = p["text"].replace("+", " ").split()[0]
+        assert leading == a
+    assert len(p2) == 12 and sorted(a2, key=int) == sorted(ans, key=int)
+    for i, p in enumerate(p2):
+        if i % LAYOUT_COLUMNS == LAYOUT_COLUMNS - 1:
+            assert _is_short(p)
+
+
+def test_age_8_addition_subtraction_not_trivial():
+    """Grade-3 add/sub use multi-digit operands, not tiny numbers."""
+    from src.problem_generators.basic_operations import (
+        AdditionStrategy,
+        SubtractionStrategy,
+    )
+
+    add, sub = AdditionStrategy(), SubtractionStrategy()
+    for diff in (0.2, 0.5, 0.9):
+        for _ in range(100):
+            p, _a = add.generate(1, 9999, diff, 8)
+            if p["kind"] == "operands":  # skip missing-operand variants
+                nums = [int(n) for n in p["text"].replace("+", " ").split()]
+                assert max(nums) >= 100, p  # at least one 3-digit operand
+            p, _a = sub.generate(1, 9999, diff, 8)
+            if p["kind"] == "operands":
+                nums = [int(n) for n in p["text"].replace("-", " ").split()]
+                assert nums[0] > nums[1] and max(nums) >= 100, p
+
+
+def test_age_8_multiplication_not_trivial():
+    """Grade-3 multiplication is beyond single-digit x single-digit."""
+    from src.problem_generators.multiplication import MultiplicationStrategy
+
+    mul = MultiplicationStrategy()
+    saw_two_digit = False
+    for diff in (0.5, 0.9):
+        for _ in range(200):
+            p, _a = mul.generate(1, 12, diff, 8)
+            if p["kind"] != "operands":
+                continue
+            nums = [int(n) for n in p["text"].replace("×", " ").split()]
+            if max(nums) >= 10:
+                saw_two_digit = True
+    assert saw_two_digit, "expected 2-digit+ factors at grade-3 difficulty"

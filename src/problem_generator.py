@@ -28,6 +28,49 @@ from src.problem_types import get_difficulty_weights, get_problem_types_for_age
 
 logger = logging.getLogger(__name__)
 
+# Worksheet grid is 5 columns (see problem_grid.html). The rightmost column's
+# overflow runs off the page, so long expressions must not land there.
+LAYOUT_COLUMNS = 5
+LONG_TEXT_THRESHOLD = 8  # expression text longer than this is "wide"
+
+
+def _is_short(problem: Dict[str, str]) -> bool:
+    """Whether a problem renders narrow enough for the rightmost column.
+
+    Operands render as stacked (vertically aligned) numbers and visuals are a
+    fixed-size SVG, so only long inline expressions are "wide".
+    """
+    if problem.get("kind") != "expression":
+        return True
+    return len(problem["text"]) <= LONG_TEXT_THRESHOLD
+
+
+def _arrange_for_layout(
+    problems: List[Dict[str, str]], answers: List[str]
+) -> Tuple[List[Dict[str, str]], List[str]]:
+    """Reorder so the rightmost grid column holds only short problems.
+
+    Keeps each (problem, answer) pair together. Wide problems are pulled into
+    the non-edge columns; the last column of each row gets a short problem
+    whenever one remains.
+    """
+    pairs = list(zip(problems, answers))
+    shorts = [p for p in pairs if _is_short(p[0])]
+    longs = [p for p in pairs if not _is_short(p[0])]
+
+    ordered = []
+    for i in range(len(pairs)):
+        is_last_column = i % LAYOUT_COLUMNS == LAYOUT_COLUMNS - 1
+        if is_last_column:
+            queue, fallback = shorts, longs
+        else:
+            queue, fallback = longs, shorts
+        source = queue if queue else fallback
+        ordered.append(source.pop(0))
+
+    new_problems, new_answers = zip(*ordered) if ordered else ([], [])
+    return list(new_problems), list(new_answers)
+
 
 class ProblemGenerator:
     """Generates age-appropriate math problems."""
@@ -142,5 +185,8 @@ class ProblemGenerator:
             logger.warning(
                 f"Could only generate {len(problems)} unique problems out of {count} requested"
             )
+
+        # Keep long expressions out of the clipped rightmost column.
+        problems, answers = _arrange_for_layout(problems, answers)
 
         return problems, answers

@@ -33,10 +33,9 @@ class MoneyStrategy(ProblemStrategy):
             text = f"{_fmt(total)} − {_fmt(paid)}"
             return make_expression(text), _fmt(total - paid)
 
-        # coins -> cents
+        # coins -> cents ("= ? ¢" goes in the tiny prompt to keep text narrow)
         name = random.choice(_COIN_NAMES)
         count = random.randint(2, 9)
         plural = name + "s"
         answer = count * _COINS[name]
-        text = f"{count} {plural} = ? ¢"
-        return make_expression(text), str(answer)
+        return make_expression(f"{count} {plural}", prompt="Total ¢"), str(answer)
