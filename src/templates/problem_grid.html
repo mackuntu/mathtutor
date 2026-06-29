@@ -72,6 +72,39 @@
     align-items: stretch;
 }
 
+/* Inline expression problems (order-of-ops, conversions, roman, missing-operand) */
+.expression {
+    text-align: center;
+    width: 100%;
+    font-family: 'Times New Roman', serif;
+    white-space: nowrap;
+    padding: 0.1rem 0;
+}
+
+/* Tiny instruction line shown just above the answer box */
+.prompt {
+    font-size: 0.62em;
+    color: #555;
+    text-align: center;
+    width: 100%;
+    line-height: 1.1;
+    margin: 0.15rem 0 0.1rem;
+}
+
+/* Inline SVG visuals (geometry, graphing, clock, fraction-identify) */
+.visual-svg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 3.5rem;
+    margin: 0.1rem 0;
+}
+
+.visual-svg svg {
+    max-height: 3.5rem;
+    max-width: 100%;
+}
+
 /* Division problem specific styles */
 .division-problem {
     display: flex;
@@ -119,42 +152,54 @@
     {% for problem in problems %}
     <div class="problem">
         <div class="problem-content">
-            {% set parts = problem.text.replace(' ', '').replace('×', '*').replace('÷', '/') %}
-            {% set numbers = ['', ''] %}
-            {% set op = '' %}
-            
-            {# Extract numbers and operator regardless of problem type #}
-            {% if '+' in parts %}
-                {% set numbers = parts.split('+') %}
-                {% set op = '+' %}
-            {% elif '-' in parts %}
-                {% set numbers = parts.split('-') %}
-                {% set op = '−' %}
-            {% elif '*' in parts %}
-                {% set numbers = parts.split('*') %}
-                {% set op = '×' %}
-            {% elif '/' in parts %}
-                {% set numbers = parts.split('/') %}
-                {% set op = '÷' %}
-            {% else %}
-                {# Handle any other format as plain text #}
-                {% set numbers = [parts, ''] %}
-            {% endif %}
-
-            {% if op == '÷' %}
-                <div class="division-problem">
-                    <div class="division-symbol">
-                        <span class="divisor">{{ numbers[1] }}</span>
-                        <span class="right-paren">)</span>
-                        <span class="dividend">{{ numbers[0] }}</span>
-                    </div>
-                </div>
-            {% else %}
-                <div class="number">{{ numbers[0] }}</div>
-                {% if op %}
-                    <div class="number"><span class="operator">{{ op }}</span>{{ numbers[1] }}</div>
-                {% endif %}
+            {% set kind = problem.kind | default('operands') %}
+            {% if kind == 'visual' %}
+                <div class="visual-svg">{{ problem.svg | safe }}</div>
+            {% elif kind == 'expression' %}
+                <div class="expression">{{ problem.text }}</div>
                 <div class="addition-line"></div>
+            {% else %}
+                {# kind == 'operands': legacy two-operand vertical layout (unchanged) #}
+                {% set parts = problem.text.replace(' ', '').replace('×', '*').replace('÷', '/') %}
+                {% set numbers = ['', ''] %}
+                {% set op = '' %}
+
+                {# Extract numbers and operator regardless of problem type #}
+                {% if '+' in parts %}
+                    {% set numbers = parts.split('+') %}
+                    {% set op = '+' %}
+                {% elif '-' in parts %}
+                    {% set numbers = parts.split('-') %}
+                    {% set op = '−' %}
+                {% elif '*' in parts %}
+                    {% set numbers = parts.split('*') %}
+                    {% set op = '×' %}
+                {% elif '/' in parts %}
+                    {% set numbers = parts.split('/') %}
+                    {% set op = '÷' %}
+                {% else %}
+                    {# Handle any other format as plain text #}
+                    {% set numbers = [parts, ''] %}
+                {% endif %}
+
+                {% if op == '÷' %}
+                    <div class="division-problem">
+                        <div class="division-symbol">
+                            <span class="divisor">{{ numbers[1] }}</span>
+                            <span class="right-paren">)</span>
+                            <span class="dividend">{{ numbers[0] }}</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="number">{{ numbers[0] }}</div>
+                    {% if op %}
+                        <div class="number"><span class="operator">{{ op }}</span>{{ numbers[1] }}</div>
+                    {% endif %}
+                    <div class="addition-line"></div>
+                {% endif %}
+            {% endif %}
+            {% if problem.prompt %}
+                <div class="prompt">{{ problem.prompt }}</div>
             {% endif %}
             <div class="answer-space">
                 {% if is_answer_key and answers %}

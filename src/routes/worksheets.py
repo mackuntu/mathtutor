@@ -56,7 +56,7 @@ def preview_problems():
 
         # Generate problems but only use first 5 for preview
         problems, _ = generator.generate_math_problems(age, count, difficulty)
-        preview_problems = [{"text": p} for p in problems[:5]]
+        preview_problems = problems[:5]
 
         # Generate preview HTML
         preview_html = render_template(
@@ -168,7 +168,7 @@ def generate_both():
                 f"Worksheet created with serial_number={worksheet.serial_number}"
             )
 
-            problem_list = [{"text": p} for p in problems]
+            problem_list = problems
 
             # Generate worksheet HTML
             html_start = time.time()
@@ -255,7 +255,9 @@ def generate_worksheet_route():
 
     # Create worksheet in database with correct answers
     # Note: ROIs are calculated dynamically during grading based on image dimensions
-    worksheet = WorksheetModel.create(child_id=child.id, problems=problems)
+    worksheet = WorksheetModel.create(
+        child_id=child.id, problems=json.dumps(problems)
+    )
     worksheet.correct_answers = answers  # Store correct answers for grading
     repository.create_worksheet(worksheet)
 
@@ -263,7 +265,7 @@ def generate_worksheet_route():
         "worksheet.html",
         user=user,
         child=child,
-        problems=[{"text": p} for p in problems],
+        problems=problems,
         worksheet_id=worksheet.id,
     )
 
@@ -338,7 +340,12 @@ def view_worksheet(worksheet_id):
         problems = json.loads(worksheet.problems)
     else:
         problems = worksheet.problems
-    problem_list = [{"text": p} for p in problems]
+    # Normalize: new worksheets store problem dicts; older ones stored bare
+    # strings. Wrap legacy strings so the template's problem.text/kind works.
+    problem_list = [
+        p if isinstance(p, dict) else {"text": p, "kind": "operands"}
+        for p in problems
+    ]
 
     answers = json.loads(worksheet.answers) if worksheet.answers else None
 

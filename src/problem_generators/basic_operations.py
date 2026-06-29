@@ -1,10 +1,22 @@
 """Strategies for generating addition and subtraction problems."""
 
 import random
-from typing import Tuple
+from typing import Dict, Tuple
 
-from src.problem_strategy import ProblemStrategy, adjust_range_by_difficulty
+from src.problem_strategy import (
+    ProblemStrategy,
+    adjust_range_by_difficulty,
+    make_expression,
+    make_operands,
+)
 from src.problem_types import OPERATORS
+
+
+# Probability of emitting a missing-operand variant (grade 3+, by difficulty).
+def _missing_operand_chance(age: int, difficulty: float) -> float:
+    if age < 8:
+        return 0.0
+    return 0.15 + 0.2 * difficulty  # 0.15 -> 0.35
 
 
 class AdditionStrategy(ProblemStrategy):
@@ -12,7 +24,7 @@ class AdditionStrategy(ProblemStrategy):
 
     def generate(
         self, min_val: int, max_val: int, difficulty: float, age: int
-    ) -> Tuple[str, str]:
+    ) -> Tuple[Dict[str, str], str]:
         """Generate an addition problem.
 
         Args:
@@ -22,7 +34,7 @@ class AdditionStrategy(ProblemStrategy):
             age: Student age for context-appropriate scaling
 
         Returns:
-            Tuple of (problem, answer)
+            Tuple of (problem_dict, answer)
         """
         min_val, max_val = adjust_range_by_difficulty(min_val, max_val, difficulty, age)
 
@@ -42,10 +54,19 @@ class AdditionStrategy(ProblemStrategy):
             num2 = random.randint(min_val, max_val)
 
         operator = OPERATORS["addition"]
-        problem = f"{num1} {operator} {num2}"
-        answer = num1 + num2
+        total = num1 + num2
 
-        return problem, str(answer)
+        # Grade 3+: sometimes hide an operand -> "94 + ? = 103" (answer = hidden).
+        if random.random() < _missing_operand_chance(age, difficulty):
+            if random.random() < 0.5:
+                return (
+                    make_expression(f"{num1} {operator} ? = {total}"),
+                    str(num2),
+                )
+            return make_expression(f"? {operator} {num2} = {total}"), str(num1)
+
+        problem = f"{num1} {operator} {num2}"
+        return make_operands(problem), str(total)
 
 
 class SubtractionStrategy(ProblemStrategy):
@@ -53,7 +74,7 @@ class SubtractionStrategy(ProblemStrategy):
 
     def generate(
         self, min_val: int, max_val: int, difficulty: float, age: int
-    ) -> Tuple[str, str]:
+    ) -> Tuple[Dict[str, str], str]:
         """Generate a subtraction problem.
 
         Args:
@@ -63,7 +84,7 @@ class SubtractionStrategy(ProblemStrategy):
             age: Student age for context-appropriate scaling
 
         Returns:
-            Tuple of (problem, answer)
+            Tuple of (problem_dict, answer)
         """
         min_val, max_val = adjust_range_by_difficulty(min_val, max_val, difficulty, age)
 
@@ -88,7 +109,13 @@ class SubtractionStrategy(ProblemStrategy):
                 num1, num2 = num2, num1
 
         operator = OPERATORS["subtraction"]
-        problem = f"{num1} {operator} {num2}"
-        answer = num1 - num2
+        diff = num1 - num2
 
-        return problem, str(answer)
+        # Grade 3+: sometimes hide an operand -> "? - 12 = 30" / "50 - ? = 18".
+        if random.random() < _missing_operand_chance(age, difficulty):
+            if random.random() < 0.5:
+                return make_expression(f"? {operator} {num2} = {diff}"), str(num1)
+            return make_expression(f"{num1} {operator} ? = {diff}"), str(num2)
+
+        problem = f"{num1} {operator} {num2}"
+        return make_operands(problem), str(diff)
