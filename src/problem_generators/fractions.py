@@ -27,7 +27,7 @@ def _fraction_bar_svg(num: int, den: int) -> str:
             f'fill="{fill}" stroke="black" stroke-width="1"/>'
         )
     return (
-        f'<svg viewBox="0 0 {width} {height}" '
+        f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
         f'xmlns="http://www.w3.org/2000/svg">{"".join(cells)}</svg>'
     )
 

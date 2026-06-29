@@ -27,7 +27,8 @@ def _bar_chart_svg(values) -> str:
             f'text-anchor="middle">{_LABELS[i]}</text>'
         )
     return (
-        '<svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg">'
+        '<svg width="60" height="50" viewBox="0 0 60 50" '
+        'xmlns="http://www.w3.org/2000/svg">'
         '<line x1="4" y1="38" x2="58" y2="38" stroke="black" stroke-width="1"/>'
         f'{"".join(bars)}'
         "</svg>"

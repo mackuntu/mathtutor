@@ -253,3 +253,33 @@ def test_generated_sheet_renders_one_answer_box_per_cell():
     html = tpl.render(problems=problems, answers=answers, is_answer_key=True)
     assert html.count('<div class="answer-space">') == 40
     assert html.count('<div class="problem">') == 40
+
+
+def test_visual_svgs_have_explicit_dimensions():
+    """Inline SVGs must carry width+height attrs or browsers drop them in print."""
+    import re
+    from src.problem_generators.geometry import GeometryStrategy
+    from src.problem_generators.data_graphing import DataGraphingStrategy
+    from src.problem_generators.time_problems import TimeStrategy
+    from src.problem_generators.fractions import FractionStrategy
+
+    svgs = []
+    geo, dg = GeometryStrategy(), DataGraphingStrategy()
+    for _ in range(30):
+        svgs.append(geo.generate(1, 100, 0.6, 8)[0].get("svg", ""))
+        svgs.append(dg.generate(1, 10, 0.6, 8)[0].get("svg", ""))
+    # clock + fraction-identify only appear sometimes
+    tm, fr = TimeStrategy(), FractionStrategy()
+    for _ in range(200):
+        p = tm.generate(1, 100, 0.6, 8)[0]
+        if p.get("svg"):
+            svgs.append(p["svg"])
+        p = fr.generate(1, 8, 0.6, 8)[0]
+        if p.get("svg"):
+            svgs.append(p["svg"])
+
+    assert svgs, "expected some visual SVGs"
+    for svg in svgs:
+        open_tag = svg[: svg.index(">") + 1]
+        assert re.search(r'\bwidth="\d', open_tag), f"no width attr: {open_tag}"
+        assert re.search(r'\bheight="\d', open_tag), f"no height attr: {open_tag}"

@@ -39,7 +39,8 @@ def _clock_svg(hour: int, minute: int) -> str:
             f'stroke="black" stroke-width="1"/>'
         )
     return (
-        '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">'
+        '<svg width="60" height="60" viewBox="0 0 60 60" '
+        'xmlns="http://www.w3.org/2000/svg">'
         f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="white" stroke="black" '
         'stroke-width="1.5"/>'
         f'{"".join(ticks)}'

@@ -26,12 +26,16 @@ def _shape_svg(sides: int) -> str:
         body = (
             f'<polygon points="{pts}" fill="#dce8f5" stroke="black" stroke-width="1.5"/>'
         )
-    return f'<svg viewBox="0 0 60 52" xmlns="http://www.w3.org/2000/svg">{body}</svg>'
+    return (
+        '<svg width="60" height="52" viewBox="0 0 60 52" '
+        f'xmlns="http://www.w3.org/2000/svg">{body}</svg>'
+    )
 
 
 def _rect_svg(width: int, length: int) -> str:
     return (
-        '<svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg">'
+        '<svg width="64" height="48" viewBox="0 0 64 48" '
+        'xmlns="http://www.w3.org/2000/svg">'
         '<rect x="10" y="12" width="40" height="24" fill="#dce8f5" '
         'stroke="black" stroke-width="1.5"/>'
         f'<text x="30" y="46" font-size="9" text-anchor="middle">{length}</text>'

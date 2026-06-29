@@ -101,8 +101,20 @@
 }
 
 .visual-svg svg {
+    /* Explicit width/height attrs on the <svg> set the intrinsic aspect ratio
+       (and stop Chrome dropping the SVG when printing); max-* scale it to fit
+       the cell while width/height:auto preserves proportions. */
+    width: auto;
+    height: auto;
     max-height: 3.5rem;
     max-width: 100%;
+}
+
+@media print {
+    .visual-svg svg {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }
 
 /* Division problem specific styles */
