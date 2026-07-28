@@ -1,17 +1,19 @@
 # Core dependencies
-Flask==3.0.2
+Flask==3.1.3
 boto3==1.34.34
 botocore==1.34.34
-python-dotenv==1.0.1
-requests==2.31.0
-Werkzeug==3.0.1
-Pillow==10.2.0
+python-dotenv==1.2.2
+requests==2.34.2
+Werkzeug==3.1.8
+Pillow==12.3.0
 
 # OCR dependencies
 easyocr==1.7.1
 
 # Image processing
 opencv-python-headless==4.9.0.80
+numpy<2  # cv2 4.9 / torch wheels are built against numpy 1.x
+tifffile==2024.8.30  # last numpy<2-compatible line (scikit-image chain)
 
 # OAuth dependencies
 google-auth==2.27.0
@@ -20,23 +22,23 @@ oauthlib==3.2.2
 requests-oauthlib==1.3.1
 
 # Blog support
-markdown==3.5.2
+markdown==3.10.2
 python-frontmatter==1.1.0
 
 # Testing
-pytest==7.4.4
-pytest-cov==4.1.0
+pytest==9.1.1
+pytest-cov==7.1.0
 moto==5.1.14
 
 # Development
-black==24.1.1
+black==26.5.1
 flake8==7.0.0
 mypy==1.8.0
 pre-commit==3.6.0
 
 # Type stubs
-types-requests==2.31.0.20240125
+types-requests==2.32.4.20250913
 boto3-stubs==1.34.34
 
 # Production
-gunicorn==21.2.0
+gunicorn==26.0.0

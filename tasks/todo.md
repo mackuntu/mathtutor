@@ -61,3 +61,27 @@ worksheet.html (higher specificity / element-scoped custom props).
 - Verified 1 page: count 35 ages 5-10 (30+ sheets, worksheet + answer key),
   count 40 ages 5-10 incl. 19-tall sheets. Before fix: 2 pages.
 - pytest: 105 passed (2 new tests). problem_grid.html untouched.
+
+# Todo: dependency update (82 Dependabot alerts)
+
+## Plan
+- [x] Pull open alerts via `gh api .../dependabot/alerts`, map to min patched
+      versions across requirements.txt + tests/ui/requirements.txt
+- [x] Bump: Flask 3.1.3, Werkzeug 3.1.8, Pillow 12.3.0, requests 2.34.2,
+      python-dotenv 1.2.2, markdown 3.10.2, pytest 9.1.1, pytest-cov 7.1.0,
+      black 26.5.1, gunicorn 26.0.0, types-requests; UI: pypdf 6.14.2,
+      pillow 12.3.0
+- [x] Fix fallout, verify: unit suite, app boot, gunicorn config check
+
+## Review
+- pytest 9 broke pytest-selenium 4.0.2 (removed `startdir` hook arg) →
+  4.1.0.
+- Resolver dragged numpy to 2.2.1; cv2 4.9 / torch wheels are numpy-1.x
+  builds (`_ARRAY_API not found`) → pinned `numpy<2` +
+  `tifffile==2024.8.30` (scikit-image chain needs numpy>=2 from 2025+
+  lines).
+- Known benign: pyppeteer 2.0.0 (unused, via pytest-failed-screenshot)
+  wants urllib3<2.
+- Verified: 105 unit tests pass; `create_app()` + GET / → 302; gunicorn 26
+  `--check-config wsgi:app` exit 0; pypdf usage is modern PdfReader only.
+- Every alerted package now at/above its patched version.
