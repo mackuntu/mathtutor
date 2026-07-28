@@ -168,8 +168,13 @@ class ProblemGenerator:
                 )
 
                 # Only add if we haven't seen this problem before.
-                # Dedup on the display text since problems are now dicts.
-                problem_key = problem["text"]
+                # Visual problems all share text="", so the key must include
+                # prompt+svg or a sheet could never hold more than one visual.
+                problem_key = (
+                    problem["text"],
+                    problem.get("prompt", ""),
+                    problem.get("svg", ""),
+                )
                 if problem_key not in used_problems:
                     problems.append(problem)
                     answers.append(answer)

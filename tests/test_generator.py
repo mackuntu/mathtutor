@@ -172,13 +172,13 @@ def test_all_problems_are_well_formed_dicts():
                 assert p["svg"].startswith("<svg")
 
 
-def test_problems_are_unique_by_text():
-    """Dedup is on display text; a full age-8 sheet has no repeats."""
+def test_problems_are_unique():
+    """Dedup key is (text, prompt, svg); a full age-8 sheet has no repeats."""
     generator = ProblemGenerator(seed=3)
     problems, _ = generator.generate_math_problems(age=8, count=40, difficulty=0.5)
     assert len(problems) == 40
-    texts = [p["text"] for p in problems]
-    assert len(set(texts)) == len(texts)
+    keys = [(p["text"], p.get("prompt", ""), p.get("svg", "")) for p in problems]
+    assert len(set(keys)) == len(keys)
 
 
 def test_age_8_covers_many_topics():
@@ -238,6 +238,53 @@ def test_measurement_answers_positive_integers():
         assert problem["kind"] == "expression"
         assert "= ?" in problem["text"]
         assert int(answer) > 0
+
+
+def test_bar_chart_answers_read_from_labels():
+    """Bar-chart questions are answerable from printed labels, not bar size."""
+    import re
+    from src.problem_generators.data_graphing import DataGraphingStrategy
+
+    strat = DataGraphingStrategy()
+    for _ in range(200):
+        problem, answer = strat.generate(1, 10, 0.6, 8)
+        svg = problem["svg"]
+        # Every bar's value is printed above it: 3 value labels + 3 letters.
+        texts = re.findall(r"<text[^>]*>([^<]+)</text>", svg)
+        values = [int(t) for t in texts if t.isdigit()]
+        assert len(values) == 3, f"expected 3 value labels, got {texts}"
+        letters = [t for t in texts if t in ("A", "B", "C")]
+        assert letters == ["A", "B", "C"]
+        # And the answer is consistent with those labels.
+        prompt = problem["prompt"]
+        if prompt.startswith("Total"):
+            assert int(answer) == sum(values)
+        elif prompt.startswith("Which bar is most"):
+            assert values[ord(answer) - ord("A")] == max(values)
+        elif prompt.startswith("Which bar is least"):
+            assert values[ord(answer) - ord("A")] == min(values)
+        else:  # How many more X than Y
+            assert int(answer) == max(values) - min(values)
+
+
+def test_geometry_area_answers_correct():
+    from src.problem_generators.geometry import GeometryStrategy
+
+    strat = GeometryStrategy()
+    seen_area = False
+    for _ in range(200):
+        problem, answer = strat.generate(1, 100, 0.6, 8)
+        if problem.get("prompt") == "Area":
+            seen_area = True
+            import re
+
+            labels = [
+                int(t)
+                for t in re.findall(r"<text[^>]*>(\d+)</text>", problem["svg"])
+            ]
+            assert len(labels) == 2
+            assert int(answer) == labels[0] * labels[1]
+    assert seen_area
 
 
 def test_generated_sheet_renders_one_answer_box_per_cell():

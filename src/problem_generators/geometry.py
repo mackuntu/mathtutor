@@ -45,16 +45,20 @@ def _rect_svg(width: int, length: int) -> str:
 
 
 class GeometryStrategy(ProblemStrategy):
-    """Count sides, compute rectangle perimeter, or name a shape."""
+    """Count sides, rectangle perimeter/area from labeled sides, or name a shape."""
 
     def generate(
         self, min_val: int, max_val: int, difficulty: float, age: int
     ) -> Tuple[Dict[str, str], str]:
-        kind = random.choice(["sides", "perimeter", "name"])
+        kind = random.choice(["sides", "perimeter", "area", "name"])
 
-        if kind == "perimeter":
+        if kind in ("perimeter", "area"):
             width = random.randint(2, 12)
             length = random.randint(2, 12)
+            if kind == "area":
+                return make_visual(_rect_svg(width, length), prompt="Area"), str(
+                    width * length
+                )
             answer = 2 * (width + length)
             return make_visual(_rect_svg(width, length), prompt="Perimeter"), str(answer)
 
