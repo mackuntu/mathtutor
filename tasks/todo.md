@@ -1,65 +1,63 @@
-# Todo: Grade-3 difficulty + full k5 topic coverage
+# Todo: Print-answerable grade-3 visual questions
 
-## Core schema plumbing
-- [ ] `problem_strategy.py`: `generate -> (dict,str)`; add `make_operands/make_expression/make_visual`
-- [ ] `problem_generator.py`: dedup on `problem["text"]`; register new strategies; return `(List[dict],List[str])`
-- [ ] `worksheets.py`: drop `[{"text":p}]` wraps (lines 59,171,266,341); pass dicts through
-- [ ] `problem_grid.html`: keep operands branch verbatim; add expression + visual branches; shared answer-space
+Problem: `data_graphing.py` bar chart has no scale/gridlines/value labels.
+"Value of B?" answerable only by measuring bar height — impossible on print.
 
-## Harder core arithmetic (age 8)
-- [ ] `problem_types.py`: raise age-8 ranges
-- [ ] `basic_operations.py`: 3-4 digit regroup/borrow; missing-operand variant
-- [ ] `multiplication.py`: tables→12, 2dig×1dig, ×10/×100; div facts→12, remainders, ÷10/÷100; missing-operand
+Research (3.MD + K5/Education.com/SuperTeacher formats): scaled bar/picture
+graphs valid grade-3, but every needed number must be printed as a label;
+correctness must never depend on drawing size. Labeled-rectangle area (3.MD.7)
+also standard and print-safe.
 
-## New text/expression strategies
-- [ ] place_value.py
-- [ ] rounding.py
-- [ ] order_of_operations.py
-- [ ] roman_numerals.py
-- [ ] measurement.py
-- [ ] money.py
-- [ ] time.py (conversions/elapsed + visual clock)
+Layout: visual cell ~60px wide, 3.5rem tall (problem_grid.html immutable).
+No room for readable y-axis → label value above each bar instead.
 
-## Fractions reshaped (grade 3)
-- [ ] fractions.py: compare/equivalent/like-denom add-sub/identify (visual); keep age 9+ decimal
-
-## Visual topics (inline SVG)
-- [ ] geometry.py
-- [ ] data_graphing.py
-
-## Wire age 8 + age 7
-- [ ] problem_types.py: full topic set age 8; lighter set age 7
-
-## Verification
-- [ ] pytest -k generator (each strategy: dict w/ text+kind, correct answer)
-- [ ] dedup/count age=8 count=40 → 40 unique, topic spread
-- [ ] render: 40 fit one page, operands byte-identical, one answer-space/cell
-- [ ] regression ages 5-12 operands path
-- [ ] app smoke
+## Plan
+- [x] `data_graphing.py`: value printed above each bar; kinds:
+      total / how-many-more / which-most / which-least (drop trivial "read")
+- [x] `geometry.py`: add "area" kind reusing labeled `_rect_svg` (3.MD.7)
+- [x] `problem_generator.py`: dedup key text+prompt+svg (visuals all share
+      text="" → today max 1 visual per sheet)
+- [x] Tests: update uniqueness test key; assert bar values labeled; area answers
+- [x] Verify: pytest, render sample sheet, eyeball SVG fit
 
 ## Review
-Done. Schema = problem dicts (`text`/`kind` + optional `prompt`/`svg`) via
-`make_operands/make_expression/make_visual`. Generator dedups on `text`, registers
-9 new strategies. Template: operands branch rendered output unchanged; added
-`expression` + `visual` branches; shared single `.answer-space` per cell.
+- Bar chart now prints each bar's value above the bar (font 9) + letter below;
+  all four question kinds answerable purely from labels. Values forced distinct
+  so most/least/how-many-more unambiguous. SVG 60x52 fits 3.5rem cell cap.
+- Geometry gained "Area" on the existing labeled rectangle (3.MD.7).
+- Dedup key now (text, prompt, svg): sample age-8 35-problem sheet went from
+  1 visual to 7 (fractions/clock/shape/bar chart mix).
+- Verified: tests/test_generator.py 18 passed (incl. new
+  test_bar_chart_answers_read_from_labels, test_geometry_area_answers_correct);
+  test_document_renderer.py 3 passed. Headless-Chrome screenshots of rendered
+  grid + 5 chart samples: labels legible, answers match labels.
+- test_worksheet/test_auth botocore errors = DynamoDB Local not running
+  (pre-existing env, unrelated).
 
-Harder grade-3 arithmetic: add/sub 3-4 digit (1,9999) w/ regroup; ×tables→12 +
-2dig×1dig + ×10/×100; ÷facts→12 + remainders + ÷10/÷100; missing-operand variants
-(add/sub/mult, age≥8). Fractions reshaped for grade 3 (compare/equivalent/like-denom/
-identify-visual); ages 9+ decimal path untouched. Age 7 = lighter same set.
+# Todo: 35-problem worksheet overflows one printed page
 
-New topics: place_value, rounding, order_of_operations, roman_numerals, measurement,
-money, time (convert/elapsed/clock-visual), geometry (sides/perimeter/name-visual),
-data_graphing (bar chart).
+Problem: default count 35 → 7 grid rows. Row height = tallest cell
+(visual + 2-line prompt ≈ 127px; plain operands ≈ 104px). Measured body
+1130px vs 970px printable (letter − 0.45in margins). Two causes:
+1. problem_grid.html spacing is fixed (comment claims count-adaptive, isn't);
+   sized for ≤6 rows — even 7 all-plain rows = 1059px.
+2. `_arrange_for_layout` spread visuals one per row → every row tall.
 
-Verification:
-- 96/96 non-UI tests pass (incl. new per-strategy answer-correctness + render tests).
-- All ages 5-12 generate dicts w/ valid kind; age-8 count=40 → 40 unique, all 3 kinds.
-- Layout: 40 cells / 40 answer-boxes (one per cell). Visual cells fit 30/page in
-  weasyprint == operands baseline (which the browser fits at 40); expression fits 40.
-  => no height regression; visuals no taller than legacy operands.
-- App factory + worksheets blueprint import clean. SVGs parse (svg2rlg).
-- Browser preview: scratchpad/grade3_preview.html (print-preview to eyeball fit).
+Constraint: problem_grid.html layout immutable → override CSS vars from
+worksheet.html (higher specificity / element-scoped custom props).
 
-Pending (needs user env): app smoke w/ DynamoDB Local + browser print-preview (plan §5).
-Out of scope: grading ROI rework (follow-up).
+## Plan
+- [x] TDD: failing tests — clustering unit test + end-to-end tall-rows-minimal
+- [x] `_arrange_for_layout`: pack tall problems (visual or prompt) into
+      earliest rows, keep right-column-short + pair invariants
+- [x] worksheet.html: >30 problems → gap 1rem, answer box 1.25rem, SVG 3rem;
+      >35 → gap 0.6rem, font 14pt, SVG 2.5rem
+- [x] Verify: headless-Chrome print-to-PDF page counts across seeds/ages/counts
+
+## Review
+- `_is_tall` + 4-bucket fill (tall-long / tall-short / plain-long /
+  plain-short); last column still prefers shorts, talls consumed first so
+  tall rows = ceil(talls/5).
+- Verified 1 page: count 35 ages 5-10 (30+ sheets, worksheet + answer key),
+  count 40 ages 5-10 incl. 19-tall sheets. Before fix: 2 pages.
+- pytest: 105 passed (2 new tests). problem_grid.html untouched.

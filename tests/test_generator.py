@@ -368,6 +368,56 @@ def test_arrange_keeps_pairs_and_short_right_column():
             assert _is_short(p)
 
 
+def test_arrange_clusters_tall_problems_into_fewest_rows():
+    """Tall problems (visuals / prompts) pack together so few rows are tall.
+
+    Row height is set by the tallest cell, so spreading talls one-per-row
+    makes every row tall and pushes the sheet past one printed page.
+    """
+    import math
+
+    from src.problem_generator import LAYOUT_COLUMNS, _arrange_for_layout, _is_tall
+
+    probs = []
+    ans = []
+    for i in range(7):  # 7 tall problems -> must occupy ceil(7/5) = 2 rows
+        probs.append({"text": "", "kind": "visual", "svg": f"<svg>{i}</svg>", "prompt": "Area"})
+        ans.append(str(i))
+    for i in range(7, 35):
+        probs.append({"text": f"{i}+{i}", "kind": "operands"})
+        ans.append(str(i))
+
+    p2, a2 = _arrange_for_layout(probs, ans)
+
+    tall_rows = {i // LAYOUT_COLUMNS for i, p in enumerate(p2) if _is_tall(p)}
+    n_tall = sum(1 for p in p2 if _is_tall(p))
+    assert n_tall == 7
+    assert len(tall_rows) == math.ceil(n_tall / LAYOUT_COLUMNS), tall_rows
+    # pairing preserved
+    assert sorted(a2, key=int) == sorted(ans, key=int)
+    for p, a in zip(p2, a2):
+        if p["kind"] == "visual":
+            assert p["svg"] == f"<svg>{a}</svg>"
+
+
+def test_generated_sheet_clusters_tall_problems():
+    """End-to-end: generated grade-3 sheets keep tall rows to the minimum."""
+    import math
+
+    from src.problem_generator import LAYOUT_COLUMNS, _is_tall
+
+    for seed in range(6):
+        generator = ProblemGenerator(seed=seed)
+        problems, _ = generator.generate_math_problems(age=8, count=35, difficulty=1.0)
+        tall_rows = {
+            i // LAYOUT_COLUMNS for i, p in enumerate(problems) if _is_tall(p)
+        }
+        n_tall = sum(1 for p in problems if _is_tall(p))
+        assert len(tall_rows) <= math.ceil(n_tall / LAYOUT_COLUMNS), (
+            f"seed {seed}: {n_tall} tall problems spread over rows {tall_rows}"
+        )
+
+
 def test_age_8_addition_subtraction_not_trivial():
     """Grade-3 add/sub use multi-digit operands, not tiny numbers."""
     from src.problem_generators.basic_operations import (

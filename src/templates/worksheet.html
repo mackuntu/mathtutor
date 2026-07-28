@@ -113,5 +113,38 @@
     </div>
 
     {% include 'problem_grid.html' %}
+    {% if problems|length > 30 %}
+    <style>
+        /* 7+ grid rows: tighten vertical rhythm so the sheet stays one page.
+           Overrides problem_grid.html vars/sizes via higher specificity. */
+        .problem-grid {
+            --vertical-gap: 1rem;
+        }
+        .problem-grid .answer-space {
+            height: 1.25rem;
+        }
+        .problem-grid .visual-svg {
+            height: 3rem;
+        }
+        .problem-grid .visual-svg svg {
+            max-height: 3rem;
+        }
+    </style>
+    {% endif %}
+    {% if problems|length > 35 %}
+    <style>
+        /* 8 grid rows: maximum compression. */
+        .problem-grid {
+            --vertical-gap: 0.6rem;
+            --problem-font: 14pt;
+        }
+        .problem-grid .visual-svg {
+            height: 2.5rem;
+        }
+        .problem-grid .visual-svg svg {
+            max-height: 2.5rem;
+        }
+    </style>
+    {% endif %}
 </div>
 {% endblock %} 

@@ -45,27 +45,40 @@ def _is_short(problem: Dict[str, str]) -> bool:
     return len(problem["text"]) <= LONG_TEXT_THRESHOLD
 
 
+def _is_tall(problem: Dict[str, str]) -> bool:
+    """Whether a problem renders taller than a plain stacked-operand cell.
+
+    Visuals carry an SVG block and prompts add an instruction line; a grid
+    row is as tall as its tallest cell, so these must be packed together
+    (fewest tall rows) or a full 7-row sheet overflows one printed page.
+    """
+    return problem.get("kind") == "visual" or bool(problem.get("prompt"))
+
+
 def _arrange_for_layout(
     problems: List[Dict[str, str]], answers: List[str]
 ) -> Tuple[List[Dict[str, str]], List[str]]:
-    """Reorder so the rightmost grid column holds only short problems.
+    """Reorder so the sheet prints compactly and nothing clips.
 
-    Keeps each (problem, answer) pair together. Wide problems are pulled into
-    the non-edge columns; the last column of each row gets a short problem
-    whenever one remains.
+    Keeps each (problem, answer) pair together. Two constraints:
+    - The rightmost column holds only short problems (its overflow runs off
+      the page edge).
+    - Tall problems (visuals/prompts) fill the earliest rows completely, so
+      the minimum number of rows carries their extra height.
     """
     pairs = list(zip(problems, answers))
-    shorts = [p for p in pairs if _is_short(p[0])]
-    longs = [p for p in pairs if not _is_short(p[0])]
+    tall_long = [p for p in pairs if _is_tall(p[0]) and not _is_short(p[0])]
+    tall_short = [p for p in pairs if _is_tall(p[0]) and _is_short(p[0])]
+    plain_long = [p for p in pairs if not _is_tall(p[0]) and not _is_short(p[0])]
+    plain_short = [p for p in pairs if not _is_tall(p[0]) and _is_short(p[0])]
 
     ordered = []
     for i in range(len(pairs)):
-        is_last_column = i % LAYOUT_COLUMNS == LAYOUT_COLUMNS - 1
-        if is_last_column:
-            queue, fallback = shorts, longs
+        if i % LAYOUT_COLUMNS == LAYOUT_COLUMNS - 1:
+            priority = [tall_short, plain_short, tall_long, plain_long]
         else:
-            queue, fallback = longs, shorts
-        source = queue if queue else fallback
+            priority = [tall_long, tall_short, plain_long, plain_short]
+        source = next(queue for queue in priority if queue)
         ordered.append(source.pop(0))
 
     new_problems, new_answers = zip(*ordered) if ordered else ([], [])
