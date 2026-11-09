@@ -154,10 +154,6 @@ class DynamoDBRepository:
                 "answers": item.get("answers", {}).get("S"),
                 "completed": item.get("completed", {}).get("BOOL", False),
                 "correct_answers": item.get("correct_answers", {}).get("S"),
-                "student_answers": item.get("student_answers", {}).get("S"),
-                "answer_regions": item.get("answer_regions", {}).get("S"),
-                "pdf_dimensions": item.get("pdf_dimensions", {}).get("S"),
-                "answer_images": item.get("answer_images", {}).get("S"),
             }
         )
 
@@ -182,10 +178,6 @@ class DynamoDBRepository:
                     "answers": item.get("answers", {}).get("S"),
                     "completed": item.get("completed", {}).get("BOOL", False),
                     "correct_answers": item.get("correct_answers", {}).get("S"),
-                    "student_answers": item.get("student_answers", {}).get("S"),
-                    "answer_regions": item.get("answer_regions", {}).get("S"),
-                    "pdf_dimensions": item.get("pdf_dimensions", {}).get("S"),
-                    "answer_images": item.get("answer_images", {}).get("S"),
                 }
             )
             for item in response.get("Items", [])
@@ -232,22 +224,6 @@ class DynamoDBRepository:
         # Include correct_answers if present
         if worksheet.correct_answers is not None:
             item["correct_answers"] = {"S": json.dumps(worksheet.correct_answers)}
-
-        # Include student_answers if present
-        if worksheet.student_answers is not None:
-            item["student_answers"] = {"S": json.dumps(worksheet.student_answers)}
-
-        # Include answer_regions if present
-        if worksheet.answer_regions is not None:
-            item["answer_regions"] = {"S": json.dumps(worksheet.answer_regions)}
-
-        # Include pdf_dimensions if present
-        if worksheet.pdf_dimensions is not None:
-            item["pdf_dimensions"] = {"S": json.dumps(list(worksheet.pdf_dimensions))}
-
-        # Include answer_images if present
-        if worksheet.answer_images is not None:
-            item["answer_images"] = {"S": json.dumps(worksheet.answer_images)}
 
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,
@@ -297,22 +273,6 @@ class DynamoDBRepository:
         # Include correct_answers if present
         if worksheet.correct_answers is not None:
             item["correct_answers"] = {"S": json.dumps(worksheet.correct_answers)}
-
-        # Include student_answers if present
-        if worksheet.student_answers is not None:
-            item["student_answers"] = {"S": json.dumps(worksheet.student_answers)}
-
-        # Include answer_regions if present
-        if worksheet.answer_regions is not None:
-            item["answer_regions"] = {"S": json.dumps(worksheet.answer_regions)}
-
-        # Include pdf_dimensions if present
-        if worksheet.pdf_dimensions is not None:
-            item["pdf_dimensions"] = {"S": json.dumps(list(worksheet.pdf_dimensions))}
-
-        # Include answer_images if present
-        if worksheet.answer_images is not None:
-            item["answer_images"] = {"S": json.dumps(worksheet.answer_images)}
 
         self.dynamodb.put_item(
             TableName=WORKSHEETS_TABLE,

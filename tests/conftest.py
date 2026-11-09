@@ -13,7 +13,6 @@ except ImportError:
 from src.auth import AuthManager
 from src.database.models import Child, Session, User, Worksheet
 from src.database.repository import DynamoDBRepository
-from src.document.renderer import DocumentRenderer
 
 
 @pytest.fixture(scope="function")
@@ -160,12 +159,6 @@ def test_session(repository, test_user):
     )
     repository.create_session(session)
     return session
-
-
-@pytest.fixture(scope="function")
-def renderer():
-    """Create a document renderer instance."""
-    return DocumentRenderer()
 
 
 @pytest.fixture
