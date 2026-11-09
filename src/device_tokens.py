@@ -69,14 +69,17 @@ def require_api_auth(view):
     """Accept a device bearer token or a valid session cookie; else 401 JSON.
 
     An Authorization header, if present, must be valid: no cookie fallback.
+    Both paths set ``g.user`` to the owner. State-changing /api endpoints must
+    not be GET: SameSite=Lax sends the session cookie on cross-site top-level GETs.
     """
 
     @wraps(view)
     def wrapped(*args, **kwargs):
         header: Optional[str] = request.headers.get("Authorization")
-        user = (
-            _authenticate_bearer(header) if header is not None else (get_current_user())
-        )
+        if header is not None:
+            user = _authenticate_bearer(header)
+        else:
+            user = _owner() if get_current_user() else None
         if not user:
             return _unauthorized()
         g.user = user

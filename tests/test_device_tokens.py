@@ -157,3 +157,51 @@ def test_list_returns_newest_first_without_hashes(repository):
     listed = repository.list_device_tokens()
     assert [t["id"] for t in listed] == ["b", "a"]
     assert all("token_hash" not in t for t in listed)
+
+
+def test_create_response_is_no_store(logged_in, repository):
+    response = logged_in.post("/settings/devices", data={"name": "Pi"})
+    assert "no-store" in response.headers["Cache-Control"]
+    assert response.headers["Pragma"] == "no-cache"
+
+
+def test_settings_list_and_revoke_are_no_store(logged_in, repository):
+    assert "no-store" in logged_in.get("/settings/devices").headers["Cache-Control"]
+
+
+def test_session_path_sets_g_user_to_owner(app, logged_in):
+    from flask import g
+
+    from src.device_tokens import require_api_auth
+
+    seen = {}
+
+    @app.route("/api/_who")
+    @require_api_auth
+    def who():
+        seen["email"] = g.user.email
+        return {"ok": True}
+
+    assert logged_in.get("/api/_who").status_code == 200
+    assert seen["email"] == OWNER
+
+
+def test_session_without_configured_owner_401(
+    client, auth_manager, repository, monkeypatch
+):
+    other = auth_manager.get_or_create_user("other@example.com", "Other")
+    client.set_cookie("session_token", auth_manager.create_session(other.email))
+    # Session is valid, but the API acts as the owner; with no owner configured it fails closed.
+    monkeypatch.setenv("ALLOWED_EMAILS", "")
+    assert client.get("/api/ping").status_code == 401
+
+
+def test_empty_bearer_token_401(client, db):
+    response = client.get("/api/ping", headers={"Authorization": "Bearer "})
+    assert response.status_code == 401
+
+
+def test_bearer_token_with_trailing_whitespace_401(client, repository):
+    raw = issue_token("Pi")
+    response = client.get("/api/ping", headers={"Authorization": f"Bearer {raw} "})
+    assert response.status_code == 401

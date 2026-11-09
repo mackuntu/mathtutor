@@ -14,6 +14,14 @@ bp = Blueprint("settings", __name__, url_prefix="/settings")
 MAX_NAME_LENGTH = 50
 
 
+@bp.after_request
+def no_store(response):
+    """Keep token pages out of browser/bfcache so the secret can't be restored."""
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 @bp.app_template_filter("timestamp_or_dash")
 def timestamp_or_dash(epoch):
     """Format epoch seconds as UTC text; '-' when never set."""
