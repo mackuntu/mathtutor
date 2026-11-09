@@ -38,6 +38,14 @@ class PostgresRepository:
             (user.email, user.name, user.picture, user.created_at, user.updated_at),
         )
 
+    def create_user_if_absent(self, user: User) -> None:
+        """Insert the user unless a row with that email already exists."""
+        get_conn().execute(
+            "INSERT INTO users (email, name, picture, created_at, updated_at) "
+            "VALUES (%s, %s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
+            (user.email, user.name, user.picture, user.created_at, user.updated_at),
+        )
+
     def update_user(self, user: User) -> None:
         user.updated_at = user.utc_now()
         get_conn().execute(

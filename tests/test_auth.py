@@ -294,3 +294,50 @@ def test_oauth_state_cleared_on_mismatch(client, owner_env):
     _callback(client, "me@x.com", state="forged")
     with client.session_transaction() as sess:
         assert "oauth_state" not in sess
+
+
+def test_get_or_create_user_is_atomic_against_concurrent_insert(auth_manager):
+    """A row inserted between lookup and insert must not raise."""
+    repo = auth_manager.repository
+    real_get = repo.get_user_by_email
+    raced = []
+
+    def racing_get(email):
+        # A lookup that sees no row loses the race: another request inserts
+        # the same user right after this read.
+        existing = real_get(email)
+        if existing is None and not raced:
+            raced.append(email)
+            repo.create_user(User(email=email, name="Winner"))
+        return existing
+
+    with patch.object(repo, "get_user_by_email", side_effect=racing_get):
+        user = auth_manager.get_or_create_user("race@example.com", "Loser")
+
+    assert user.email == "race@example.com"
+
+
+def test_google_login_fills_name_of_owner_created_by_bearer(auth_manager):
+    """Owner row created by an API call (name == email) gets the Google profile."""
+    auth_manager.get_or_create_user("me@x.com", "me@x.com")
+
+    user = auth_manager.get_or_create_user("me@x.com", "Me", "https://p/me.png")
+
+    assert user.name == "Me"
+    assert user.picture == "https://p/me.png"
+    saved = auth_manager.repository.get_user_by_email("me@x.com")
+    assert (saved.name, saved.picture) == ("Me", "https://p/me.png")
+
+
+def test_verify_google_token_falls_back_to_email_for_missing_name(auth_manager):
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"email": "a@b.c", "email_verified": True}
+
+    with patch("src.auth.requests.get", return_value=Resp()):
+        valid, info = auth_manager.verify_oauth_token("google", "t")
+
+    assert valid and info["name"] == "a@b.c"

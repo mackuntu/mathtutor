@@ -162,3 +162,13 @@ def test_expired_session_cookie_redirects_to_login(client, repository, test_user
 def test_db_guard_refuses_non_test_database():
     with pytest.raises(RuntimeError, match="must end with '_test'"):
         assert_test_database("postgresql://u:p@localhost:5432/mathtutor")
+
+
+def test_create_user_if_absent_keeps_existing_row(repository):
+    repository.create_user(User(email="a@example.com", name="Ann"))
+
+    repository.create_user_if_absent(User(email="a@example.com", name="Other"))
+    repository.create_user_if_absent(User(email="b@example.com", name="Bob"))
+
+    assert repository.get_user_by_email("a@example.com").name == "Ann"
+    assert repository.get_user_by_email("b@example.com").name == "Bob"

@@ -66,9 +66,10 @@ class AuthManager:
             )
             response.raise_for_status()
             userinfo = response.json()
+            email = userinfo["email"]
             return True, {
-                "email": userinfo["email"],
-                "name": userinfo["name"],
+                "email": email,
+                "name": userinfo.get("name") or email,
                 "picture": userinfo.get("picture"),
                 "email_verified": userinfo.get("email_verified"),
             }
@@ -103,12 +104,21 @@ class AuthManager:
     def get_or_create_user(
         self, email: str, name: str, picture: Optional[str] = None
     ) -> User:
-        """Get or create a user."""
+        """Get or create a user atomically (safe against concurrent first logins).
+
+        A row whose name is still its email (created by a device-token request
+        before the owner ever logged in) takes the real profile name/picture.
+        """
+        self.repository.create_user_if_absent(
+            User(email=email, name=name, picture=picture)
+        )
         user = self.repository.get_user_by_email(email)
-        if not user:
-            user = User(email=email, name=name, picture=picture)
-            self.repository.create_user(user)
-        return user
+        if user.name != user.email or name == email:
+            return user
+        profiled = User(email=email, name=name, picture=picture)
+        profiled.created_at = user.created_at
+        self.repository.update_user(profiled)
+        return profiled
 
     def create_session(self, user_email: str) -> str:
         """Create a new session."""
