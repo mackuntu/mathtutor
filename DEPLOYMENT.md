@@ -66,6 +66,6 @@ Revoke tokens from the same page.
 ```bash
 docker compose up -d db
 cp .env.example .env     # then edit values
-python -m src.web        # http://localhost:8080
+flask --app wsgi run --debug --port 8080   # http://localhost:8080 (reads .env)
 pytest tests/
 ```

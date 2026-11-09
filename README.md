@@ -12,7 +12,7 @@ pip install -r requirements-dev.txt
 cp .env.example .env            # then edit values
 
 docker compose up -d db         # Postgres on localhost:5432
-FLASK_ENV=development FLASK_APP=src flask run --debug --port 8080
+flask --app wsgi run --debug --port 8080
 ```
 
 The database schema is applied automatically on first use. Open http://localhost:8080.

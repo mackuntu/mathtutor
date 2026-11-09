@@ -3,14 +3,16 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask
 
-from . import config
-from .database import init_db
-from .web import init_app as init_web_routes
+# Load .env before importing modules that read the environment at import time.
+# Real environment variables (e.g. Vercel's) win over .env values.
+load_dotenv(override=False)
 
-# Load environment variables
-load_dotenv()
+from flask import Flask  # noqa: E402
+
+from . import config  # noqa: E402
+from .database import init_db  # noqa: E402
+from .web import init_app as init_web_routes  # noqa: E402
 
 
 def create_app():

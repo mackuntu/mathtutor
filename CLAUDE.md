@@ -14,7 +14,7 @@ cp .env.example .env
 docker compose up -d db
 
 # Run the app (http://localhost:8080); schema is applied automatically on first DB use
-FLASK_ENV=development FLASK_APP=src flask run --debug --port 8080
+flask --app wsgi run --debug --port 8080
 
 # Local login bypass (development only): /auth/test-auth?bypass_key=test-bypass-key-for-selenium
 
