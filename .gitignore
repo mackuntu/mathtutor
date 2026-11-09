@@ -19,12 +19,6 @@ data/worksheets_pb2.py
 src/model/trained_model/checkpoint*
 src/model/trained_model/
 
-# DynamoDB Local
-DynamoDBLocal_lib/
-DynamoDBLocal.jar
-dynamodb_local_latest.tar.gz
-shared-local-instance.db*
-
 # OAuth credentials and secrets
 .env
 
@@ -207,7 +201,6 @@ debug_*.jpg
 # Add to .gitignore
 *.pem
 secrets/
-.dynamodb/
 
 # Python
 __pycache__/
@@ -236,15 +229,8 @@ Thumbs.db
 
 # Database
 *.db
-shared-local-instance.db*
 worksheets.db
 mathtutor.db
-
-# DynamoDB Local
-DynamoDBLocal_lib/
-DynamoDBLocal.jar
-dynamodb_local_latest.tar.gz
-.dynamodb/
 
 # OAuth and Secrets
 .env
