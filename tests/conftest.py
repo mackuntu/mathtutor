@@ -18,10 +18,21 @@ DEFAULT_TEST_DATABASE_URL = (
 TEST_DB_SUFFIX = "_test"
 
 
+def assert_test_database(url: str) -> None:
+    """Refuse to touch any database whose name does not end with ``_test``."""
+    dbname = psycopg.conninfo.conninfo_to_dict(url).get("dbname", "")
+    if not dbname.endswith(TEST_DB_SUFFIX):
+        raise RuntimeError(
+            f"Refusing to use database {dbname!r}: test database names "
+            f"must end with {TEST_DB_SUFFIX!r} (check TEST_DATABASE_URL)"
+        )
+
+
 @pytest.fixture(scope="session")
 def pg_url():
     """URL of the Postgres test database, created if missing."""
     url = os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DATABASE_URL)
+    assert_test_database(url)
     info = psycopg.conninfo.conninfo_to_dict(url)
     dbname = info["dbname"]
     admin_url = psycopg.conninfo.make_conninfo(url, dbname="postgres")
@@ -32,16 +43,6 @@ def pg_url():
         if not exists:
             admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
     return url
-
-
-def assert_test_database(url: str) -> None:
-    """Refuse to touch any database whose name does not end with ``_test``."""
-    dbname = psycopg.conninfo.conninfo_to_dict(url).get("dbname", "")
-    if not dbname.endswith(TEST_DB_SUFFIX):
-        raise RuntimeError(
-            f"Refusing to TRUNCATE database {dbname!r}: test database names "
-            f"must end with {TEST_DB_SUFFIX!r} (check TEST_DATABASE_URL)"
-        )
 
 
 @pytest.fixture

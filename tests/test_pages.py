@@ -1,5 +1,7 @@
 """Tests for the page routes."""
 
+from src.database.models import Worksheet
+
 
 def test_index_generate_button_is_enabled(client, auth_manager, test_user, test_child):
     """The Generate button must render without the disabled attribute."""
@@ -47,3 +49,25 @@ def test_edit_child_persists_birthday(
     assert saved.birthday.strftime("%Y-%m-%d") == "2017-04-02"
     edit_page = client.get(f"/children/{test_child.id}/edit")
     assert 'value="2017-04-02"' in edit_page.get_data(as_text=True)
+
+
+def test_submit_worksheet_stores_answers_as_jsonb_list(
+    client, auth_manager, repository, test_user, test_child
+):
+    """Submitted answers persist as a JSON list and the view page renders them."""
+    worksheet = Worksheet(
+        child_id=test_child.id,
+        problems=[{"text": "1 + 1", "answer": 2}, {"text": "2 + 3", "answer": 5}],
+    )
+    repository.create_worksheet(worksheet)
+    client.set_cookie("session_token", auth_manager.create_session(test_user.email))
+
+    response = client.post(
+        f"/worksheets/{worksheet.id}/submit", data={"answer_0": "2", "answer_1": "4"}
+    )
+
+    assert response.status_code == 302
+    saved = repository.get_worksheet(worksheet.id)
+    assert saved.answers == [2.0, 4.0]
+    assert saved.incorrect_problems == [1]
+    assert client.get(f"/worksheets/{worksheet.id}").status_code == 200

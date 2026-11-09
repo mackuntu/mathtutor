@@ -211,9 +211,7 @@ def generate_worksheet_route():
     )
 
     # Create worksheet in database with correct answers
-    worksheet = WorksheetModel.create(
-        child_id=child.id, problems=json.dumps(problems)
-    )
+    worksheet = WorksheetModel.create(child_id=child.id, problems=json.dumps(problems))
     worksheet.correct_answers = answers  # Store correct answers for grading
     repository.create_worksheet(worksheet)
 
@@ -263,7 +261,7 @@ def submit_worksheet(worksheet_id):
             else:
                 answers.append(None)
 
-        worksheet.answers = json.dumps(answers)
+        worksheet.answers = answers
         worksheet.incorrect_problems = incorrect_problems
         worksheet.completed = True
         repository.update_worksheet(worksheet)
@@ -299,11 +297,13 @@ def view_worksheet(worksheet_id):
     # Normalize: new worksheets store problem dicts; older ones stored bare
     # strings. Wrap legacy strings so the template's problem.text/kind works.
     problem_list = [
-        p if isinstance(p, dict) else {"text": p, "kind": "operands"}
-        for p in problems
+        p if isinstance(p, dict) else {"text": p, "kind": "operands"} for p in problems
     ]
 
-    answers = json.loads(worksheet.answers) if worksheet.answers else None
+    # JSONB gives a list; tolerate a legacy JSON-encoded string.
+    answers = worksheet.answers
+    if isinstance(answers, str):
+        answers = json.loads(answers)
 
     return render_template(
         "worksheet.html",
