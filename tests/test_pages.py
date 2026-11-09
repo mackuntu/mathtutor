@@ -168,3 +168,31 @@ def test_index_ignores_child_id_of_another_user(
     assert "Zebulon Stranger" not in html
     assert stranger.id not in html
     assert test_child.id in html
+
+
+def test_deleting_one_child_keeps_sibling_history(
+    client, auth_manager, repository, test_user
+):
+    """Deleting child A cascades only A's sheets; B's history page still lists B's."""
+    from src.database.models import Child
+
+    sheets = {}
+    for name in ("Alpha", "Beta"):
+        child = Child(parent_email=test_user.email, name=name, age=8, grade=3)
+        repository.create_child(child)
+        sheet = Worksheet(child_id=child.id, problems=[{"text": "1 + 1", "answer": 2}])
+        repository.create_worksheet(sheet)
+        sheet.completed = True
+        repository.update_worksheet(sheet)
+        sheets[name] = (child, sheet)
+    client.set_cookie("session_token", auth_manager.create_session(test_user.email))
+    (child_a, sheet_a), (child_b, sheet_b) = sheets["Alpha"], sheets["Beta"]
+
+    assert client.post(f"/children/{child_a.id}/delete").status_code == 302
+    response = client.get(f"/worksheets/past/{child_b.id}")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert sheet_b.serial in html
+    assert sheet_a.serial not in html
+    assert repository.get_worksheet(sheet_a.id) is None

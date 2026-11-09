@@ -1,14 +1,22 @@
 """Tests for authentication functionality."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
+
+import requests
 
 from src.database.models import Session, User
 
 
 def test_verify_google_token(auth_manager):
-    """Test Google token verification."""
-    # Test invalid token
-    valid, user_info = auth_manager.verify_oauth_token("google", "invalid_token")
+    """An invalid token (Google answers 401) is rejected without a network call."""
+    rejected = requests.Response()
+    rejected.status_code = 401
+
+    with patch("src.auth.requests.get", return_value=rejected) as get:
+        valid, user_info = auth_manager.verify_oauth_token("google", "invalid_token")
+
+    get.assert_called_once()
     assert not valid
     assert user_info is None
 
@@ -129,7 +137,6 @@ def test_get_or_create_user(auth_manager):
 # --- Owner-only Google login -------------------------------------------------
 
 import pytest  # noqa: E402
-from unittest.mock import patch  # noqa: E402
 
 
 def _start_oauth(client, state="good-state"):
