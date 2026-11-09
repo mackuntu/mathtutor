@@ -12,6 +12,9 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 # Arbitrary app-wide key for pg_advisory_xact_lock around schema creation.
 SCHEMA_LOCK_KEY = 4_826_190_377
 
+# Fail fast instead of hanging a serverless invocation on an unreachable DB.
+CONNECT_TIMEOUT_SECONDS = 10
+
 # Reset to False in tests that recreate the database.
 _schema_applied = False
 
@@ -40,7 +43,11 @@ def get_conn() -> psycopg.Connection:
     # prepare_threshold=None: no server-side prepared statements, which a
     # transaction-mode pooler (Neon pooled endpoint / pgbouncer) cannot keep.
     conn = psycopg.connect(
-        dsn, autocommit=True, row_factory=dict_row, prepare_threshold=None
+        dsn,
+        autocommit=True,
+        row_factory=dict_row,
+        prepare_threshold=None,
+        connect_timeout=CONNECT_TIMEOUT_SECONDS,
     )
     try:
         if not _schema_applied:
