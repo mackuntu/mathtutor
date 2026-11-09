@@ -31,6 +31,23 @@ def test_get_conn_requires_database_url(app, monkeypatch):
             db_module.get_conn()
 
 
+def test_database_url_prefers_database_url(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://primary/db")
+    monkeypatch.setenv("MATHTUTOR_DB_DATABASE_URL", "postgresql://neon/db")
+    assert db_module.database_url() == "postgresql://primary/db"
+
+
+def test_database_url_falls_back_to_neon_integration_var(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("MATHTUTOR_DB_DATABASE_URL", "postgresql://neon/db")
+    assert db_module.database_url() == "postgresql://neon/db"
+
+
+def test_database_url_none_when_unset(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    assert db_module.database_url() is None
+
+
 def test_get_conn_is_cached_per_app_context(app, db):
     with app.app_context():
         assert db_module.get_conn() is db_module.get_conn()

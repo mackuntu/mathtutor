@@ -13,6 +13,7 @@ import logging  # noqa: E402
 from flask import Flask  # noqa: E402
 
 from . import config  # noqa: E402
+from .database import db as db_module  # noqa: E402
 from .database import init_db  # noqa: E402
 from .web import init_app as init_web_routes  # noqa: E402
 
@@ -25,9 +26,10 @@ def create_app():
 
     on_vercel = bool(os.getenv("VERCEL"))
     if on_vercel:
-        for var in ("FLASK_SECRET_KEY", "DATABASE_URL"):
-            if not os.getenv(var):
-                raise RuntimeError(f"{var} must be set when running on Vercel")
+        if not os.getenv("FLASK_SECRET_KEY"):
+            raise RuntimeError("FLASK_SECRET_KEY must be set when running on Vercel")
+        if not db_module.database_url():
+            raise RuntimeError("DATABASE_URL must be set when running on Vercel")
 
     flask_env = os.getenv("FLASK_ENV", "development")
     app.env = flask_env

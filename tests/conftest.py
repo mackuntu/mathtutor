@@ -33,6 +33,7 @@ def isolate_auth_env(monkeypatch):
     """Ignore owner/Vercel settings a developer's ``.env`` may have loaded."""
     monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
     monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("MATHTUTOR_DB_DATABASE_URL", raising=False)
 
 
 @pytest.fixture(scope="session")

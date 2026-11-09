@@ -23,7 +23,7 @@ Neon Postgres (via the Vercel Marketplace), served at
 1. `vercel login`, then `vercel link` in this repo (create project `mathtutor`).
 2. Add Neon Postgres from the Vercel Marketplace (Storage tab) and connect it to the
    project. Enable branch-per-preview so previews get their own database branch.
-   This provides `DATABASE_URL`. Note the Neon region (e.g. `aws-us-east-1`).
+   This provides `DATABASE_URL` (or `MATHTUTOR_DB_DATABASE_URL` when the integration uses a `MATHTUTOR_DB` env prefix; the app reads either). Note the Neon region (e.g. `aws-us-east-1`).
 3. DNS: add a CNAME record `mathtutor` -> the target Vercel shows after adding
    `mathtutor.mackuntu.com` under Project -> Settings -> Domains.
 4. Google Cloud Console -> Credentials -> your OAuth client -> Authorized redirect URIs:
@@ -54,7 +54,7 @@ Set each for both the Production and Preview environments.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | Neon Postgres connection string (set by the Neon integration) |
+| `DATABASE_URL` | yes | Neon Postgres connection string (set by the Neon integration; `MATHTUTOR_DB_DATABASE_URL` also accepted) |
 | `FLASK_SECRET_KEY` | yes | Long random string for signing sessions, e.g. `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 | `ALLOWED_EMAILS` | yes | Comma-separated emails allowed to log in. The **first** entry is the owner identity that device-token (`/api`) requests act as. |
 | `GOOGLE_CLIENT_ID` | for Google login | Google OAuth client ID (optional on Preview if you only test via API tokens) |

@@ -15,8 +15,21 @@ SCHEMA_LOCK_KEY = 4_826_190_377
 # Fail fast instead of hanging a serverless invocation on an unreachable DB.
 CONNECT_TIMEOUT_SECONDS = 10
 
+# Connection-string env vars, in priority order. The Vercel Neon integration
+# injects a prefixed name (per-preview-branch values included).
+DATABASE_URL_VARS = ("DATABASE_URL", "MATHTUTOR_DB_DATABASE_URL")
+
 # Reset to False in tests that recreate the database.
 _schema_applied = False
+
+
+def database_url() -> str | None:
+    """Return the first configured Postgres connection string, or None."""
+    for var in DATABASE_URL_VARS:
+        value = os.environ.get(var)
+        if value:
+            return value
+    return None
 
 
 def ensure_schema(conn: psycopg.Connection) -> None:
@@ -36,7 +49,7 @@ def get_conn() -> psycopg.Connection:
     if "db_conn" in g:
         return g.db_conn
 
-    dsn = os.environ.get("DATABASE_URL")
+    dsn = database_url()
     if not dsn:
         raise RuntimeError("DATABASE_URL is not set")
 
