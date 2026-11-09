@@ -3,6 +3,7 @@
 import logging
 import os
 import secrets
+
 from flask import (
     Blueprint,
     flash,
