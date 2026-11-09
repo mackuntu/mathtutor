@@ -5,6 +5,7 @@ import os
 import secrets
 
 from flask import (
+    abort,
     Blueprint,
     flash,
     make_response,
@@ -16,6 +17,7 @@ from flask import (
 )
 
 from ..auth import AuthManager
+from ..config import allowed_emails
 from .common import get_current_user
 
 # Configure logging
@@ -27,6 +29,20 @@ auth_manager = AuthManager()
 # Create blueprint
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+SESSION_MAX_AGE = 7 * 24 * 60 * 60  # 7 days
+
+
+def _set_session_cookie(response, token):
+    response.set_cookie(
+        "session_token",
+        token,
+        httponly=True,
+        secure=request.is_secure or bool(os.environ.get("VERCEL")),
+        samesite="Lax",
+        max_age=SESSION_MAX_AGE,
+        path="/",
+    )
+
 # Test authentication bypass key - should match the one in conftest.py
 TEST_BYPASS_KEY = os.environ.get("TEST_BYPASS_KEY", "test-bypass-key-for-selenium")
 
@@ -34,6 +50,10 @@ TEST_BYPASS_KEY = os.environ.get("TEST_BYPASS_KEY", "test-bypass-key-for-seleniu
 @bp.route("/test-auth")
 def test_auth():
     """Test-only endpoint for authentication bypass during UI testing."""
+    # Never available on Vercel (including preview deployments)
+    if os.environ.get("VERCEL"):
+        abort(404)
+
     # Only allow this in development/testing environments
     if (
         os.environ.get("FLASK_ENV") != "development"
@@ -68,7 +88,7 @@ def test_auth():
 
     # Set the session cookie
     response = make_response(redirect(url_for("pages.index")))
-    response.set_cookie("session_token", session_token, httponly=True, path="/")
+    _set_session_cookie(response, session_token)
 
     logger.info(f"Test authentication successful for {email}")
     return response
@@ -136,9 +156,14 @@ def oauth_callback():
             flash("Failed to verify authentication. Please try again.", "error")
             return redirect(url_for("auth.login"))
 
-        # Create or get user
+        # Owner-only: fail closed unless the email is allowlisted
+        email = str(user_info.get("email", "")).strip().lower()
+        if email not in allowed_emails():
+            logger.warning("Rejected login from non-allowlisted account")
+            return render_template("forbidden.html"), 403
+
         user = auth_manager.get_or_create_user(
-            email=user_info["email"],
+            email=email,
             name=user_info["name"],
             picture=user_info.get("picture"),
         )
@@ -146,14 +171,7 @@ def oauth_callback():
         # Create session
         session_token = auth_manager.create_session(user.email)
         response = make_response(redirect(url_for("pages.index")))
-        response.set_cookie(
-            "session_token",
-            session_token,
-            httponly=True,
-            secure=True,
-            samesite="Lax",
-            max_age=7 * 24 * 60 * 60,  # 7 days
-        )
+        _set_session_cookie(response, session_token)
 
         # Clean up session
         session.pop("oauth_state", None)
@@ -175,5 +193,5 @@ def logout():
         auth_manager.logout(token)
 
     response = make_response(redirect(url_for("auth.login")))
-    response.delete_cookie("session_token")
+    response.delete_cookie("session_token", path="/")
     return response
