@@ -4,7 +4,10 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import boto3
+import psycopg
+import psycopg.conninfo
 import pytest
+from psycopg import sql
 try:
     from moto import mock_dynamodb
 except ImportError:
@@ -206,3 +209,50 @@ def cleanup_children(repository):
             # Ignore errors if user doesn't exist
             pass
     yield
+
+
+DEFAULT_TEST_DATABASE_URL = "postgresql://postgres:mathtutor@localhost:5432/mathtutor_test"
+
+
+@pytest.fixture(scope="session")
+def pg_url():
+    """URL of the Postgres test database, created if missing."""
+    url = os.environ.get("TEST_DATABASE_URL", DEFAULT_TEST_DATABASE_URL)
+    info = psycopg.conninfo.conninfo_to_dict(url)
+    dbname = info["dbname"]
+    admin_url = psycopg.conninfo.make_conninfo(url, dbname="postgres")
+    with psycopg.connect(admin_url, autocommit=True) as admin:
+        exists = admin.execute(
+            "SELECT 1 FROM pg_database WHERE datname = %s", (dbname,)
+        ).fetchone()
+        if not exists:
+            admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname)))
+    return url
+
+
+@pytest.fixture
+def db(pg_url, monkeypatch):
+    """Point the app at the test database with all tables empty."""
+    from src.database import db as db_module
+
+    monkeypatch.setenv("DATABASE_URL", pg_url)
+    with psycopg.connect(pg_url, autocommit=True) as conn:
+        db_module.ensure_schema(conn)
+        conn.execute(
+            "TRUNCATE users, children, sessions, worksheets, device_tokens CASCADE"
+        )
+    yield pg_url
+
+
+@pytest.fixture
+def app():
+    from src import create_app
+
+    app = create_app()
+    app.config["TESTING"] = True
+    return app
+
+
+@pytest.fixture
+def client(app):
+    return app.test_client()

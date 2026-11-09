@@ -7,6 +7,7 @@ import boto3
 from botocore.config import Config
 
 from .create_tables import create_tables as create_dynamodb_tables
+from .db import close_conn
 from .repository import DynamoDBRepository
 
 _repository: Optional[DynamoDBRepository] = None
@@ -50,6 +51,7 @@ def get_repository() -> DynamoDBRepository:
 def init_db(app):
     """Initialize the database with the Flask application."""
     app.config["DYNAMODB_CLIENT"] = dynamodb
+    app.teardown_appcontext(close_conn)
 
 
 def create_tables():
