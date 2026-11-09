@@ -19,6 +19,8 @@ The database schema is applied automatically on first use. Open http://localhost
 
 For local development without Google login, visit
 `/auth/test-auth?bypass_key=test-bypass-key-for-selenium` (only works when `FLASK_ENV=development`).
+When `ALLOWED_EMAILS` is set it signs you in as the first allowlisted email, since
+sessions for any other email are rejected.
 
 ## Configuration
 

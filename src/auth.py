@@ -1,6 +1,7 @@
 """Authentication manager for the MathTutor application."""
 
 import logging
+import os
 import secrets
 import time
 from typing import Dict, Optional, Tuple
@@ -8,7 +9,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from .config import OAUTH_PROVIDERS, OAUTH_REDIRECT_URI
+from .config import OAUTH_PROVIDERS, OAUTH_REDIRECT_URI, allowed_emails
 from .database import get_repository
 from .database.models import Session, User
 
@@ -16,6 +17,19 @@ from .database.models import Session, User
 logger = logging.getLogger(__name__)
 
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
+
+def _email_permitted(email: str) -> bool:
+    """Whether a session for ``email`` may still be used.
+
+    The allowlist is enforced on Vercel (where an empty list admits nobody) and
+    wherever ALLOWED_EMAILS is set, so removing an email takes effect at once.
+    Local dev without an allowlist keeps working for /auth/test-auth.
+    """
+    allowed = allowed_emails()
+    if not allowed and not os.environ.get("VERCEL"):
+        return True
+    return email.strip().lower() in allowed
 
 
 class AuthManager:
@@ -139,7 +153,9 @@ class AuthManager:
         if not session:
             return None
 
-        if session.expires_at < int(time.time()):
+        if session.expires_at < int(time.time()) or not _email_permitted(
+            session.user_email
+        ):
             self.repository.delete_session(token)
             return None
 

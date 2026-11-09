@@ -28,6 +28,13 @@ def assert_test_database(url: str) -> None:
         )
 
 
+@pytest.fixture(autouse=True)
+def isolate_auth_env(monkeypatch):
+    """Ignore owner/Vercel settings a developer's ``.env`` may have loaded."""
+    monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+
+
 @pytest.fixture(scope="session")
 def pg_url():
     """URL of the Postgres test database, created if missing."""

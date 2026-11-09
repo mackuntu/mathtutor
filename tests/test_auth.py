@@ -341,3 +341,64 @@ def test_verify_google_token_falls_back_to_email_for_missing_name(auth_manager):
         valid, info = auth_manager.verify_oauth_token("google", "t")
 
     assert valid and info["name"] == "a@b.c"
+
+
+# --- Allowlist enforced on every request -------------------------------------
+
+
+def test_session_rejected_and_deleted_once_email_leaves_allowlist(
+    auth_manager, test_user, monkeypatch
+):
+    monkeypatch.delenv("VERCEL", raising=False)
+    token = auth_manager.create_session(test_user.email)
+    monkeypatch.setenv("ALLOWED_EMAILS", "someone-else@example.com")
+
+    assert auth_manager.validate_session(token) is None
+    assert auth_manager.repository.get_session(token) is None
+
+
+def test_session_accepted_for_allowlisted_email(auth_manager, test_user, monkeypatch):
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.setenv("ALLOWED_EMAILS", "Test@Example.com")
+    token = auth_manager.create_session(test_user.email)
+
+    assert auth_manager.validate_session(token).email == test_user.email
+
+
+def test_session_not_allowlist_checked_in_dev_without_allowlist(
+    auth_manager, test_user, monkeypatch
+):
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
+    token = auth_manager.create_session(test_user.email)
+
+    assert auth_manager.validate_session(token).email == test_user.email
+
+
+def test_session_rejected_on_vercel_without_allowlist(
+    auth_manager, test_user, monkeypatch
+):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
+    token = auth_manager.create_session(test_user.email)
+
+    assert auth_manager.validate_session(token) is None
+    assert auth_manager.repository.get_session(token) is None
+
+
+def test_test_auth_session_works_in_dev_without_allowlist(client, db, monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "development")
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
+    client.get("/auth/test-auth?bypass_key=test-bypass-key-for-selenium")
+
+    assert client.get("/children/").status_code == 200
+
+
+def test_test_auth_signs_in_as_owner_when_allowlist_set(client, db, monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "development")
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.setenv("ALLOWED_EMAILS", "me@x.com")
+    client.get("/auth/test-auth?bypass_key=test-bypass-key-for-selenium")
+
+    assert client.get("/children/").status_code == 200

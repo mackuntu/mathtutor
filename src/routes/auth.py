@@ -17,7 +17,7 @@ from flask import (
 )
 
 from ..auth import AuthManager
-from ..config import allowed_emails
+from ..config import allowed_emails, owner_email
 from .common import get_current_user
 
 # Configure logging
@@ -48,6 +48,25 @@ def _set_session_cookie(response, token):
 TEST_BYPASS_KEY = os.environ.get("TEST_BYPASS_KEY", "test-bypass-key-for-selenium")
 
 
+TEST_AUTH_USERS = {
+    "test-teacher": ("test-teacher@example.com", "Test Teacher"),
+    "test-parent": ("test-parent@example.com", "Test Parent"),
+}
+TEST_AUTH_DEFAULT_USER = ("test-user@example.com", "Test User")
+
+
+def _test_auth_identity(user_type: str) -> tuple[str, str]:
+    """Who /auth/test-auth signs in as.
+
+    With ALLOWED_EMAILS set, sessions for other emails are rejected, so the
+    bypass signs in as the owner (first entry) instead of a fixture user.
+    """
+    owner = owner_email()
+    if owner:
+        return owner, owner
+    return TEST_AUTH_USERS.get(user_type, TEST_AUTH_DEFAULT_USER)
+
+
 @bp.route("/test-auth")
 def test_auth():
     """Test-only endpoint for authentication bypass during UI testing."""
@@ -67,21 +86,7 @@ def test_auth():
     if bypass_key != TEST_BYPASS_KEY:
         return "Invalid bypass key", 403
 
-    # Get the user type from the request
-    user_type = request.args.get("user", "test-teacher")
-
-    # Create a test user based on the user type
-    if user_type == "test-teacher":
-        email = "test-teacher@example.com"
-        name = "Test Teacher"
-    elif user_type == "test-parent":
-        email = "test-parent@example.com"
-        name = "Test Parent"
-    else:
-        email = "test-user@example.com"
-        name = "Test User"
-
-    # Create or get the user
+    email, name = _test_auth_identity(request.args.get("user", "test-teacher"))
     user = auth_manager.get_or_create_user(email, name)
 
     # Create a session for the user
