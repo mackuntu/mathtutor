@@ -10,7 +10,6 @@
 <meta property="og:type" content="website">
 {% endblock %}
 
-{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
 
 {% block head %}
 {{ super() }}
@@ -69,42 +68,6 @@
     
     <div class="row">
         <div class="col-md-9">
-            <!-- Subscription Status -->
-            {% if user %}
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Subscription Status</h5>
-                    <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-sm btn-outline-primary">Manage</a>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center subscription-status">
-                        <div>
-                            <h6>
-                                {% if is_premium %}
-                                <span class="badge bg-warning text-dark">Premium</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Free</span>
-                                {% endif %}
-                            </h6>
-                            {% if is_premium %}
-                            <p class="mb-0">Unlimited worksheet generation</p>
-                            {% else %}
-                            <p class="mb-0"><span class="remaining">{{ remaining_worksheets }}</span> of {{ subscription.worksheets_limit }} worksheets remaining this week</p>
-                            {% if not can_generate %}
-                            <div class="alert alert-danger mt-2 mb-0">
-                                <p class="mb-0">You've reached your worksheet limit. <a href="{{ url_for('subscription.subscription_page') }}">Upgrade to Premium</a> for unlimited worksheets.</p>
-                            </div>
-                            {% endif %}
-                            {% endif %}
-                        </div>
-                        {% if not is_premium %}
-                        <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-warning">Upgrade to Premium</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
             <!-- Child Selector -->
             <div class="child-selector mx-auto">
                 <label for="childSelect" class="form-label">Generate worksheet for:</label>
@@ -198,7 +161,6 @@
         </div>
         
         <div class="col-md-3">
-            {{ sidebar_ad() }}
             
             <div class="card mb-4">
                 <div class="card-header">
@@ -207,9 +169,6 @@
                 <div class="card-body">
                     <p class="small">Customize worksheets based on your child's age and skill level for the best learning experience.</p>
                     <p class="small">Regular practice with math worksheets helps build confidence and improve skills.</p>
-                    {% if not is_premium %}
-                    <p class="small mt-3"><strong>Upgrade to Premium</strong> for unlimited worksheets and advanced features!</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -255,32 +214,6 @@
         },
         output: 'blob'
     };
-
-    // Check if user can generate worksheets
-    const canGenerate = {% if can_generate %}true{% else %}false{% endif %};
-    const isLoggedIn = {% if user %}true{% else %}false{% endif %};
-    
-    // Show subscription warning if needed
-    function checkSubscriptionStatus() {
-        const generateBtn = document.getElementById('generateBtn');
-        if (!isLoggedIn) {
-            // If not logged in, enable button but will redirect to login
-            if (generateBtn) generateBtn.disabled = false;
-            return;
-        }
-        
-        if (!canGenerate) {
-            if (generateBtn) {
-                generateBtn.disabled = true;
-                generateBtn.title = "You've reached your worksheet limit";
-            }
-        }
-    }
-    
-    // Run on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        checkSubscriptionStatus();
-    });
 
     async function generatePDF(htmlContent, options) {
         const element = document.createElement('div');

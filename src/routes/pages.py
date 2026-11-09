@@ -6,7 +6,6 @@ from flask import Blueprint, redirect, render_template, request, url_for
 
 from ..blog.manager import BlogManager
 from ..database import get_repository
-from ..database.models import Subscription
 from ..problem_generator import ProblemGenerator
 from .common import get_current_user
 
@@ -32,12 +31,6 @@ def index():
     # Get user's children
     children = repository.get_children_by_parent(user.email)
 
-    # Get user's subscription
-    subscription = repository.get_user_subscription(user.email)
-    if not subscription:
-        subscription = Subscription(user_email=user.email)
-        repository.create_subscription(subscription)
-
     active_child_id = request.args.get("child_id")
     active_child = None
 
@@ -54,11 +47,6 @@ def index():
         ages=list(range(6, 10)),  # Ages 6-9
         default_age=active_child.age if active_child else None,
         default_difficulty=generator.get_school_year_progress(),
-        subscription=subscription,
-        can_generate=subscription.can_generate_worksheet(),
-        remaining_worksheets=subscription.worksheets_limit
-        - subscription.worksheets_generated,
-        is_premium=subscription.plan == Subscription.PLAN_PREMIUM,
     )
 
 

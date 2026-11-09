@@ -3,8 +3,6 @@
 import logging
 import os
 import secrets
-from typing import Optional
-
 from flask import (
     Blueprint,
     flash,
@@ -95,26 +93,6 @@ def oauth_google():
     session["oauth_state"] = state
     session["oauth_provider"] = "google"
     auth_url = auth_manager.get_oauth_url("google", state)
-    return redirect(auth_url)
-
-
-@bp.route("/oauth/facebook")
-def oauth_facebook():
-    """Initiate Facebook OAuth flow."""
-    state = secrets.token_urlsafe(32)
-    session["oauth_state"] = state
-    session["oauth_provider"] = "facebook"
-    auth_url = auth_manager.get_oauth_url("facebook", state)
-    return redirect(auth_url)
-
-
-@bp.route("/oauth/x")
-def oauth_x():
-    """Initiate X (Twitter) OAuth flow."""
-    state = secrets.token_urlsafe(32)
-    session["oauth_state"] = state
-    session["oauth_provider"] = "x"
-    auth_url = auth_manager.get_oauth_url("x", state)
     return redirect(auth_url)
 
 

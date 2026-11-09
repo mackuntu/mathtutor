@@ -2,7 +2,6 @@
 
 {% block title %}Past Worksheets{% endblock %}
 
-{% from "components/ads.html" import google_ad, facebook_ad, sidebar_ad %}
 
 {% block content %}
 <div class="container mt-4">
@@ -68,7 +67,6 @@
         </div>
         
         <div class="col-md-3">
-            {{ sidebar_ad() }}
             
             <div class="card mt-4">
                 <div class="card-header">
@@ -77,10 +75,6 @@
                 <div class="card-body">
                     <p class="small">Track your child's progress over time with our grading system.</p>
                     <p class="small">Regular practice helps improve math skills and confidence.</p>
-                    {% if not is_premium %}
-                    <p class="small mt-3"><strong>Upgrade to Premium</strong> for advanced analytics and unlimited worksheets!</p>
-                    <a href="{{ url_for('subscription.subscription_page') }}" class="btn btn-warning btn-sm mt-2">Upgrade Now</a>
-                    {% endif %}
                 </div>
             </div>
         </div>

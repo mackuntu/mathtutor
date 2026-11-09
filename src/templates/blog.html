@@ -142,8 +142,6 @@
                     {% endif %}
                 </div>
                 
-                {% from "components/ads.html" import google_ad %}
-                {{ google_ad() }}
                 
                 {% if articles %}
                     {% for article in articles %}
@@ -170,10 +168,6 @@
                         {% endif %}
                     </div>
                     
-                    {% if loop.index == 1 %}
-                        {% from "components/ads.html" import native_ad %}
-                        {{ native_ad() }}
-                    {% endif %}
                     {% endfor %}
                 {% else %}
                 <div class="no-articles">
@@ -212,8 +206,6 @@
                 </div>
                 {% endif %}
                 
-                {% from "components/ads.html" import sidebar_ad %}
-                {{ sidebar_ad() }}
             </div>
         </div>
     </div>

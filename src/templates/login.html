@@ -8,8 +8,6 @@
 
 {% block navbar %}{% endblock %}
 
-{% from "components/ads.html" import google_ad, facebook_ad %}
-
 {% block extra_css %}
 <style>
     .social-login-btn {
@@ -39,12 +37,6 @@
     .social-login-btn.google {
         color: #757575;
     }
-    .social-login-btn.facebook {
-        color: #1877F2;
-    }
-    .social-login-btn.x {
-        color: #000000;
-    }
     .login-container {
         max-width: 400px;
         margin: 100px auto 40px;
@@ -63,10 +55,6 @@
     .terms-text a:hover {
         text-decoration: underline;
     }
-    .login-ad-container {
-        max-width: 728px;
-        margin: 20px auto;
-    }
 </style>
 {% endblock %}
 
@@ -84,23 +72,11 @@
                 <img src="{{ url_for('static', filename='images/google.svg') }}" alt="Google">
                 <span>Continue with Google</span>
             </a>
-            <a href="{{ url_for('auth.oauth_facebook') }}" class="social-login-btn facebook">
-                <img src="{{ url_for('static', filename='images/facebook.svg') }}" alt="Facebook">
-                <span>Continue with Facebook</span>
-            </a>
-            <a href="{{ url_for('auth.oauth_x') }}" class="social-login-btn x">
-                <img src="{{ url_for('static', filename='images/x.svg') }}" alt="X">
-                <span>Continue with X</span>
-            </a>
         </div>
 
         <div class="terms-text">
             By continuing, you agree to MathTutor's <a href="{{ url_for('pages.terms') }}">Terms of Service</a> and <a href="{{ url_for('pages.privacy') }}">Privacy Policy</a>
         </div>
-    </div>
-    
-    <div class="login-ad-container">
-        {{ google_ad('XXXXXXXXXX') }}
     </div>
 </div>
 {% endblock %}

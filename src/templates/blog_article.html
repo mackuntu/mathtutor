@@ -143,8 +143,6 @@
                     </div>
                 </div>
                 
-                {% from "components/ads.html" import google_ad %}
-                {{ google_ad() }}
                 
                 <img src="{{ article.image_url }}" alt="{{ article.image_alt }}" class="article-image">
                 
@@ -160,8 +158,6 @@
                 </div>
                 {% endif %}
                 
-                {% from "components/ads.html" import native_ad %}
-                {{ native_ad() }}
                 
                 {% if related_articles %}
                 <div class="related-articles">
@@ -202,14 +198,6 @@
                 <div class="blog-sidebar">
                     <h4>Share This Article</h4>
                     <div class="d-flex">
-                        <a href="https://twitter.com/intent/tweet?url={{ request.url|urlencode }}&text={{ article.title|urlencode }}" 
-                           target="_blank" class="btn btn-outline-primary me-2">
-                            <i class="bi bi-twitter"></i>
-                        </a>
-                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}" 
-                           target="_blank" class="btn btn-outline-primary me-2">
-                            <i class="bi bi-facebook"></i>
-                        </a>
                         <a href="mailto:?subject={{ article.title|urlencode }}&body={{ request.url|urlencode }}" 
                            class="btn btn-outline-primary me-2">
                             <i class="bi bi-envelope"></i>
@@ -220,8 +208,6 @@
                     </div>
                 </div>
                 
-                {% from "components/ads.html" import sidebar_ad %}
-                {{ sidebar_ad() }}
             </div>
         </div>
     </div>

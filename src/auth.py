@@ -1,17 +1,12 @@
 """Authentication manager for the MathTutor application."""
 
-import json
 import logging
 import secrets
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlencode
 
 import requests
-from flask import session
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 
 from .config import OAUTH_PROVIDERS, OAUTH_REDIRECT_URI
 from .database import get_repository
@@ -42,11 +37,6 @@ class AuthManager:
             "state": state,
         }
 
-        # Add provider-specific parameters
-        if provider == "x":
-            params["code_challenge"] = self._generate_code_challenge()
-            params["code_challenge_method"] = "S256"
-
         return f"{config['authorize_url']}?{urlencode(params)}"
 
     def verify_oauth_token(
@@ -56,15 +46,9 @@ class AuthManager:
         if provider not in OAUTH_PROVIDERS:
             return False, None
 
-        config = OAUTH_PROVIDERS[provider]
-
         try:
             if provider == "google":
                 return self._verify_google_token(token)
-            elif provider == "facebook":
-                return self._verify_facebook_token(token)
-            elif provider == "x":
-                return self._verify_x_token(token)
 
             return False, None
         except Exception as e:
@@ -89,44 +73,6 @@ class AuthManager:
             logger.error(f"Error verifying Google token: {str(e)}")
             return False, None
 
-    def _verify_facebook_token(self, token: str) -> Tuple[bool, Optional[Dict]]:
-        """Verify Facebook OAuth token."""
-        try:
-            response = requests.get(
-                OAUTH_PROVIDERS["facebook"]["userinfo_url"],
-                params={"access_token": token},
-            )
-            response.raise_for_status()
-            data = response.json()
-            return True, {
-                "email": data["email"],
-                "name": data["name"],
-                "picture": data.get("picture", {}).get("data", {}).get("url"),
-            }
-        except Exception as e:
-            logger.error(f"Error verifying Facebook token: {str(e)}")
-            return False, None
-
-    def _verify_x_token(self, token: str) -> Tuple[bool, Optional[Dict]]:
-        """Verify X (Twitter) OAuth token."""
-        try:
-            headers = {
-                "Authorization": f"Bearer {token}",
-            }
-            response = requests.get(
-                OAUTH_PROVIDERS["x"]["userinfo_url"], headers=headers
-            )
-            response.raise_for_status()
-            data = response.json()
-            return True, {
-                "email": data["data"]["email"],
-                "name": data["data"]["name"],
-                "picture": data["data"].get("profile_image_url"),
-            }
-        except Exception as e:
-            logger.error(f"Error verifying X token: {str(e)}")
-            return False, None
-
     def exchange_code_for_token(self, provider: str, code: str) -> Optional[str]:
         """Exchange authorization code for access token."""
         if provider not in OAUTH_PROVIDERS:
@@ -141,10 +87,6 @@ class AuthManager:
                 "redirect_uri": OAUTH_REDIRECT_URI,
                 "grant_type": "authorization_code",
             }
-
-            # Add provider-specific parameters
-            if provider == "x":
-                data["code_verifier"] = self._get_code_verifier()
 
             response = requests.post(config["token_url"], data=data)
             response.raise_for_status()
@@ -191,14 +133,3 @@ class AuthManager:
     def logout(self, token: str) -> None:
         """Log out a user by deleting their session."""
         self.repository.delete_session(token)
-
-    def _generate_code_challenge(self) -> str:
-        """Generate a code challenge for PKCE."""
-        verifier = secrets.token_urlsafe(32)
-        session["code_verifier"] = verifier
-        # In a real implementation, you would hash the verifier
-        return verifier
-
-    def _get_code_verifier(self) -> str:
-        """Get the code verifier from the session."""
-        return session.pop("code_verifier", "")

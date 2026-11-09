@@ -25,39 +25,7 @@ OAUTH_PROVIDERS: Dict[str, OAuthConfig] = {
         "userinfo_url": "https://www.googleapis.com/oauth2/v3/userinfo",
         "scope": "openid email profile",
     },
-    "facebook": {
-        "client_id": os.getenv("FACEBOOK_CLIENT_ID", ""),
-        "client_secret": os.getenv("FACEBOOK_CLIENT_SECRET", ""),
-        "authorize_url": "https://www.facebook.com/v12.0/dialog/oauth",
-        "token_url": "https://graph.facebook.com/v12.0/oauth/access_token",
-        "userinfo_url": "https://graph.facebook.com/me?fields=id,name,email,picture",
-        "scope": "email public_profile",
-    },
-    "x": {
-        "client_id": os.getenv("X_CLIENT_ID", ""),
-        "client_secret": os.getenv("X_CLIENT_SECRET", ""),
-        "authorize_url": "https://twitter.com/i/oauth2/authorize",
-        "token_url": "https://api.twitter.com/2/oauth2/token",
-        "userinfo_url": "https://api.twitter.com/2/users/me",
-        "scope": "users.read tweet.read",
-    },
 }
-
-# DynamoDB configuration
-DYNAMODB_ENDPOINT = os.getenv("DYNAMODB_ENDPOINT", "http://localhost:8000")
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "testing")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "testing")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-
-# Google AdSense configuration
-GOOGLE_ADSENSE_CLIENT_ID = os.getenv("GOOGLE_ADSENSE_CLIENT_ID", "")
-GOOGLE_ADSENSE_DEFAULT_SLOT = os.getenv("GOOGLE_ADSENSE_DEFAULT_SLOT", "")
-GOOGLE_ADSENSE_SIDEBAR_SLOT = os.getenv("GOOGLE_ADSENSE_SIDEBAR_SLOT", "")
-GOOGLE_ADSENSE_NATIVE_SLOT = os.getenv("GOOGLE_ADSENSE_NATIVE_SLOT", "")
-
-# Facebook Ad configuration
-FACEBOOK_AD_APP_ID = os.getenv("FACEBOOK_AD_APP_ID", "")
-FACEBOOK_AD_DEFAULT_PLACEMENT = os.getenv("FACEBOOK_AD_DEFAULT_PLACEMENT", "")
 
 # Flask configuration
 FLASK_ENV = os.getenv("FLASK_ENV", "development")

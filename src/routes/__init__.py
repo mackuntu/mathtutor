@@ -2,7 +2,7 @@
 
 from flask import Flask
 
-from . import admin, auth, children, pages, subscription, worksheets
+from . import auth, children, pages, worksheets
 
 
 def register_blueprints(app: Flask) -> None:
@@ -15,5 +15,3 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(children.bp)
     app.register_blueprint(pages.bp)
     app.register_blueprint(worksheets.bp)
-    app.register_blueprint(subscription.bp)
-    app.register_blueprint(admin.bp)

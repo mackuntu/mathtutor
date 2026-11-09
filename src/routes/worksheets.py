@@ -2,28 +2,20 @@
 
 import json
 import logging
-import os
 import time
-from datetime import datetime
-from pathlib import Path
-from typing import List
 
 from flask import (
     Blueprint,
-    Response,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
-    send_file,
     url_for,
 )
 
 from ..database import get_repository
-from ..database.models import Child, Subscription
 from ..database.models import Worksheet as WorksheetModel
-from ..document.template import LayoutChoice
 from ..problem_generator import ProblemGenerator
 from .common import get_current_user
 
@@ -116,29 +108,6 @@ def generate_both():
             f"num_worksheets={num_worksheets}, child_id={child_id}"
         )
 
-        # Check subscription status
-        subscription = repository.get_user_subscription(user.email)
-        if not subscription:
-            # Create a free tier subscription if none exists
-            logger.info(f"Creating free tier subscription for user: {user.email}")
-            subscription = Subscription(user_email=user.email)
-            repository.create_subscription(subscription)
-
-        # Check if user can generate more worksheets
-        if not subscription.can_generate_worksheet():
-            logger.warning(f"User {user.email} has reached worksheet generation limit")
-            return (
-                jsonify(
-                    {
-                        "error": "You have reached your worksheet generation limit. "
-                        "Please upgrade to premium for unlimited worksheets.",
-                        "limit_reached": True,
-                        "success": False,
-                    }
-                ),
-                403,
-            )
-
         # Generate multiple worksheets
         worksheets_data = []
         for _ in range(num_worksheets):
@@ -156,7 +125,6 @@ def generate_both():
             logger.info(f"Problem generation took: {prob_time:.2f} seconds")
 
             # Create worksheet in database with correct answers
-            # Note: ROIs are calculated dynamically during grading based on image dimensions
             logger.info(f"Creating worksheet in database for child_id={child_id}")
             worksheet = WorksheetModel.create(
                 child_id=child_id, problems=json.dumps(problems)
@@ -207,20 +175,10 @@ def generate_both():
                 f"Added worksheet data for serial_number={worksheet.serial_number}"
             )
 
-        # Increment the worksheets generated count
-        logger.info(f"Incrementing worksheets count for user {user.email}")
-        subscription.increment_worksheets_count()
-        repository.update_subscription(subscription)
-
         total_time = time.time() - start_time
         logger.info(f"Total request took: {total_time:.2f} seconds")
 
-        response_data = {
-            "worksheets": worksheets_data,
-            "remaining": subscription.worksheets_limit
-            - subscription.worksheets_generated,
-            "is_premium": subscription.plan == Subscription.PLAN_PREMIUM,
-        }
+        response_data = {"worksheets": worksheets_data}
         logger.info(f"Returning response with {len(worksheets_data)} worksheets")
         return jsonify(response_data)
 
@@ -253,7 +211,6 @@ def generate_worksheet_route():
     )
 
     # Create worksheet in database with correct answers
-    # Note: ROIs are calculated dynamically during grading based on image dimensions
     worksheet = WorksheetModel.create(
         child_id=child.id, problems=json.dumps(problems)
     )
@@ -377,15 +334,6 @@ def past_worksheets(child_id):
         flash("Child not found.", "error")
         return redirect(url_for("pages.index"))
 
-    # Get subscription status
-    subscription = repository.get_user_subscription(user.email)
-    if not subscription:
-        # Create a free tier subscription if none exists
-        subscription = Subscription(user_email=user.email)
-        repository.create_subscription(subscription)
-
-    is_premium = subscription.plan == Subscription.PLAN_PREMIUM
-
     worksheets = repository.get_child_worksheets(child_id)
     worksheets.sort(key=lambda w: w.created_at, reverse=True)
 
@@ -414,8 +362,6 @@ def past_worksheets(child_id):
         worksheets=worksheets,
         past_scores=past_scores,
         past_dates=past_dates,
-        is_premium=is_premium,
-        subscription=subscription,
     )
 
 
