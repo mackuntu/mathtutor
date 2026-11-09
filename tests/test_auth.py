@@ -139,8 +139,13 @@ def _start_oauth(client, state="good-state"):
     return state
 
 
-def _callback(client, email, state="good-state"):
-    info = {"email": email, "name": "Someone", "picture": None}
+def _callback(client, email, state="good-state", email_verified=True):
+    info = {
+        "email": email,
+        "name": "Someone",
+        "picture": None,
+        "email_verified": email_verified,
+    }
     with patch(
         "src.routes.auth.auth_manager.exchange_code_for_token", return_value="tok"
     ), patch(
@@ -252,3 +257,40 @@ def test_secret_key_is_not_the_public_default(monkeypatch):
 
     monkeypatch.setenv("FLASK_SECRET_KEY", "real-secret")
     assert create_app().secret_key == "real-secret"
+
+
+@pytest.mark.parametrize("verified", [False, None, "true"])
+def test_unverified_google_email_rejected(client, owner_env, db, verified):
+    _start_oauth(client)
+    resp = _callback(client, "me@x.com", email_verified=verified)
+    assert resp.status_code == 403
+    assert b"This MathTutor is private." in resp.data
+    assert _count(db, "users") == 0
+    assert _count(db, "sessions") == 0
+    assert "session_token" not in resp.headers.get("Set-Cookie", "")
+
+
+def test_verify_google_token_propagates_email_verified(auth_manager):
+    class Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"email": "a@b.c", "name": "A", "email_verified": True}
+
+    with patch("src.auth.requests.get", return_value=Resp()):
+        valid, info = auth_manager.verify_oauth_token("google", "t")
+    assert valid and info["email_verified"] is True
+
+
+def test_cookie_not_secure_on_plain_http_without_vercel(client, owner_env):
+    _start_oauth(client)
+    resp = _callback(client, "me@x.com")
+    assert "Secure" not in resp.headers["Set-Cookie"]
+
+
+def test_oauth_state_cleared_on_mismatch(client, owner_env):
+    _start_oauth(client, state="good-state")
+    _callback(client, "me@x.com", state="forged")
+    with client.session_transaction() as sess:
+        assert "oauth_state" not in sess

@@ -49,7 +49,3 @@ def owner_email() -> str | None:
 def allowed_emails() -> frozenset[str]:
     """Emails permitted to log in, read at call time. Empty means nobody."""
     return frozenset(_parse_emails(os.environ.get("ALLOWED_EMAILS", "")))
-
-
-ALLOWED_EMAILS: frozenset[str] = allowed_emails()
-OWNER_EMAIL: str | None = owner_email()

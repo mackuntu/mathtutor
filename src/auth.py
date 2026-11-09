@@ -70,6 +70,7 @@ class AuthManager:
                 "email": userinfo["email"],
                 "name": userinfo["name"],
                 "picture": userinfo.get("picture"),
+                "email_verified": userinfo.get("email_verified"),
             }
         except Exception as e:
             logger.error(f"Error verifying Google token: {str(e)}")

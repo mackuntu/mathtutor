@@ -43,6 +43,7 @@ def _set_session_cookie(response, token):
         path="/",
     )
 
+
 # Test authentication bypass key - should match the one in conftest.py
 TEST_BYPASS_KEY = os.environ.get("TEST_BYPASS_KEY", "test-bypass-key-for-selenium")
 
@@ -127,7 +128,8 @@ def oauth_callback():
 
     # Verify state token
     state = request.args.get("state")
-    if not state or state != session.get("oauth_state"):
+    expected_state = session.pop("oauth_state", None)
+    if not state or state != expected_state:
         flash("Invalid state token. Please try again.", "error")
         return redirect(url_for("auth.login"))
 
@@ -158,7 +160,7 @@ def oauth_callback():
 
         # Owner-only: fail closed unless the email is allowlisted
         email = str(user_info.get("email", "")).strip().lower()
-        if email not in allowed_emails():
+        if user_info.get("email_verified") is not True or email not in allowed_emails():
             logger.warning("Rejected login from non-allowlisted account")
             return render_template("forbidden.html"), 403
 
