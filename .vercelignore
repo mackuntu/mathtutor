@@ -1,0 +1,16 @@
+tests/
+docs/
+tasks/
+assets/
+data/
+scripts/
+.superpowers/
+DynamoDBLocal*
+*.db
+test-downloads/
+test-reports/
+.venv/
+.env
+run_ui_tests.sh
+test_blog_manager.py
+setup.py
