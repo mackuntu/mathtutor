@@ -31,6 +31,7 @@ All configuration is read from environment variables (see `.env.example`):
 | `FLASK_SECRET_KEY` | Session signing key |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
 | `OAUTH_REDIRECT_URI` | OAuth callback URL |
+| `ALLOWED_EMAILS` | Comma-separated owner allowlist; only these emails may log in |
 | `TEST_DATABASE_URL` | Test database for pytest (name must end in `_test`) |
 
 ### Google OAuth setup

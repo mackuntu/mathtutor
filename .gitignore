@@ -248,7 +248,6 @@ dynamodb_local_latest.tar.gz
 
 # OAuth and Secrets
 .env
-.env.example
 oauth_credentials.json
 client_secrets.json
 *.pem
