@@ -27,7 +27,8 @@ pytest tests/ -k "test_name"     # Single test
 
 **Flask app with blueprint-based routing:**
 - `src/__init__.py` - App factory (`create_app()`)
-- `src/routes/` - Blueprints: auth, children, worksheets, pages (settings is added with device tokens)
+- `src/routes/` - Blueprints: auth, children, worksheets, pages, settings, api
+- `src/device_tokens.py` - Revocable device tokens and bearer auth for `/api` (acts as the first `ALLOWED_EMAILS` entry)
 - `src/database/` - Postgres: `db.py` (per-request connection from `DATABASE_URL`), `schema.sql`, `models.py`, `repository.py` (`PostgresRepository`)
 - `src/problem_generators/` - Strategy pattern for math problems (basic_operations.py, multiplication.py, fractions.py)
 
@@ -48,5 +49,5 @@ pytest tests/ -k "test_name"     # Single test
 ## Important Constraints
 
 - **Never modify the layout of `src/templates/problem_grid.html`** - this template controls worksheet problem display
-- Child ages use end-of-school-year calculation (not current age)
+- Child ages use end-of-school-year calculation (not current age): `calculate_age_at_end_of_school_year` in `src/database/models.py`, applied by the `Child.birthday` setter
 - OAuth supports Google only; all config comes from environment variables (see `.env.example`)

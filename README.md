@@ -49,10 +49,12 @@ src/
 ├── __init__.py            # App factory
 ├── auth.py                # Authentication manager
 ├── config.py              # Configuration
+├── device_tokens.py       # Revocable device tokens, bearer auth for /api
 ├── problem_generator.py   # Math problem generation
 ├── problem_generators/    # Strategy classes per problem family
 ├── database/              # Postgres: db.py, schema.sql, models.py, repository.py
-├── routes/                # Blueprints: auth, children, worksheets, pages
+├── routes/                # Blueprints: auth.py, children.py, worksheets.py, pages.py,
+│                          #   settings.py (device tokens UI), api.py (bearer API)
 ├── blog/ content/         # Blog articles
 ├── static/ templates/     # Frontend assets
 tests/                     # pytest suite (real Postgres)
