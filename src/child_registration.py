@@ -1,12 +1,12 @@
-from datetime import datetime
 from typing import Dict, List, Optional
 
+from src.database import get_repository
 from src.database.models import Child
-from src.database.repository import DynamoDBRepository, get_repository
+from src.database.repository import PostgresRepository
 
 
 class ChildManager:
-    def __init__(self, repository: Optional[DynamoDBRepository] = None):
+    def __init__(self, repository: Optional[PostgresRepository] = None):
         """Initialize ChildManager with an optional repository."""
         self.repository = repository or get_repository()
 

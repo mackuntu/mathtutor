@@ -2,9 +2,6 @@
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
-from src.auth import AuthManager
 from src.database.models import Session, User
 
 
@@ -16,7 +13,7 @@ def test_verify_google_token(auth_manager):
     assert user_info is None
 
 
-def test_session_management(auth_manager, test_user, cleanup_sessions):
+def test_session_management(auth_manager, test_user):
     """Test session creation and validation."""
     # Create session
     token = auth_manager.create_session(test_user.email)
@@ -77,29 +74,6 @@ def test_create_session(repository, test_user):
     assert saved_session.user_email == test_user.email
 
 
-def test_get_user_sessions(repository, test_user, cleanup_sessions):
-    """Test retrieving all sessions for a user."""
-    # Create two sessions
-    session1 = Session(
-        token="token1",
-        user_email=test_user.email,
-        expires_at=int((datetime.now(timezone.utc) + timedelta(days=1)).timestamp()),
-    )
-    session2 = Session(
-        token="token2",
-        user_email=test_user.email,
-        expires_at=int((datetime.now(timezone.utc) + timedelta(days=1)).timestamp()),
-    )
-    repository.create_session(session1)
-    repository.create_session(session2)
-
-    # Get sessions for user
-    sessions = repository.get_user_sessions(test_user.email)
-    assert len(sessions) == 2
-    assert any(s.token == "token1" for s in sessions)
-    assert any(s.token == "token2" for s in sessions)
-
-
 def test_delete_session(repository, test_session):
     """Test deleting a session."""
     # Delete session
@@ -110,7 +84,7 @@ def test_delete_session(repository, test_session):
     assert deleted_session is None
 
 
-def test_session_expiration(auth_manager, repository, test_user, cleanup_sessions):
+def test_session_expiration(auth_manager, repository, test_user):
     """Test that expired sessions are handled correctly."""
     # Create an expired session
     expired_session = Session(

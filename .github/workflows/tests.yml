@@ -9,6 +9,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: mathtutor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v3
       
@@ -22,17 +34,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           
-      - name: Start DynamoDB Local
-        run: |
-          java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -inMemory &
-          sleep 2
-          
       - name: Run tests
         run: |
           pytest tests/ -v
         env:
-          DYNAMODB_ENDPOINT: http://localhost:8000
-          AWS_ACCESS_KEY_ID: dummy
-          AWS_SECRET_ACCESS_KEY: dummy
-          AWS_REGION: us-west-2
+          TEST_DATABASE_URL: postgresql://postgres:mathtutor@localhost:5432/mathtutor_test
           FLASK_ENV: testing 

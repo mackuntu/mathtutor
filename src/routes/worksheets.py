@@ -353,7 +353,7 @@ def past_worksheets(child_id):
     # Extract scores and dates in chronological order
     for worksheet in scored_worksheets:
         past_scores.append(round(worksheet.score, 1))
-        past_dates.append(worksheet.created_at.strftime("%Y-%m-%d"))
+        past_dates.append(worksheet.created_date.strftime("%Y-%m-%d"))
 
     return render_template(
         "past_worksheets.html",
@@ -399,7 +399,7 @@ def grade_worksheet(worksheet_id):
             incorrect = len(w.incorrect_problems)
             score = ((total - incorrect) / total) * 100
             past_scores.append(score)
-            past_dates.append(w.created_at.strftime("%Y-%m-%d"))
+            past_dates.append(w.created_date.strftime("%Y-%m-%d"))
 
     # Handle problems which could be a list or a string
     if isinstance(worksheet.problems, str):

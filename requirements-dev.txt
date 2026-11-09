@@ -3,8 +3,6 @@
 # Testing
 pytest==9.1.1
 pytest-cov==7.1.0
-# Temporary: DynamoDB mocking (removed when Task 4 moves to Postgres)
-moto==5.1.14
 
 # Development
 black==26.5.1

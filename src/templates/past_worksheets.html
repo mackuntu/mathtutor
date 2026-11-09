@@ -45,7 +45,7 @@
                             <input type="checkbox" class="worksheet-checkbox" data-id="{{ worksheet.id }}">
                         </td>
                         <td>{{ worksheet.serial_number }}</td>
-                        <td>{{ worksheet.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ worksheet.created_date.strftime('%Y-%m-%d') }}</td>
                         <td>{{ worksheet.problem_count }}</td>
                         <td>
                             {% if worksheet.score is not none %}

@@ -9,13 +9,22 @@ from psycopg.rows import dict_row
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
+# Arbitrary app-wide key for pg_advisory_xact_lock around schema creation.
+SCHEMA_LOCK_KEY = 4_826_190_377
+
 # Reset to False in tests that recreate the database.
 _schema_applied = False
 
 
 def ensure_schema(conn: psycopg.Connection) -> None:
-    """Create all tables and indexes if they do not exist (idempotent)."""
-    conn.execute(SCHEMA_PATH.read_text())
+    """Create all tables and indexes if they do not exist (idempotent).
+
+    Runs in one transaction holding an advisory lock so concurrent cold starts
+    serialize instead of racing on CREATE TABLE IF NOT EXISTS.
+    """
+    with conn.transaction():
+        conn.execute("SELECT pg_advisory_xact_lock(%s)", (SCHEMA_LOCK_KEY,))
+        conn.execute(SCHEMA_PATH.read_text())
 
 
 def get_conn() -> psycopg.Connection:
@@ -28,7 +37,11 @@ def get_conn() -> psycopg.Connection:
     if not dsn:
         raise RuntimeError("DATABASE_URL is not set")
 
-    conn = psycopg.connect(dsn, autocommit=True, row_factory=dict_row)
+    # prepare_threshold=None: no server-side prepared statements, which a
+    # transaction-mode pooler (Neon pooled endpoint / pgbouncer) cannot keep.
+    conn = psycopg.connect(
+        dsn, autocommit=True, row_factory=dict_row, prepare_threshold=None
+    )
     try:
         if not _schema_applied:
             ensure_schema(conn)

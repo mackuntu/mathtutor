@@ -1,6 +1,8 @@
 """Tests for the Postgres connection layer and schema."""
 
+import psycopg
 import pytest
+from psycopg.rows import dict_row
 
 from src.database import db as db_module
 
@@ -40,16 +42,29 @@ def test_close_conn_closes_connection(app, db):
     assert conn.closed
 
 
-def test_cold_start_empty_database_renders_index(app, client, db):
-    with app.app_context():
-        conn = db_module.get_conn()
+def test_cold_start_route_creates_schema(client, db, monkeypatch):
+    """A first request on an empty database creates the tables itself."""
+    with psycopg.connect(db, autocommit=True, row_factory=dict_row) as conn:
         conn.execute("DROP SCHEMA public CASCADE")
         conn.execute("CREATE SCHEMA public")
-    db_module._schema_applied = False
+        assert not TABLES & _table_names(conn)
+    monkeypatch.setattr(db_module, "_schema_applied", False)
 
-    with app.app_context():
-        conn = db_module.get_conn()
+    # Session lookup for the cookie is the request's first DB access.
+    client.set_cookie("session_token", "no-such-session")
+    response = client.get("/children/")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/auth/login")
+    with psycopg.connect(db, autocommit=True, row_factory=dict_row) as conn:
         assert TABLES <= _table_names(conn)
+    assert db_module._schema_applied is True
 
-    # Routes still use the Dynamo repository until Task 4; this proves boot only.
-    assert client.get("/").status_code in (200, 302)
+
+def test_ensure_schema_waits_for_advisory_lock(db):
+    """Concurrent cold starts serialize on SCHEMA_LOCK_KEY."""
+    with psycopg.connect(db) as holder, psycopg.connect(db, autocommit=True) as other:
+        holder.execute("SELECT pg_advisory_xact_lock(%s)", (db_module.SCHEMA_LOCK_KEY,))
+        other.execute("SET lock_timeout = '100ms'")
+        with pytest.raises(psycopg.errors.LockNotAvailable):
+            db_module.ensure_schema(other)

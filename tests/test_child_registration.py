@@ -1,13 +1,9 @@
 """Tests for child registration functionality."""
 
-import re
-from datetime import date, datetime, timedelta, timezone
-
 import pytest
 
 from src.child_registration import ChildManager
 from src.database.models import Child
-from src.exceptions import ValidationError
 
 
 @pytest.fixture(scope="function")
@@ -36,7 +32,7 @@ def test_create_child(repository, test_user):
     assert saved_child.preferred_color == "#FF5733"
 
 
-def test_get_children_by_parent(repository, test_user, cleanup_children):
+def test_get_children_by_parent(repository, test_user):
     """Test retrieving all children for a parent."""
     # Create two children
     child1 = Child(
@@ -63,26 +59,26 @@ def test_get_children_by_parent(repository, test_user, cleanup_children):
     assert any(c.name == "Child Two" for c in children)
 
 
-def test_update_child(repository, test_child_dynamodb):
+def test_update_child(repository, test_child):
     """Test updating a child."""
     # Update child information
-    test_child_dynamodb.name = "Updated Name"
-    test_child_dynamodb.grade = 4
-    repository.update_child(test_child_dynamodb)
+    test_child.name = "Updated Name"
+    test_child.grade = 4
+    repository.update_child(test_child)
 
     # Verify changes
-    updated_child = repository.get_child_by_id(test_child_dynamodb.id)
+    updated_child = repository.get_child_by_id(test_child.id)
     assert updated_child.name == "Updated Name"
     assert updated_child.grade == 4
 
 
-def test_delete_child(repository, test_child_dynamodb, cleanup_children):
+def test_delete_child(repository, test_child):
     """Test deleting a child."""
     # Delete child
-    repository.delete_child(test_child_dynamodb.id)
+    repository.delete_child(test_child.id)
 
     # Verify child was deleted
-    deleted_child = repository.get_child_by_id(test_child_dynamodb.id)
+    deleted_child = repository.get_child_by_id(test_child.id)
     assert deleted_child is None
 
 
@@ -121,15 +117,15 @@ def test_register_child(child_manager, test_user):
     assert child.grade == 3
 
 
-def test_get_child(child_manager, test_user, test_child_dynamodb):
+def test_get_child(child_manager, test_user, test_child):
     """Test getting a child by ID."""
-    child = child_manager.get_child(test_child_dynamodb.id)
+    child = child_manager.get_child(test_child.id)
     assert child is not None
-    assert child.name == test_child_dynamodb.name
-    assert child.grade == test_child_dynamodb.grade
+    assert child.name == test_child.name
+    assert child.grade == test_child.grade
 
 
-def test_get_children(cleanup_children, child_manager, test_user, test_child_dynamodb):
+def test_get_children(child_manager, test_user, test_child):
     """Test getting all children for a parent."""
     # Create another child
     child2 = Child(
@@ -144,7 +140,7 @@ def test_get_children(cleanup_children, child_manager, test_user, test_child_dyn
     # Get all children
     children = child_manager.get_children(test_user.email)
     assert len(children) == 2
-    assert any(c.name == test_child_dynamodb.name for c in children)
+    assert any(c.name == test_child.name for c in children)
     assert any(c.name == "Child Two" for c in children)
 
 

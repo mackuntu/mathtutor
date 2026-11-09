@@ -15,6 +15,8 @@ from .database.models import Session, User
 # Configure logging
 logger = logging.getLogger(__name__)
 
+SESSION_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
 
 class AuthManager:
     """Authentication manager."""
@@ -110,7 +112,9 @@ class AuthManager:
     def create_session(self, user_email: str) -> str:
         """Create a new session."""
         token = secrets.token_urlsafe(32)
-        expires_at = int(time.time()) + (7 * 24 * 60 * 60)  # 7 days
+        now = int(time.time())
+        self.repository.delete_expired_sessions(now)
+        expires_at = now + SESSION_TTL_SECONDS
         session = Session(token=token, user_email=user_email, expires_at=expires_at)
         self.repository.create_session(session)
         return token

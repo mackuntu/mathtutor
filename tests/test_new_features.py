@@ -1,10 +1,5 @@
 """Tests for new worksheet features."""
 
-import json
-from datetime import datetime
-
-import pytest
-
 from src.database.models import Worksheet
 from src.problem_generator import ProblemGenerator
 
@@ -15,30 +10,8 @@ def test_worksheet_serial_number():
         child_id="test_child",
         problems=[{"text": "1 + 1"}, {"text": "2 + 2"}],
     )
-    assert worksheet.id is not None
-    assert isinstance(worksheet.id, str)
-
-
-def test_incorrect_problems_tracking():
-    """Test tracking of incorrect problems."""
-    worksheet = Worksheet(
-        child_id="test_child",
-        problems=[{"text": "1 + 1"}, {"text": "2 + 2"}, {"text": "3 + 3"}],
-    )
-
-    # Initially no answers
-    assert worksheet.answers is None
-
-    # Add some answers
-    worksheet.answers = [2, 4, 7]  # Last one is wrong
-    worksheet.completed = True
-
-    # Convert to item and back to verify persistence
-    data = worksheet.to_item()
-    restored = Worksheet.from_item(data)
-
-    assert restored.answers == [2, 4, 7]
-    assert restored.completed is True
+    assert worksheet.serial == f"WS-{worksheet.id[:8]}"
+    assert worksheet.serial_number == worksheet.serial
 
 
 def test_age_5_problem_generation():
@@ -54,8 +27,7 @@ def test_age_5_problem_generation():
         assert any(op in problem["text"] for op in ["+", "-"])
         # Check that numbers are within appropriate range (1-10)
         nums = [
-            int(n)
-            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+            int(n) for n in problem["text"].replace("+", " ").replace("-", " ").split()
         ]
         assert all(1 <= n <= 10 for n in nums)
         # For addition, check sum is within range
@@ -76,8 +48,7 @@ def test_age_5_difficulty_levels():
     )
     for problem in problems:
         nums = [
-            int(n)
-            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+            int(n) for n in problem["text"].replace("+", " ").replace("-", " ").split()
         ]
         assert all(1 <= n <= 5 for n in nums)  # Should use numbers 1-5
 
@@ -87,8 +58,7 @@ def test_age_5_difficulty_levels():
     )
     for problem in problems:
         nums = [
-            int(n)
-            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+            int(n) for n in problem["text"].replace("+", " ").replace("-", " ").split()
         ]
         assert all(1 <= n <= 7 for n in nums)  # Should use numbers 1-7
 
@@ -98,19 +68,18 @@ def test_age_5_difficulty_levels():
     )
     for problem in problems:
         nums = [
-            int(n)
-            for n in problem["text"].replace("+", " ").replace("-", " ").split()
+            int(n) for n in problem["text"].replace("+", " ").replace("-", " ").split()
         ]
         assert all(1 <= n <= 10 for n in nums)  # Should use numbers 1-10
 
 
-def test_multiple_worksheet_generation(repository, test_child_dynamodb):
+def test_multiple_worksheet_generation(repository, test_child):
     """Test generating multiple worksheets at once."""
     # Generate 3 worksheets
     worksheets = []
     for _ in range(3):
         worksheet = Worksheet(
-            child_id=test_child_dynamodb.id,
+            child_id=test_child.id,
             problems=[{"text": "1 + 1"}, {"text": "2 + 2"}],
         )
         repository.create_worksheet(worksheet)
@@ -124,6 +93,6 @@ def test_multiple_worksheet_generation(repository, test_child_dynamodb):
         worksheet_ids.add(worksheet.id)
 
     # Verify we can retrieve all worksheets for the child
-    child_worksheets = repository.get_child_worksheets(test_child_dynamodb.id)
+    child_worksheets = repository.get_child_worksheets(test_child.id)
     assert len(child_worksheets) == 3
     assert all(w.id in worksheet_ids for w in child_worksheets)

@@ -6,10 +6,10 @@ from src.database.models import Worksheet
 from src.database.models import Worksheet as WorksheetModel
 
 
-def test_create_worksheet(repository, test_child_dynamodb, cleanup_children):
+def test_create_worksheet(repository, test_child):
     """Test creating a new worksheet."""
     worksheet = Worksheet(
-        child_id=test_child_dynamodb.id,
+        child_id=test_child.id,
         problems=[
             {"type": "addition", "a": 5, "b": 3, "answer": 8},
             {"type": "subtraction", "a": 10, "b": 4, "answer": 6},
@@ -25,54 +25,54 @@ def test_create_worksheet(repository, test_child_dynamodb, cleanup_children):
     assert saved_worksheet.problems[1]["type"] == "subtraction"
 
 
-def test_get_child_worksheets(repository, test_child_dynamodb):
+def test_get_child_worksheets(repository, test_child):
     """Test retrieving all worksheets for a child."""
     # Create two worksheets
     worksheet1 = Worksheet(
-        child_id=test_child_dynamodb.id,
+        child_id=test_child.id,
         problems=[{"type": "addition", "a": 1, "b": 1, "answer": 2}],
     )
     worksheet2 = Worksheet(
-        child_id=test_child_dynamodb.id,
+        child_id=test_child.id,
         problems=[{"type": "multiplication", "a": 2, "b": 3, "answer": 6}],
     )
     repository.create_worksheet(worksheet1)
     repository.create_worksheet(worksheet2)
 
     # Get worksheets for child
-    worksheets = repository.get_child_worksheets(test_child_dynamodb.id)
+    worksheets = repository.get_child_worksheets(test_child.id)
     assert len(worksheets) == 2
     assert any(w.problems[0]["type"] == "addition" for w in worksheets)
     assert any(w.problems[0]["type"] == "multiplication" for w in worksheets)
 
 
-def test_update_worksheet(repository, test_worksheet_dynamodb):
+def test_update_worksheet(repository, test_worksheet):
     """Test updating a worksheet."""
     # Add answers and mark as completed
-    test_worksheet_dynamodb.answers = [8, 6]
-    test_worksheet_dynamodb.completed = True
-    repository.update_worksheet(test_worksheet_dynamodb)
+    test_worksheet.answers = [8, 6]
+    test_worksheet.completed = True
+    repository.update_worksheet(test_worksheet)
 
     # Verify changes
-    updated_worksheet = repository.get_worksheet(test_worksheet_dynamodb.id)
+    updated_worksheet = repository.get_worksheet(test_worksheet.id)
     assert updated_worksheet.answers == [8, 6]
     assert updated_worksheet.completed is True
 
 
-def test_delete_worksheet(repository, test_worksheet_dynamodb, cleanup_children):
+def test_delete_worksheet(repository, test_worksheet):
     """Test deleting a worksheet."""
     # Delete worksheet
-    repository.delete_worksheet(test_worksheet_dynamodb.id)
+    repository.delete_worksheet(test_worksheet.id)
 
     # Verify worksheet was deleted
-    deleted_worksheet = repository.get_worksheet(test_worksheet_dynamodb.id)
+    deleted_worksheet = repository.get_worksheet(test_worksheet.id)
     assert deleted_worksheet is None
 
 
-def test_worksheet_without_answers(repository, test_child_dynamodb):
+def test_worksheet_without_answers(repository, test_child):
     """Test creating a worksheet without answers."""
     worksheet = Worksheet(
-        child_id=test_child_dynamodb.id,
+        child_id=test_child.id,
         problems=[
             {"type": "addition", "a": 5, "b": 3},
             {"type": "subtraction", "a": 10, "b": 4},
@@ -93,11 +93,11 @@ def test_get_nonexistent_worksheet(repository):
     assert nonexistent_worksheet is None
 
 
-def test_grade_worksheet_all_correct(repository, test_child_dynamodb):
+def test_grade_worksheet_all_correct(repository, test_child):
     """Test grading a worksheet with all correct answers."""
     # Create a worksheet
     worksheet = WorksheetModel.create(
-        child_id=test_child_dynamodb.id,
+        child_id=test_child.id,
         problems=json.dumps(
             [
                 {"type": "addition", "a": 5, "b": 3, "answer": 8},
