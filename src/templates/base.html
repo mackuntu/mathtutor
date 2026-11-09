@@ -58,6 +58,12 @@
                         <a class="nav-link {% if request.endpoint == 'children.list_children' %}active{% endif %}" 
                            href="{{ url_for('children.list_children') }}">Manage Children</a>
                     </li>
+                    {% if user %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('settings.') %}active{% endif %}"
+                           href="{{ url_for('settings.devices') }}">Devices</a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'pages.blog' %}active{% endif %}" 
                            href="{{ url_for('pages.blog') }}">Blog</a>

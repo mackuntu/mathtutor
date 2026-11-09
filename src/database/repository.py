@@ -180,3 +180,42 @@ class PostgresRepository:
 
     def delete_worksheet(self, worksheet_id: str) -> None:
         get_conn().execute("DELETE FROM worksheets WHERE id = %s", (worksheet_id,))
+
+    # Device token operations
+    def create_device_token(
+        self, id: str, name: str, token_hash: str, created_at: int
+    ) -> None:
+        get_conn().execute(
+            "INSERT INTO device_tokens (id, name, token_hash, created_at) "
+            "VALUES (%s, %s, %s, %s)",
+            (id, name, token_hash, created_at),
+        )
+
+    def list_device_tokens(self) -> List[dict]:
+        """All tokens, newest first; the hash is never returned."""
+        return _all(
+            "SELECT id, name, created_at, last_used_at, revoked_at "
+            "FROM device_tokens ORDER BY created_at DESC, id DESC",
+            (),
+        )
+
+    def get_active_device_token_by_hash(self, token_hash: str) -> Optional[dict]:
+        return _one(
+            "SELECT * FROM device_tokens "
+            "WHERE token_hash = %s AND revoked_at IS NULL",
+            (token_hash,),
+        )
+
+    def touch_device_token(self, id: str, now: int) -> None:
+        get_conn().execute(
+            "UPDATE device_tokens SET last_used_at = %s WHERE id = %s", (now, id)
+        )
+
+    def revoke_device_token(self, id: str, now: int) -> bool:
+        """Revoke a token (idempotent); return False if the id is unknown."""
+        cursor = get_conn().execute(
+            "UPDATE device_tokens SET revoked_at = COALESCE(revoked_at, %s) "
+            "WHERE id = %s",
+            (now, id),
+        )
+        return cursor.rowcount > 0

@@ -1,8 +1,9 @@
 """Common functionality for route handlers."""
 
 import logging
+from functools import wraps
 
-from flask import request
+from flask import g, redirect, request, url_for
 
 from ..auth import AuthManager
 from ..database import get_repository
@@ -21,3 +22,17 @@ def get_current_user():
     user = auth_manager.validate_session(token)
     logger.debug(f"Validated user: {user}")
     return user
+
+
+def login_required(view):
+    """Redirect to login unless the session cookie is valid; sets ``g.user``."""
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            return redirect(url_for("auth.login"))
+        g.user = user
+        return view(*args, **kwargs)
+
+    return wrapped

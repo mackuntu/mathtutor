@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Devices - MathTutor{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Devices</h1>
+    <p class="text-muted">Tokens let a device such as a Raspberry Pi or the grading app call the MathTutor API as you.</p>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if new_token %}
+    <div class="alert alert-success">
+        <p class="mb-1">Token for <strong>{{ new_token_name }}</strong>. Copy it now; it will not be shown again.</p>
+        <code id="new-token" class="user-select-all">{{ new_token }}</code>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('settings.create_device') }}" class="row g-2 mb-4">
+        <div class="col-sm-6">
+            <input type="text" name="name" class="form-control" placeholder="Device name" maxlength="{{ max_name_length }}" required>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Create token</button>
+        </div>
+    </form>
+
+    <table class="table">
+        <thead><tr><th>Name</th><th>Created</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for t in tokens %}
+            <tr>
+                <td>{{ t.name }}</td>
+                <td>{{ t.created_at | timestamp_or_dash }}</td>
+                <td>{{ t.last_used_at | timestamp_or_dash }}</td>
+                <td>{% if t.revoked_at %}Revoked{% else %}Active{% endif %}</td>
+                <td>
+                    {% if not t.revoked_at %}
+                    <form method="post" action="{{ url_for('settings.revoke_device', token_id=t.id) }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Revoke</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="text-muted">No devices yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

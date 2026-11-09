@@ -2,7 +2,7 @@
 
 from flask import Flask
 
-from . import auth, children, pages, worksheets
+from . import api, auth, children, pages, settings, worksheets
 
 
 def register_blueprints(app: Flask) -> None:
@@ -11,7 +11,9 @@ def register_blueprints(app: Flask) -> None:
     Args:
         app: The Flask application instance.
     """
+    app.register_blueprint(api.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(children.bp)
     app.register_blueprint(pages.bp)
+    app.register_blueprint(settings.bp)
     app.register_blueprint(worksheets.bp)
