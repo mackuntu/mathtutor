@@ -249,3 +249,4 @@ test-reports/
 tests/ui/test-reports/
 error_*.png
 *_screenshot.png
+.vercel
