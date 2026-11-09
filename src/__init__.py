@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 # Real environment variables (e.g. Vercel's) win over .env values.
 load_dotenv(override=False)
 
+import logging  # noqa: E402
+
 from flask import Flask  # noqa: E402
 
 from . import config  # noqa: E402
@@ -17,6 +19,8 @@ from .web import init_app as init_web_routes  # noqa: E402
 
 def create_app():
     """Create and configure the Flask application."""
+    # No-op when the root logger already has handlers (e.g. under pytest).
+    logging.basicConfig(level=logging.INFO)
     app = Flask(__name__)
 
     on_vercel = bool(os.getenv("VERCEL"))
