@@ -146,3 +146,25 @@ def test_school_year_age_uses_june_30_of_current_school_year():
     assert calculate_age_at_end_of_school_year(born, today=date(2026, 11, 9)) == 9
     late = datetime(2018, 7, 1)
     assert calculate_age_at_end_of_school_year(late, today=date(2026, 11, 9)) == 8
+
+
+def test_index_ignores_child_id_of_another_user(
+    client, auth_manager, repository, test_user, test_child
+):
+    """?child_id= for someone else's child falls back to the user's own child."""
+    from src.database.models import Child, User
+
+    repository.create_user(User(email="other@example.com", name="Other"))
+    stranger = Child(
+        parent_email="other@example.com", name="Zebulon Stranger", age=8, grade=3
+    )
+    repository.create_child(stranger)
+    client.set_cookie("session_token", auth_manager.create_session(test_user.email))
+
+    response = client.get(f"/?child_id={stranger.id}")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Zebulon Stranger" not in html
+    assert stranger.id not in html
+    assert test_child.id in html

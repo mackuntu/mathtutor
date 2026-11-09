@@ -31,13 +31,12 @@ def index():
     # Get user's children
     children = repository.get_children_by_parent(user.email)
 
-    active_child_id = request.args.get("child_id")
-    active_child = None
-
-    if active_child_id:
-        active_child = repository.get_child_by_id(active_child_id)
-    elif children:
-        active_child = children[0]
+    # Only the user's own children may be selected; unknown ids fall back.
+    requested_id = request.args.get("child_id")
+    active_child = next(
+        (child for child in children if child.id == requested_id),
+        children[0] if children else None,
+    )
 
     return render_template(
         "index.html",
