@@ -23,26 +23,43 @@ Neon Postgres (via the Vercel Marketplace), served at
 1. `vercel login`, then `vercel link` in this repo (create project `mathtutor`).
 2. Add Neon Postgres from the Vercel Marketplace (Storage tab) and connect it to the
    project. Enable branch-per-preview so previews get their own database branch.
-   This provides `DATABASE_URL`.
+   This provides `DATABASE_URL`. Note the Neon region (e.g. `aws-us-east-1`).
 3. DNS: add a CNAME record `mathtutor` -> the target Vercel shows after adding
    `mathtutor.mackuntu.com` under Project -> Settings -> Domains.
 4. Google Cloud Console -> Credentials -> your OAuth client -> Authorized redirect URIs:
    - `https://mathtutor.mackuntu.com/auth/oauth/callback`
    - `http://localhost:8080/auth/oauth/callback`
-5. Set environment variables (Project -> Settings -> Environment Variables, or
-   `vercel env add`) as in the table below.
-6. Deploy: `vercel --prod` (or push to the connected Git branch).
+5. Set the function region to match the Neon region (Project -> Settings ->
+   Functions -> Function Region, e.g. `iad1` for `aws-us-east-1`) so every query
+   avoids a cross-region round trip.
+6. Set environment variables (Project -> Settings -> Environment Variables, or
+   `vercel env add`) as in the table below, for **Production and Preview**.
+   Previews also run with `VERCEL` set, so a preview without `FLASK_SECRET_KEY`
+   fails to start and one without `ALLOWED_EMAILS` lets nobody log in.
+7. Deploy: `vercel --prod` (or push to the connected Git branch).
+
+## Checking a preview
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -b session_token=x <preview-url>/children/
+```
+
+`302` (redirect to login) proves the app booted and the database is reachable
+with the schema applied: the bogus session token is looked up in Postgres before
+redirecting. A `500` means a missing env var or an unreachable database.
 
 ## Environment variables
+
+Set each for both the Production and Preview environments.
 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Neon Postgres connection string (set by the Neon integration) |
 | `FLASK_SECRET_KEY` | yes | Long random string for signing sessions, e.g. `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
-| `GOOGLE_CLIENT_ID` | yes | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | yes | Google OAuth client secret |
-| `OAUTH_REDIRECT_URI` | yes | `https://mathtutor.mackuntu.com/auth/oauth/callback` |
-| `ALLOWED_EMAILS` | yes | Comma-separated owner emails allowed to log in |
+| `ALLOWED_EMAILS` | yes | Comma-separated emails allowed to log in. The **first** entry is the owner identity that device-token (`/api`) requests act as. |
+| `GOOGLE_CLIENT_ID` | for Google login | Google OAuth client ID (optional on Preview if you only test via API tokens) |
+| `GOOGLE_CLIENT_SECRET` | for Google login | Google OAuth client secret |
+| `OAUTH_REDIRECT_URI` | for Google login | `https://mathtutor.mackuntu.com/auth/oauth/callback` |
 
 Never commit secrets; `.env` is git-ignored and excluded from the bundle.
 
