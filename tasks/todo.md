@@ -1,6 +1,6 @@
 # MathTutor on Vercel — Hosting Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Serve MathTutor at `https://mathtutor.mackuntu.com` on Vercel, backed by Neon Postgres, owner-only Google login, with device tokens for the Pi and the iPhone app.
 
@@ -68,11 +68,11 @@
 **Interfaces:**
 - Produces: `Worksheet(child_id, problems, answers, completed, incorrect_problems, correct_answers)`. These are the only fields left for later tasks.
 
-- [ ] **Step 1:** Delete the files listed and remove the routes and imports.
-- [ ] **Step 2:** `grep -rnE "grading|easyocr|cv2|torch|reportlab|DocumentRenderer|student_answers|answer_regions|answer_images|pdf_dimensions" src tests` prints nothing. The exceptions are manual-grading names (`grade_worksheet`, `submit_grades`) and `test_generator.py` text.
-- [ ] **Step 3:** `python -c "from src.routes import worksheets"` exits 0.
-- [ ] **Step 4:** `pytest tests/test_generator.py -q` passes.
-- [ ] **Step 5:** Commit `refactor: remove OCR grader and unused PDF renderer`.
+- [x] **Step 1:** Delete the files listed and remove the routes and imports.
+- [x] **Step 2:** `grep -rnE "grading|easyocr|cv2|torch|reportlab|DocumentRenderer|student_answers|answer_regions|answer_images|pdf_dimensions" src tests` prints nothing. The exceptions are manual-grading names (`grade_worksheet`, `submit_grades`) and `test_generator.py` text.
+- [x] **Step 3:** `python -c "from src.routes import worksheets"` exits 0.
+- [x] **Step 4:** `pytest tests/test_generator.py -q` passes.
+- [x] **Step 5:** Commit `refactor: remove OCR grader and unused PDF renderer`.
 
 ### Task 2: Strip subscriptions, payments, ads, admin, Facebook/X, and split deps
 
@@ -83,11 +83,11 @@
 - Create: `requirements-dev.txt` containing `-r requirements.txt`, then pytest, pytest-cov, black, flake8, mypy, pre-commit, types-requests, plus `moto` temporarily (Task 4 removes it).
 - Blog: keep it. `src/blog/manager.py` reads markdown from `src/content/blog`, so it is static and trivial.
 
-- [ ] **Step 1:** Delete the files and make the edits above.
-- [ ] **Step 2:** `grep -rniE "subscription|payment|adsense|adsbygoogle|facebook|FACEBOOK_|X_CLIENT|twitter|oauth_x|admin" src` prints nothing.
-- [ ] **Step 3:** `pip install -r requirements-dev.txt` runs in a fresh `.venv`, and `python -c "from src import create_app"` succeeds.
-- [ ] **Step 4:** `pytest tests/test_generator.py -q` passes.
-- [ ] **Step 5:** Commit `refactor: strip subscriptions, payments, ads, admin, FB/X login; split deps`.
+- [x] **Step 1:** Delete the files and make the edits above.
+- [x] **Step 2:** `grep -rniE "subscription|payment|adsense|adsbygoogle|facebook|FACEBOOK_|X_CLIENT|twitter|oauth_x|admin" src` prints nothing.
+- [x] **Step 3:** `pip install -r requirements-dev.txt` runs in a fresh `.venv`, and `python -c "from src import create_app"` succeeds.
+- [x] **Step 4:** `pytest tests/test_generator.py -q` passes.
+- [x] **Step 5:** Commit `refactor: strip subscriptions, payments, ads, admin, FB/X login; split deps`.
 
 ### Task 3: Postgres schema, connection layer, test harness
 
@@ -130,13 +130,13 @@ CREATE TABLE IF NOT EXISTS device_tokens (
 - Produces: `close_conn(exc=None) -> None`, registered with `app.teardown_appcontext` by `init_db(app)`.
 - Produces: `conftest.py` fixtures. `pg_url` is session-scoped: it reads env `TEST_DATABASE_URL`, defaulting to `postgresql://postgres:mathtutor@localhost:5432/mathtutor_test`, and creates the database if missing. `db` is per-test: it sets `DATABASE_URL`, then runs `TRUNCATE users, children, sessions, worksheets, device_tokens CASCADE`. `app` gives `create_app()` with `TESTING=True`. `client` is `app.test_client()`.
 
-- [ ] **Step 1: Write failing tests** in `tests/test_db.py`:
+- [x] **Step 1: Write failing tests** in `tests/test_db.py`:
   - `test_ensure_schema_is_idempotent`: call `ensure_schema` twice on the same connection. No error, and `information_schema.tables` lists all 5 tables.
   - `test_cold_start_empty_database_renders_index`: drop and recreate the public schema, reset the module's "schema applied" flag, then `client.get("/")`. Status is 200 or 302, and the tables exist afterwards.
-- [ ] **Step 2:** `docker compose up -d db && pytest tests/test_db.py -v` fails because `src.database.db` doesn't exist yet.
-- [ ] **Step 3:** Implement `schema.sql` and `db.py` as specified.
-- [ ] **Step 4:** `pytest tests/test_db.py -v` passes.
-- [ ] **Step 5:** Commit `feat(db): Postgres schema, per-request connection, test harness`.
+- [x] **Step 2:** `docker compose up -d db && pytest tests/test_db.py -v` fails because `src.database.db` doesn't exist yet.
+- [x] **Step 3:** Implement `schema.sql` and `db.py` as specified.
+- [x] **Step 4:** `pytest tests/test_db.py -v` passes.
+- [x] **Step 5:** Commit `feat(db): Postgres schema, per-request connection, test harness`.
 
 ### Task 4: `PostgresRepository`
 
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS device_tokens (
 `get_user_by_email(email) -> User|None`, `create_user(user)`, `update_user(user)`, `get_child_by_id(id) -> Child|None`, `get_children_by_parent(email) -> list[Child]` (by name), `create_child(child)`, `update_child(child)`, `delete_child(id)`, `get_session(token) -> Session|None`, `create_session(s)`, `delete_session(token)`, `delete_expired_sessions(now: int) -> int` (new), `get_worksheet(id) -> Worksheet|None`, `get_child_worksheets(child_id) -> list[Worksheet]` (newest first), `get_worksheets_by_serial(serial) -> list[Worksheet]` (new; for the grader), `create_worksheet(w)`, `update_worksheet(w)`, `delete_worksheet(id)`. Drop `scan_*` and `get_user_sessions` unless something still calls them (grep).
 JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is parameterized, with no string formatting of values.
 
-- [ ] **Step 1: Write failing tests** in `tests/test_repository.py`:
+- [x] **Step 1: Write failing tests** in `tests/test_repository.py`:
   - `test_user_roundtrip`: create, then fetch; `name` and `picture` are equal.
   - `test_children_by_parent_only_returns_that_parents_children`.
   - `test_worksheet_roundtrip_preserves_jsonb`: problems is a list of dicts, `correct_answers == ["12", "3:05"]`, and `serial == "WS-" + id[:8]`.
@@ -161,17 +161,17 @@ JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is p
   - `test_delete_child_cascades_worksheets` (Review Focus 5): afterwards `get_worksheet(w.id) is None`.
   - `test_delete_expired_sessions_removes_only_expired`.
   - `test_expired_session_cookie_redirects_to_login` (Review Focus 1): insert a session with `expires_at = now - 1` and set the cookie. `client.get("/children/")` returns a 302 to `/auth/login`, and the session row is gone.
-- [ ] **Step 2:** `pytest tests/test_repository.py -v` fails.
-- [ ] **Step 3:** Implement the repository and model changes. `AuthManager.create_session` calls `delete_expired_sessions(now)` before inserting. Remove the session token from the debug log at `src/routes/common.py:22`.
-- [ ] **Step 4:** Remove `boto3`/`botocore` from `requirements.txt`, `moto` from `requirements-dev.txt`, and the moto fixtures from `conftest.py`. `pytest tests/ -q` is fully green, and `grep -rnE "boto|moto|dynamo" -i src tests requirements*.txt` prints nothing.
-- [ ] **Step 5:** Commit `feat(db): PostgresRepository replaces DynamoDB`.
+- [x] **Step 2:** `pytest tests/test_repository.py -v` fails.
+- [x] **Step 3:** Implement the repository and model changes. `AuthManager.create_session` calls `delete_expired_sessions(now)` before inserting. Remove the session token from the debug log at `src/routes/common.py:22`.
+- [x] **Step 4:** Remove `boto3`/`botocore` from `requirements.txt`, `moto` from `requirements-dev.txt`, and the moto fixtures from `conftest.py`. `pytest tests/ -q` is fully green, and `grep -rnE "boto|moto|dynamo" -i src tests requirements*.txt` prints nothing.
+- [x] **Step 5:** Commit `feat(db): PostgresRepository replaces DynamoDB`.
 
 ### Task 5: Local end-to-end smoke test
 
-- [ ] **Step 1:** `docker compose up -d db`, then `DATABASE_URL=postgresql://postgres:mathtutor@localhost:5432/mathtutor FLASK_ENV=development FLASK_APP=src flask run --debug --port 8080`.
-- [ ] **Step 2:** Log in through `/auth/test-auth` (local only), create a child, generate a worksheet, then open the print view and the answer key. The print view is visually identical to `cd3a160` (screenshot both and compare). Check that the serial is shown top-right, that history lists the sheet, and that manual grading saves a score.
-- [ ] **Step 3:** Update `CLAUDE.md` Build & Run (docker compose plus `flask run`, `pip install -r requirements-dev.txt`, Postgres tests), its Architecture section (blueprints are auth, children, worksheets, pages, settings; models are User, Child, Session, Worksheet), its Testing section (real Postgres, no moto), and the OAuth line (Google only). Update `.env.example` with the 6 env vars plus `TEST_DATABASE_URL`.
-- [ ] **Step 4:** Commit `docs: local dev on Postgres`.
+- [x] **Step 1:** `docker compose up -d db`, then `DATABASE_URL=postgresql://postgres:mathtutor@localhost:5432/mathtutor FLASK_ENV=development FLASK_APP=src flask run --debug --port 8080`.
+- [x] **Step 2:** Log in through `/auth/test-auth` (local only), create a child, generate a worksheet, then open the print view and the answer key. The print view is visually identical to `cd3a160` (screenshot both and compare). Check that the serial is shown top-right, that history lists the sheet, and that manual grading saves a score.
+- [x] **Step 3:** Update `CLAUDE.md` Build & Run (docker compose plus `flask run`, `pip install -r requirements-dev.txt`, Postgres tests), its Architecture section (blueprints are auth, children, worksheets, pages, settings; models are User, Child, Session, Worksheet), its Testing section (real Postgres, no moto), and the OAuth line (Google only). Update `.env.example` with the 6 env vars plus `TEST_DATABASE_URL`.
+- [x] **Step 4:** Commit `docs: local dev on Postgres`.
 
 ### Task 6: Owner-only login and production config
 
@@ -181,16 +181,16 @@ JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is p
 - Modify: `src/__init__.py`. If `VERCEL` is set and either `FLASK_SECRET_KEY` or `DATABASE_URL` is empty, raise `RuntimeError` naming the missing var. Remove the unused `auth_manager` and `repository` locals.
 - Test: `tests/test_auth.py`.
 
-- [ ] **Step 1: Write failing tests** (mock `AuthManager.exchange_code_for_token` and `verify_oauth_token`):
+- [x] **Step 1: Write failing tests** (mock `AuthManager.exchange_code_for_token` and `verify_oauth_token`):
   - `test_allowlisted_email_logs_in`: returns 302 and sets the `session_token` cookie.
   - `test_allowlist_match_ignores_case_and_spaces` (Review Focus 2): with `ALLOWED_EMAILS=" Me@X.com ,other@y.com"`, Google `me@x.com` is allowed.
   - `test_unlisted_email_rejected_without_user_or_session`: returns 403, the `users` and `sessions` tables are empty, and no cookie is set.
   - `test_test_auth_disabled_on_vercel`: with `VERCEL=1` and `FLASK_ENV=development`, `/auth/test-auth` returns 404.
   - `test_create_app_fails_fast_on_vercel_without_secret`: with `VERCEL=1` and no `FLASK_SECRET_KEY`, `create_app()` raises `RuntimeError` matching `FLASK_SECRET_KEY`.
-- [ ] **Step 2:** The tests fail.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** `pytest tests/ -q` passes.
-- [ ] **Step 5:** Commit `feat(auth): owner-only Google login, fail-fast prod config`.
+- [x] **Step 2:** The tests fail.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** `pytest tests/ -q` passes.
+- [x] **Step 5:** Commit `feat(auth): owner-only Google login, fail-fast prod config`.
 
 ### Task 7: Device tokens
 
@@ -207,7 +207,7 @@ JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is p
 - `/settings/devices` (GET) lists tokens. A POST with `name` creates a token and shows the raw token once. `/settings/devices/<id>/revoke` (POST) revokes. All of these need `login_required`.
 - Create: `GET /api/ping`, wrapped in `require_api_auth`, returns `{"ok": true}`. It's used for the tests and by the Pi/iOS to check a token.
 
-- [ ] **Step 1: Write failing tests** (Review Focus 4):
+- [x] **Step 1: Write failing tests** (Review Focus 4):
   - `test_issued_token_authorizes_api_ping_and_updates_last_used`.
   - `test_revoked_token_401`.
   - `test_wrong_token_401`.
@@ -216,10 +216,10 @@ JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is p
   - `test_raw_token_never_stored`: no `device_tokens` row contains the raw token.
   - `test_settings_page_requires_login`.
   - `test_create_shows_token_once_then_list_hides_it`.
-- [ ] **Step 2:** The tests fail.
-- [ ] **Step 3:** Implement. Compare with `hmac.compare_digest` after the hash lookup.
-- [ ] **Step 4:** `pytest tests/ -q` passes.
-- [ ] **Step 5:** Commit `feat: revocable device tokens for /api clients`.
+- [x] **Step 2:** The tests fail.
+- [x] **Step 3:** Implement. Compare with `hmac.compare_digest` after the hash lookup.
+- [x] **Step 4:** `pytest tests/ -q` passes.
+- [x] **Step 5:** Commit `feat: revocable device tokens for /api clients`.
 
 ### Task 8: Vercel packaging
 
@@ -237,9 +237,9 @@ JSONB columns are written with `psycopg.types.json.Jsonb(...)`. Every query is p
 - Modify: `wsgi.py` stays as is for local use.
 - Rewrite: `DEPLOYMENT.md` to cover only Vercel. It holds the owner actions from the spec, the env var table, and how to apply the schema (automatic on first request).
 
-- [ ] **Step 1:** Link the project with `vercel link` (needs the owner's `vercel login`, Owner Action 1). Then `vercel build`, and confirm that `.vercel/output/functions/api/index.func` contains no `torch`, `easyocr` or `cv2` (`find .vercel/output -iname "*torch*" -o -iname "*easyocr*" -o -iname "cv2*"` prints nothing), and that it contains `src/templates/problem_grid.html` and `src/static/`.
-- [ ] **Step 2:** `vercel dev` with `DATABASE_URL` set to local Docker: `/` renders and `/static/...` serves CSS.
-- [ ] **Step 3:** Commit `chore: Vercel entrypoint and config`.
+- [x] **Step 1:** Link the project with `vercel link` (needs the owner's `vercel login`, Owner Action 1). Then `vercel build`, and confirm that `.vercel/output/functions/api/index.func` contains no `torch`, `easyocr` or `cv2` (`find .vercel/output -iname "*torch*" -o -iname "*easyocr*" -o -iname "cv2*"` prints nothing), and that it contains `src/templates/problem_grid.html` and `src/static/`.
+- [x] **Step 2:** `vercel dev` with `DATABASE_URL` set to local Docker: `/` renders and `/static/...` serves CSS.
+- [x] **Step 3:** Commit `chore: Vercel entrypoint and config`.
 
 ### Task 9: Deploy (owner actions + verification)
 
@@ -262,4 +262,11 @@ Owner actions, from the spec:
 - [ ] **Step 5:** Fill in the Review section below.
 
 ## Review
-_(fill in after execution)_
+Tasks 1–8 done (subagent-driven, each task reviewed; final whole-branch review + one fix wave, re-review clean). 140 tests pass (`pytest tests/ -q -W error`).
+- Postgres via `PostgresRepository`; schema auto-applied on first DB use under an advisory lock; Neon-pooler safe (`prepare_threshold=None`, 10s connect timeout).
+- Owner-only Google login: `ALLOWED_EMAILS` (fail closed when empty), requires `email_verified`, re-checked on every session; fail-fast config on Vercel; `/auth/test-auth` 404 on Vercel.
+- Device tokens: `/settings/devices`, Bearer on `/api/*` only, sha256 stored, no-store pages, `/api/ping`.
+- Vercel: zero-config Flask via root `wsgi.py`; `vercel.json` only sets `maxDuration: 60` (doc-backed deviation from plan's `api/index.py` + rewrites). Bundle 37MB, no torch/easyocr/opencv/numpy/boto3.
+- Fixed pre-existing bugs found along the way: hard-coded `SECRET_KEY` overrode the real one; child birthday never saved / edit set current age instead of end-of-school-year age; Generate button disabled after subscription removal; `.env` not loaded before config import.
+- Print templates unchanged since 9c6b4ed (diff-verified + headless screenshots).
+- Task 9 (deploy) pending owner actions.
