@@ -6,6 +6,28 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 
+SCHOOL_YEAR_END_MONTH = 6
+SCHOOL_YEAR_END_DAY = 30
+
+
+def calculate_age_at_end_of_school_year(
+    birthday_date: datetime, today: Optional[date] = None
+) -> int:
+    """Age a child will be at the end of the current school year (June 30th).
+
+    Before June the school year ends this calendar year; from June on it ends
+    next year. Using a fixed reference date keeps age stable all school year.
+    """
+    today = today or datetime.now(timezone.utc).date()
+    end_year = today.year if today.month < SCHOOL_YEAR_END_MONTH else today.year + 1
+    end = (SCHOOL_YEAR_END_MONTH, SCHOOL_YEAR_END_DAY)
+    return (
+        end_year
+        - birthday_date.year
+        - (end < (birthday_date.month, birthday_date.day))
+    )
+
+
 class Model:
     """Base class for persisted models."""
 
@@ -61,33 +83,19 @@ class Child(Model):
         self._birthday: Optional[datetime] = None  # Stored birthday, if known
 
     @property
-    def birthday(self):
-        """Get the birthday based on stored value or calculate from age."""
-        if self._birthday:
-            return self._birthday
-
-        # Calculate an approximate birthday based on the age
-        # This is a workaround for the template that expects a birthday
-        today = datetime.now(timezone.utc)
-        # Use January 1st instead of today's date to avoid always showing today's date
-        return datetime(today.year - self.age, 1, 1, tzinfo=timezone.utc)
+    def birthday(self) -> Optional[datetime]:
+        """The stored birthday (UTC-aware), or None when unknown."""
+        return self._birthday
 
     @birthday.setter
-    def birthday(self, value):
-        """Set age based on birthday and store the actual birthday."""
+    def birthday(self, value: datetime) -> None:
+        """Store the birthday and derive age at the end of the school year."""
         if not isinstance(value, datetime):
             raise ValueError("Birthday must be a datetime object")
-
-        # Store the actual birthday
-        self._birthday = value
-
-        # Calculate age from birthday
-        today = datetime.now(timezone.utc)
-        self.age = (
-            today.year
-            - value.year
-            - ((today.month, today.day) < (value.month, value.day))
+        self._birthday = (
+            value if value.tzinfo else value.replace(tzinfo=timezone.utc)
         )
+        self.age = calculate_age_at_end_of_school_year(self._birthday)
 
     @property
     def stored_birthday(self) -> Optional[date]:
@@ -123,7 +131,9 @@ class Child(Model):
         birthday = row["birthday"]
         if birthday is not None:
             # Set directly: the setter would recompute (and overwrite) age.
-            child._birthday = datetime(birthday.year, birthday.month, birthday.day)
+            child._birthday = datetime(
+                birthday.year, birthday.month, birthday.day, tzinfo=timezone.utc
+            )
         return child
 
 

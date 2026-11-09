@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from ..database import get_repository
-from ..database.models import Child
+from ..database.models import Child, calculate_age_at_end_of_school_year
 from .common import get_current_user
 
 # Configure logging
@@ -17,41 +17,6 @@ repository = get_repository()
 
 # Create blueprint
 bp = Blueprint("children", __name__, url_prefix="/children")
-
-
-def calculate_age_at_end_of_school_year(birthday_date: datetime) -> int:
-    """Calculate the age a child will be at the end of the current school year.
-
-    School year typically ends in May/June, so we use June 30th as the reference date.
-    This ensures consistent age calculation throughout the school year.
-
-    Args:
-        birthday_date: The child's birthday
-
-    Returns:
-        The age the child will be at the end of the current school year
-    """
-    today = datetime.now()
-
-    # Determine the end of the current school year
-    # If we're before June, use June 30th of current year
-    # If we're June or later, use June 30th of next year
-    if today.month < 6:
-        school_year_end = datetime(today.year, 6, 30)
-    else:
-        school_year_end = datetime(today.year + 1, 6, 30)
-
-    # Calculate age at the end of school year
-    age = (
-        school_year_end.year
-        - birthday_date.year
-        - (
-            (school_year_end.month, school_year_end.day)
-            < (birthday_date.month, birthday_date.day)
-        )
-    )
-
-    return age
 
 
 @bp.route("/")
@@ -93,6 +58,7 @@ def register_child():
             grade=int(grade_level),
             preferred_color=preferred_color,
         )
+        child.birthday = birthday_date
         repository.create_child(child)
         flash("Child added successfully!", "success")
         return redirect(url_for("children.list_children"))
