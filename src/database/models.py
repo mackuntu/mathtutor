@@ -5,7 +5,6 @@ import uuid
 from datetime import date, datetime, timezone
 from typing import Optional
 
-
 SCHOOL_YEAR_END_MONTH = 6
 SCHOOL_YEAR_END_DAY = 30
 
@@ -22,9 +21,7 @@ def calculate_age_at_end_of_school_year(
     end_year = today.year if today.month < SCHOOL_YEAR_END_MONTH else today.year + 1
     end = (SCHOOL_YEAR_END_MONTH, SCHOOL_YEAR_END_DAY)
     return (
-        end_year
-        - birthday_date.year
-        - (end < (birthday_date.month, birthday_date.day))
+        end_year - birthday_date.year - (end < (birthday_date.month, birthday_date.day))
     )
 
 
@@ -92,9 +89,7 @@ class Child(Model):
         """Store the birthday and derive age at the end of the school year."""
         if not isinstance(value, datetime):
             raise ValueError("Birthday must be a datetime object")
-        self._birthday = (
-            value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-        )
+        self._birthday = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
         self.age = calculate_age_at_end_of_school_year(self._birthday)
 
     @property
