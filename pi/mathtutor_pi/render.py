@@ -1,5 +1,7 @@
 """Render worksheet HTML to PDF with headless Chromium."""
 
+import os
+import signal
 import subprocess
 import tempfile
 from pathlib import Path
@@ -24,10 +26,11 @@ def render_pdf(
     out_pdf: Path,
     *,
     timeout_s: float = 60,
-    run=subprocess.run,
+    popen=subprocess.Popen,
     chromium: str = DEFAULT_CHROMIUM,
 ) -> None:
     out_pdf = Path(out_pdf)
+    out_pdf.unlink(missing_ok=True)
     with tempfile.NamedTemporaryFile(
         "w",
         encoding="utf-8",
@@ -38,12 +41,15 @@ def render_pdf(
         handle.write(html)
         tmp_html = Path(handle.name)
     try:
-        _run_chromium(tmp_html, out_pdf, timeout_s, run, chromium)
+        _run_chromium(tmp_html, out_pdf, timeout_s, popen, chromium)
+    except RenderError:
+        out_pdf.unlink(missing_ok=True)
+        raise
     finally:
         tmp_html.unlink(missing_ok=True)
 
 
-def _run_chromium(tmp_html: Path, out_pdf: Path, timeout_s, run, chromium) -> None:
+def _run_chromium(tmp_html: Path, out_pdf: Path, timeout_s, popen, chromium) -> None:
     args = [
         chromium,
         *CHROMIUM_FLAGS,
@@ -51,14 +57,33 @@ def _run_chromium(tmp_html: Path, out_pdf: Path, timeout_s, run, chromium) -> No
         tmp_html.resolve().as_uri(),
     ]
     try:
-        result = run(
-            args, timeout=timeout_s, capture_output=True, text=True, check=False
+        # Own session so the whole process tree can be killed; no inherited
+        # pipes so orphaned children can never block us.
+        proc = popen(
+            args,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
-    except subprocess.TimeoutExpired:
-        raise RenderError("render timeout") from None
     except FileNotFoundError:
         raise RenderError("chromium not found") from None
-    if result.returncode != 0:
-        raise RenderError(f"chromium exited {result.returncode}")
+    except OSError:
+        raise RenderError("chromium launch failed") from None
+    try:
+        proc.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        _kill_group(proc)
+        raise RenderError("render timeout") from None
+    if proc.returncode != 0:
+        raise RenderError(f"chromium exited {proc.returncode}")
     if not out_pdf.exists() or out_pdf.stat().st_size == 0:
         raise RenderError("chromium produced empty pdf")
+
+
+def _kill_group(proc) -> None:
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    proc.wait()

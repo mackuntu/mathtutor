@@ -13,9 +13,11 @@ class FakeRun:
     def __init__(self, responses):
         self.responses = responses
         self.calls = []
+        self.envs = []
 
     def __call__(self, args, **kwargs):
         self.calls.append(args)
+        self.envs.append(kwargs.get("env"))
         response = self.responses(args)
         if isinstance(response, Exception):
             raise response
@@ -94,7 +96,42 @@ def test_wait_done_timeout_cancels_job():
     assert run.calls[-1] == ["cancel", JOB]
 
 
-def test_wait_done_lpstat_failure_raises():
-    run = FakeRun(lambda a: (1, ""))
+def test_wait_done_lpstat_always_failing_cancels_and_raises():
+    def responses(args):
+        return (0, "") if args[0] == "cancel" else (1, "")
+
+    run = FakeRun(responses)
     with pytest.raises(PrintError):
         _printer(run).wait_done(JOB, timeout_s=10)
+    assert run.calls[-1] == ["cancel", JOB]
+
+
+def test_wait_done_tolerates_transient_lpstat_failure():
+    state = {"n": 0}
+
+    def responses(args):
+        state["n"] += 1
+        return (1, "") if state["n"] == 1 else (0, f"{JOB}  martin 1  Mon\n")
+
+    run = FakeRun(responses)
+    _printer(run).wait_done(JOB, timeout_s=10)
+    assert all(call[0] != "cancel" for call in run.calls)
+
+
+def test_commands_run_with_c_locale():
+    run = FakeRun(lambda a: (0, f"request id is {JOB} (1 file(s))\n"))
+    _printer(run).submit(Path("a.pdf"), "t")
+    assert run.envs[0]["LC_ALL"] == "C"
+
+
+def test_cancel_runs_with_c_locale():
+    run = FakeRun(lambda a: (0, ""))
+    with pytest.raises(PrintError):
+        _printer(run).wait_done(JOB, timeout_s=2)
+    assert run.envs[-1]["LC_ALL"] == "C"
+
+
+def test_submit_launch_oserror_raises():
+    run = FakeRun(lambda a: PermissionError("lp"))
+    with pytest.raises(PrintError, match="launch"):
+        _printer(run).submit(Path("a.pdf"), "t")

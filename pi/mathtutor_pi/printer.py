@@ -1,5 +1,6 @@
 """Submit PDFs to a CUPS printer and wait for the job to finish."""
 
+import os
 import re
 import subprocess
 import time
@@ -33,41 +34,54 @@ class CupsPrinter:
         """Poll `lpstat -W completed -o <printer>` until `job_id` is listed.
 
         The job counts as done once its id is the first token of a line in the
-        completed-jobs list. On timeout the job is cancelled and PrintError
-        raised.
+        completed-jobs list. Transient lpstat failures are tolerated; polling
+        continues until the deadline. On timeout the job is cancelled and
+        PrintError raised ("printer timeout", or "printer status unavailable"
+        if every poll failed).
         """
         deadline = self._clock() + timeout_s
+        any_poll_succeeded = False
         while True:
-            out = self._cups(["lpstat", "-W", "completed", "-o", self._name], "lpstat")
-            if any(line.split()[:1] == [job_id] for line in out.splitlines()):
-                return
+            try:
+                out = self._cups(
+                    ["lpstat", "-W", "completed", "-o", self._name], "lpstat"
+                )
+            except PrintError:
+                pass
+            else:
+                any_poll_succeeded = True
+                if any(line.split()[:1] == [job_id] for line in out.splitlines()):
+                    return
             if self._clock() >= deadline:
                 break
             self._sleep(poll_s)
         self._cancel(job_id)
-        raise PrintError("printer timeout")
+        raise PrintError(
+            "printer timeout" if any_poll_succeeded else "printer status unavailable"
+        )
 
     def _cancel(self, job_id: str) -> None:
         try:
-            self._run(
-                ["cancel", job_id],
-                timeout=30,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            pass  # best effort; the timeout error is what matters
+            self._cups(["cancel", job_id], "cancel")
+        except PrintError:
+            pass  # best effort; the original failure is what matters
 
     def _cups(self, args: list[str], label: str) -> str:
         try:
             result = self._run(
-                args, timeout=30, capture_output=True, text=True, check=False
+                args,
+                timeout=30,
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "LC_ALL": "C"},
             )
         except FileNotFoundError:
             raise PrintError(f"{label} not found") from None
         except subprocess.TimeoutExpired:
             raise PrintError(f"{label} timeout") from None
+        except OSError:
+            raise PrintError(f"{label} launch failed") from None
         if result.returncode != 0:
             raise PrintError(f"{label} exited {result.returncode}")
         return result.stdout or ""
