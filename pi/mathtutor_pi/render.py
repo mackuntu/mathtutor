@@ -34,7 +34,10 @@ def render_pdf(
     out_pdf.unlink(missing_ok=True)
     with tempfile.NamedTemporaryFile(
         "w",
-        encoding="utf-8",
+        # BOM: the page has no charset and file:// has no HTTP header, so this
+        # is how Chromium learns it is UTF-8 (U+2212, x). No doctype: quirks
+        # mode layout must stay.
+        encoding="utf-8-sig",
         suffix=".html",
         dir=out_pdf.parent,
         delete=False,

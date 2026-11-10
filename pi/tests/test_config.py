@@ -3,7 +3,13 @@ from pathlib import Path
 
 import pytest
 
-from mathtutor_pi.config import ButtonConfig, Config, ConfigError, load_config
+from mathtutor_pi.config import (
+    ButtonConfig,
+    Config,
+    ConfigError,
+    check_child_ids,
+    load_config,
+)
 
 TOKEN = "mt_secret123"
 
@@ -142,7 +148,8 @@ def test_undecodable_token_file_raises(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "url", ["http://example.test", "ftp://x", "example.test", "http://localhost.evil.com"]
+    "url",
+    ["http://example.test", "ftp://x", "example.test", "http://localhost.evil.com"],
 )
 def test_insecure_site_url_rejected(tmp_path, url):
     path = write(tmp_path, BUTTONS)
@@ -160,7 +167,15 @@ def test_loopback_http_allowed(tmp_path, url):
     assert load_config(path).site_url == url
 
 
-@pytest.mark.parametrize("line", ["site_timeout_s = 0", "site_timeout_s = true", 'site_timeout_s = "5"', "print_timeout_s = -1"])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "site_timeout_s = 0",
+        "site_timeout_s = true",
+        'site_timeout_s = "5"',
+        "print_timeout_s = -1",
+    ],
+)
 def test_bad_timeouts_rejected(tmp_path, line):
     with pytest.raises(ConfigError, match="_s"):
         load_config(write(tmp_path, line + "\n" + BUTTONS))
@@ -169,4 +184,28 @@ def test_bad_timeouts_rejected(tmp_path, line):
 @pytest.mark.parametrize("bad", ["true", "-1", "1.5", '"17"'])
 def test_bad_pin_rejected(tmp_path, bad):
     with pytest.raises(ConfigError, match="pin"):
-        load_config(write(tmp_path, BUTTONS.replace("button_pin = 17", f"button_pin = {bad}")))
+        load_config(
+            write(tmp_path, BUTTONS.replace("button_pin = 17", f"button_pin = {bad}"))
+        )
+
+
+def test_placeholder_child_id_is_rejected_naming_kid(tmp_path):
+    body = BUTTONS.replace('"c2"', '"REPLACE-WITH-SUDO-CHILD-ID"')
+    cfg = load_config(write(tmp_path, body))
+
+    with pytest.raises(ConfigError, match="child_id for Sudo.*children"):
+        check_child_ids(cfg)
+
+
+def test_real_child_ids_pass_check(tmp_path):
+    check_child_ids(load_config(write(tmp_path, BUTTONS)))
+
+
+def test_example_config_placeholders_start_with_replace():
+    example = Path(__file__).parents[1] / "config.example.toml"
+    ids = [
+        line.split("=", 1)[1].strip().strip('"')
+        for line in example.read_text().splitlines()
+        if line.startswith("child_id")
+    ]
+    assert ids and all(i.startswith("REPLACE-") for i in ids)

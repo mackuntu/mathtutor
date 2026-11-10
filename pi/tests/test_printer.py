@@ -135,3 +135,25 @@ def test_submit_launch_oserror_raises():
     run = FakeRun(lambda a: PermissionError("lp"))
     with pytest.raises(PrintError, match="launch"):
         _printer(run).submit(Path("a.pdf"), "t")
+
+
+def test_exists_true_when_lpstat_succeeds():
+    run = FakeRun(lambda a: (0, f"device for {NAME}: ipp://x\n"))
+
+    assert _printer(run).exists() is True
+    assert run.calls[0] == ["lpstat", "-v", NAME]
+    assert run.envs[0]["LC_ALL"] == "C"
+
+
+def test_exists_false_when_lpstat_fails():
+    run = FakeRun(lambda a: (1, ""))
+
+    assert _printer(run).exists() is False
+
+
+def test_exists_false_when_lpstat_missing_or_times_out():
+    missing = FakeRun(lambda a: FileNotFoundError())
+    slow = FakeRun(lambda a: subprocess.TimeoutExpired(a, 10))
+
+    assert _printer(missing).exists() is False
+    assert _printer(slow).exists() is False

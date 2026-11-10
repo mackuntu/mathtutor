@@ -164,3 +164,20 @@ def test_render_removes_profile_dir_on_timeout(tmp_path):
         render_pdf("<html></html>", tmp_path / "ws.pdf", popen=popen, timeout_s=0.01)
 
     assert not seen["profile"].exists()
+
+
+def test_temp_html_has_utf8_bom_and_decodes(tmp_path):
+    seen = {}
+
+    def popen(args, **kwargs):
+        path = Path(args[-1].removeprefix("file://"))
+        seen["bytes"] = path.read_bytes()
+        for arg in args:
+            if arg.startswith("--print-to-pdf="):
+                Path(arg.split("=", 1)[1]).write_bytes(b"%PDF-1.4 data")
+        return FakeProc(0)
+
+    render_pdf("<html>5 − 3 × 2</html>", tmp_path / "ws.pdf", popen=popen)
+
+    assert seen["bytes"].startswith(b"\xef\xbb\xbf")
+    assert "5 − 3 × 2" in seen["bytes"].decode("utf-8-sig")

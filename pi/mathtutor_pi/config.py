@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 TOKEN_PATTERN = re.compile(r"mt_[A-Za-z0-9_-]+")  # prefix + token_urlsafe
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+PLACEHOLDER_PREFIX = "REPLACE-"
 _GROUP_OTHER_BITS = stat.S_IRWXG | stat.S_IRWXO
 
 
@@ -45,9 +46,7 @@ def _read_token(token_path: Path) -> str:
     try:
         mode = token_path.stat().st_mode
         if mode & _GROUP_OTHER_BITS:
-            raise ConfigError(
-                f"token file {token_path} must be mode 0600 or stricter"
-            )
+            raise ConfigError(f"token file {token_path} must be mode 0600 or stricter")
         token = token_path.read_text().strip()
     except OSError as exc:
         raise ConfigError(f"cannot read token file {token_path}: {exc.strerror}")
@@ -107,6 +106,15 @@ def _check_unique(buttons: tuple[ButtonConfig, ...]) -> None:
         raise ConfigError("duplicate pin across buttons/leds")
 
 
+def check_child_ids(config: Config) -> None:
+    """Reject the example placeholder child ids (not needed by `children`)."""
+    for button in config.buttons:
+        if button.child_id.startswith(PLACEHOLDER_PREFIX):
+            raise ConfigError(
+                f"set child_id for {button.kid}; run the children command"
+            )
+
+
 def load_config(path: Path) -> Config:
     path = Path(path)
     try:
@@ -125,7 +133,8 @@ def load_config(path: Path) -> Config:
     _check_unique(buttons)
 
     optional = {
-        k: _positive_number(k, raw[k]) for k in ("print_timeout_s", "error_flash_s", "site_timeout_s")
+        k: _positive_number(k, raw[k])
+        for k in ("print_timeout_s", "error_flash_s", "site_timeout_s")
         if k in raw
     }
     return Config(

@@ -8,7 +8,13 @@ import tempfile
 import threading
 from pathlib import Path
 
-from mathtutor_pi.config import ButtonConfig, Config, ConfigError, load_config
+from mathtutor_pi.config import (
+    ButtonConfig,
+    Config,
+    ConfigError,
+    check_child_ids,
+    load_config,
+)
 from mathtutor_pi.controller import KidButton
 from mathtutor_pi.printer import CupsPrinter
 from mathtutor_pi.render import render_pdf
@@ -98,12 +104,20 @@ def _cmd_children(args, config: Config) -> int:
     return 0
 
 
+def _exit_on_sigterm(signum, frame) -> None:
+    sys.exit(0)
+
+
 def _cmd_run(args, config: Config) -> int:
     try:
         from gpiozero import LED, Button  # only the service needs GPIO
     except ImportError as exc:
         print(f"error: gpiozero is not available ({exc})", file=sys.stderr)
         return 1
+
+    if not CupsPrinter(config.printer).exists():
+        log.warning("printer queue '%s' not found; prints will fail", config.printer)
+    signal.signal(signal.SIGTERM, _exit_on_sigterm)  # let gpiozero close pins
 
     workdir = Path(tempfile.mkdtemp(prefix="mathtutor-pi-"))
     render_lock = threading.Lock()
@@ -147,7 +161,10 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO, stream=sys.stderr, format="%(levelname)s %(message)s"
     )
     try:
-        return args.handler(args, load_config(args.config))
+        config = load_config(args.config)
+        if args.command != "children":
+            check_child_ids(config)
+        return args.handler(args, config)
     except (ConfigError, SiteError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

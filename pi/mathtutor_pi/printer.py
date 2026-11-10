@@ -22,6 +22,14 @@ class CupsPrinter:
         self._sleep = sleep
         self._clock = clock
 
+    def exists(self) -> bool:
+        """True if the CUPS queue is configured (`lpstat -v <printer>` succeeds)."""
+        try:
+            self._cups(["lpstat", "-v", self._name], "lpstat", timeout_s=10)
+        except PrintError:
+            return False
+        return True
+
     def submit(self, pdf: Path, title: str) -> str:
         """Run `lp` and return the CUPS job id (e.g. `Brother-17`)."""
         out = self._cups(["lp", "-d", self._name, "-t", title, str(pdf)], "lp")
@@ -66,11 +74,11 @@ class CupsPrinter:
         except PrintError:
             pass  # best effort; the original failure is what matters
 
-    def _cups(self, args: list[str], label: str) -> str:
+    def _cups(self, args: list[str], label: str, timeout_s: float = 30) -> str:
         try:
             result = self._run(
                 args,
-                timeout=30,
+                timeout=timeout_s,
                 capture_output=True,
                 text=True,
                 check=False,

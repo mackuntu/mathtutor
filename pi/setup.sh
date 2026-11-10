@@ -21,7 +21,7 @@ fi
 echo "==> Installing packages"
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  python3-gpiozero python3-lgpio cups chromium-headless-shell
+  python3-gpiozero python3-lgpio cups chromium-headless-shell fonts-liberation
 
 echo "==> Service user"
 if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
@@ -54,17 +54,27 @@ fi
 
 echo "==> CUPS printer $PRINTER_NAME"
 systemctl enable --now cups
+# retry-job: a printer-off event must not leave the queue stopped/disabled.
+RETRY_POLICY=printer-error-policy=retry-job
 if lpstat -v "$PRINTER_NAME" >/dev/null 2>&1; then
   echo "printer already configured"
+  lpadmin -p "$PRINTER_NAME" -o "$RETRY_POLICY"
+  cupsenable "$PRINTER_NAME"
+  cupsaccept "$PRINTER_NAME"
 else
   uri="${PRINTER_URI:-}"
   if [[ -z "$uri" ]]; then
     echo "searching the network for the printer (may take a few seconds)..."
     uri="$(lpinfo --include-schemes dnssd -v 2>/dev/null \
-      | awk -v pat="$PRINTER_MODEL_PATTERN" '$2 ~ /^(dnssd|ipp):\/\// && index($2, pat) {print $2; exit}' || true)"
+      | awk -v pat="$PRINTER_MODEL_PATTERN" '
+          $2 ~ /^(dnssd|ipp):\/\// && index($2, pat) {
+            if ($2 ~ /\._ipps?\./ || $2 ~ /\._ipps?$/) { print $2; found = 1; exit }
+            if (first == "") first = $2
+          }
+          END { if (!found && first != "") print first }' || true)"
   fi
   if [[ -n "$uri" ]]; then
-    lpadmin -p "$PRINTER_NAME" -E -v "$uri" -m everywhere
+    lpadmin -p "$PRINTER_NAME" -E -v "$uri" -m everywhere -o "$RETRY_POLICY"
     echo "printer added at $uri"
   else
     echo "warning: printer not found. Make sure it is on and on Wi-Fi, then re-run with" >&2
@@ -75,14 +85,14 @@ fi
 echo "==> systemd service"
 install -m 0644 "$SRC_DIR/systemd/mathtutor-pi.service" /etc/systemd/system/mathtutor-pi.service
 systemctl daemon-reload
-if [[ -s "$TOKEN_FILE" ]]; then
+if grep -q '[^[:space:]]' "$TOKEN_FILE"; then
   systemctl enable mathtutor-pi.service
   systemctl restart mathtutor-pi.service
   echo "service enabled and restarted"
 else
   systemctl disable mathtutor-pi.service >/dev/null 2>&1 || true
   cat <<MSG
-The service is NOT enabled yet: the token file is empty.
+The service is NOT enabled yet: the token file is empty or blank.
 Next steps:
   1. Create a device token at <site>/settings/devices
   2. Put it in $TOKEN_FILE (owner $SERVICE_USER, mode 0600)

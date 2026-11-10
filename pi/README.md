@@ -46,7 +46,8 @@ cd pi
 sudo ./setup.sh
 ```
 
-It installs packages, creates the `mathtutor-pi` service user, copies the code
+It installs packages (including `fonts-liberation`, which is metric-compatible
+with Times New Roman so worksheets lay out the same as on the site), creates the `mathtutor-pi` service user, copies the code
 to `/opt/mathtutor-pi`, creates `/etc/mathtutor-pi/`, adds the printer queue
 `Brother_HL_L2340DW` if missing, and enables the systemd service. It is safe to
 re-run. If the printer is not discovered, re-run with

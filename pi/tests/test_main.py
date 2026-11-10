@@ -168,3 +168,56 @@ def test_logging_goes_to_stderr_not_stdout(patched, capsys, monkeypatch):
     captured = {}
     main_mod.main(["print", "Philip", "--config", "c.toml"])
     assert captured["stream"] is sys.stderr
+
+
+def _fake_gpiozero(monkeypatch):
+    import types
+
+    class Dev:
+        def __init__(self, *a, **k):
+            pass
+
+    mod = types.SimpleNamespace(LED=Dev, Button=Dev)
+    monkeypatch.setitem(sys.modules, "gpiozero", mod)
+
+
+def test_run_installs_sigterm_handler_and_warns_missing_printer(monkeypatch, caplog):
+    import signal
+
+    _fake_gpiozero(monkeypatch)
+    monkeypatch.setattr(main_mod, "load_config", lambda path: _config())
+    monkeypatch.setattr(
+        main_mod,
+        "build_kid_button",
+        lambda *a, **k: type("K", (), {"on_press": None})(),
+    )
+    monkeypatch.setattr(main_mod.CupsPrinter, "exists", lambda self: False)
+    installed = {}
+    monkeypatch.setattr(
+        main_mod.signal, "signal", lambda sig, h: installed.setdefault(sig, h)
+    )
+    monkeypatch.setattr(main_mod.signal, "pause", lambda: None)
+
+    assert main_mod.main(["run", "--config", "c.toml"]) == 0
+
+    with pytest.raises(SystemExit) as exc:
+        installed[signal.SIGTERM](signal.SIGTERM, None)
+    assert exc.value.code == 0
+    assert any(
+        r.levelname == "WARNING" and "Q" in r.getMessage() for r in caplog.records
+    )
+
+
+def test_run_rejects_placeholder_child_id(monkeypatch, capsys):
+    _fake_gpiozero(monkeypatch)
+    cfg = _config()
+    bad = Config(
+        cfg.site_url,
+        cfg.token,
+        cfg.printer,
+        (ButtonConfig("Sudo", "REPLACE-WITH-X", 22, 23),),
+    )
+    monkeypatch.setattr(main_mod, "load_config", lambda path: bad)
+
+    assert main_mod.main(["run", "--config", "c.toml"]) == 1
+    assert "child_id for Sudo" in capsys.readouterr().err
