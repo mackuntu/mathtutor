@@ -22,6 +22,10 @@ echo "==> Installing packages"
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3-gpiozero python3-lgpio cups chromium-headless-shell fonts-liberation
+# cups pulls in colord, whose D-Bus policy file the running bus has not read yet.
+# Until it does, colord cannot claim its name and every print stalls on 25 s
+# D-Bus activation timeouts (CUPS filters and cupsd both query it).
+systemctl reload dbus
 
 echo "==> Service user"
 if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
