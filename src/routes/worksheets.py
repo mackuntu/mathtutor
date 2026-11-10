@@ -17,6 +17,7 @@ from flask import (
 from ..database import get_repository
 from ..database.models import Worksheet as WorksheetModel
 from ..problem_generator import ProblemGenerator
+from ..worksheet_service import generate_for_child
 from .common import get_current_user
 
 # Configure logging
@@ -204,22 +205,13 @@ def generate_worksheet_route():
         flash("Child not found.", "error")
         return redirect(url_for("pages.index"))
 
-    problems, answers = generator.generate_math_problems(
-        age=child.age,
-        count=30,  # default count
-        difficulty=generator.get_school_year_progress(),
-    )
-
-    # Create worksheet in database with correct answers
-    worksheet = WorksheetModel.create(child_id=child.id, problems=json.dumps(problems))
-    worksheet.correct_answers = answers  # Store correct answers for grading
-    repository.create_worksheet(worksheet)
+    worksheet = generate_for_child(child)
 
     return render_template(
         "worksheet.html",
         user=user,
         child=child,
-        problems=problems,
+        problems=worksheet.problems,
         worksheet_id=worksheet.id,
     )
 
