@@ -8,7 +8,7 @@ from .database import PostgresRepository
 from .database.models import Child, Worksheet
 from .problem_generator import ProblemGenerator
 
-PROBLEMS_PER_WORKSHEET = 30
+PROBLEMS_PER_WORKSHEET = 50
 
 
 def generate_for_child(child: Child) -> Worksheet:

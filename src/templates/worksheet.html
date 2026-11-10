@@ -72,6 +72,17 @@
         border-color: #ef5350 !important;
     }
 
+    /* Used by the fit-to-one-page script at the end of the sheet. */
+    .container.measuring,
+    .container.shrunk,
+    .container.measuring .problem-grid {
+        flex: none;
+    }
+
+    .container.measuring .problem-grid {
+        align-content: start;
+    }
+
     .serial-number {
         position: absolute;
         top: 10px;
@@ -147,4 +158,37 @@
     </style>
     {% endif %}
 </div>
+<script>
+    /* One sheet of paper, always: if the worksheet is taller than a letter
+       page's printable area, shrink the whole sheet until it fits. */
+    (function () {
+        var CSS_PX_PER_INCH = 96;
+        var PRINTABLE_HEIGHT_IN = 11 - 2 * 0.45; /* letter minus @page margins */
+        var SAFETY = 0.97; /* rounding, borders, printer driver slack */
+        var maxHeight = PRINTABLE_HEIGHT_IN * CSS_PX_PER_INCH * SAFETY;
+
+        function fitToOnePage() {
+            var sheet = document.querySelector('.container');
+            if (!sheet) {
+                return;
+            }
+            /* The sheet and grid stretch to fill the window/page; measure
+               their natural content height with stretching off. */
+            sheet.style.zoom = '';
+            sheet.classList.add('measuring');
+            var height = sheet.scrollHeight;
+            sheet.classList.remove('measuring');
+            if (height > maxHeight) {
+                sheet.classList.add('shrunk');
+                sheet.style.zoom = String(maxHeight / height);
+            } else {
+                sheet.classList.remove('shrunk');
+            }
+        }
+
+        fitToOnePage();
+        window.addEventListener('load', fitToOnePage);
+        window.addEventListener('beforeprint', fitToOnePage);
+    })();
+</script>
 {% endblock %} 

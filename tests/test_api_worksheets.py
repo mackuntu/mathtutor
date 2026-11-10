@@ -85,7 +85,7 @@ def test_new_worksheet_is_persisted_for_child(client, token, owner_child, reposi
     saved = repository.get_child_worksheets(owner_child.id)
     assert [w.id for w in saved] == [body["worksheet_id"]]
     assert saved[0].serial_number == body["serial"]
-    assert len(saved[0].problems) == 30
+    assert len(saved[0].problems) == 50
 
 
 def test_new_worksheet_unknown_child_404(client, token):

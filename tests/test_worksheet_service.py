@@ -4,10 +4,10 @@ import json
 
 from src.worksheet_service import generate_for_child, render_printable
 
-PROBLEM_COUNT = 30
+PROBLEM_COUNT = 50
 
 
-def test_generate_for_child_persists_30_problems_with_answers(repository, test_child):
+def test_generate_for_child_persists_50_problems_with_answers(repository, test_child):
     ws = generate_for_child(test_child)
 
     saved = repository.get_worksheet(ws.id)
