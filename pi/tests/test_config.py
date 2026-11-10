@@ -124,3 +124,49 @@ def test_missing_token_file_raises(tmp_path):
     os.remove(tmp_path / "token")
     with pytest.raises(ConfigError):
         load_config(path)
+
+
+@pytest.mark.parametrize("token", ["mt_a\nb", "mt_caf\u00e9", "mt_a b", "mt_"])
+def test_malformed_token_rejected_without_leak(tmp_path, token):
+    with pytest.raises(ConfigError) as e:
+        load_config(write(tmp_path, BUTTONS, token=token))
+    assert token.strip() not in str(e.value) and "caf" not in str(e.value)
+
+
+def test_undecodable_token_file_raises(tmp_path):
+    path = write(tmp_path, BUTTONS)
+    (tmp_path / "token").write_bytes(b"mt_\xff\xfe")
+    with pytest.raises(ConfigError) as e:
+        load_config(path)
+    assert "xff" not in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "url", ["http://example.test", "ftp://x", "example.test", "http://localhost.evil.com"]
+)
+def test_insecure_site_url_rejected(tmp_path, url):
+    path = write(tmp_path, BUTTONS)
+    path.write_text(path.read_text().replace("https://example.test", url))
+    with pytest.raises(ConfigError, match="site_url"):
+        load_config(path)
+
+
+@pytest.mark.parametrize(
+    "url", ["http://localhost:8080", "http://127.0.0.1:5000", "http://[::1]:80"]
+)
+def test_loopback_http_allowed(tmp_path, url):
+    path = write(tmp_path, BUTTONS)
+    path.write_text(path.read_text().replace("https://example.test", url))
+    assert load_config(path).site_url == url
+
+
+@pytest.mark.parametrize("line", ["site_timeout_s = 0", "site_timeout_s = true", 'site_timeout_s = "5"', "print_timeout_s = -1"])
+def test_bad_timeouts_rejected(tmp_path, line):
+    with pytest.raises(ConfigError, match="_s"):
+        load_config(write(tmp_path, line + "\n" + BUTTONS))
+
+
+@pytest.mark.parametrize("bad", ["true", "-1", "1.5", '"17"'])
+def test_bad_pin_rejected(tmp_path, bad):
+    with pytest.raises(ConfigError, match="pin"):
+        load_config(write(tmp_path, BUTTONS.replace("button_pin = 17", f"button_pin = {bad}")))

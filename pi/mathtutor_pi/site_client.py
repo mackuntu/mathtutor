@@ -1,5 +1,6 @@
 """Minimal stdlib HTTP client for the MathTutor device API."""
 
+import http.client
 import json
 import socket
 import urllib.error
@@ -17,6 +18,15 @@ class PrintableWorksheet:
     serial: str
     html: str
 
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow redirects: they would forward the Authorization header."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
 
 _STATUS_REASONS = {401: "unauthorized", 404: "child not found"}
 
@@ -56,7 +66,7 @@ class SiteClient:
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=self._timeout_s) as resp:
+            with _OPENER.open(req, timeout=self._timeout_s) as resp:
                 body = resp.read()
         except urllib.error.HTTPError as exc:
             exc.close()
@@ -68,7 +78,7 @@ class SiteClient:
             raise SiteError("connection failed") from None
         except (socket.timeout, TimeoutError):
             raise SiteError("timeout") from None
-        except OSError:
+        except (OSError, http.client.HTTPException):
             raise SiteError("connection failed") from None
         try:
             return json.loads(body)

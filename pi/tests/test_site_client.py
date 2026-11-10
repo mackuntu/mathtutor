@@ -11,8 +11,9 @@ TOKEN = "mt_secret123"
 
 
 class Stub:
-    def __init__(self, status=200, body=b"{}", delay=0.0):
+    def __init__(self, status=200, body=b"{}", delay=0.0, location=None, claimed_length=None):
         self.status, self.body, self.delay = status, body, delay
+        self.location, self.claimed_length = location, claimed_length
         self.requests = []
         stub = self
 
@@ -27,7 +28,11 @@ class Stub:
                 time.sleep(stub.delay)
                 try:
                     self.send_response(stub.status)
-                    self.send_header("Content-Length", str(len(stub.body)))
+                    length = stub.claimed_length or len(stub.body)
+                    self.send_header("Content-Length", str(length))
+                    if stub.location:
+                        self.send_header("Location", stub.location)
+                    self.close_connection = True
                     self.end_headers()
                     self.wfile.write(stub.body)
                 except OSError:
@@ -140,3 +145,18 @@ def test_missing_fields_raise_site_error(stub):
 def test_children_bad_shape_raises(stub):
     with pytest.raises(SiteError, match="bad response"):
         client(stub(body=b'{"nope": 1}')).children()
+
+
+def test_redirect_not_followed_and_token_not_forwarded(stub):
+    other = stub()
+    s = stub(status=302, location=other.url + "/steal")
+    with pytest.raises(SiteError, match="http 302"):
+        client(s).new_worksheet("c1")
+    assert other.requests == []
+
+
+def test_truncated_body_raises_site_error(stub):
+    s = stub(status=200, body=b"{", claimed_length=500)
+    with pytest.raises(SiteError) as e:
+        client(s).children()
+    assert TOKEN not in str(e.value)
