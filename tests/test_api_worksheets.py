@@ -55,6 +55,28 @@ def test_new_worksheet_returns_html_with_serial(client, token, owner_child):
     assert "Answer Key" not in body["html"]
 
 
+def test_new_worksheet_fills_in_child_name(client, token, owner_child):
+    response = client.post(
+        f"/api/children/{owner_child.id}/worksheets", headers=bearer(token)
+    )
+
+    html = response.get_json()["html"]
+    assert 'Name: <span class="underline">Ada</span>' in html
+
+
+def test_new_worksheet_escapes_child_name(client, token, repository, owner):
+    child = Child(parent_email=OWNER, name="<b>Bo</b>", age=8, grade=3)
+    repository.create_child(child)
+
+    response = client.post(
+        f"/api/children/{child.id}/worksheets", headers=bearer(token)
+    )
+
+    html = response.get_json()["html"]
+    assert "&lt;b&gt;Bo&lt;/b&gt;" in html
+    assert "<b>Bo</b>" not in html
+
+
 def test_new_worksheet_is_persisted_for_child(client, token, owner_child, repository):
     body = client.post(
         f"/api/children/{owner_child.id}/worksheets", headers=bearer(token)

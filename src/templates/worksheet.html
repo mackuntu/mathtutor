@@ -107,7 +107,7 @@
     <div class="serial-number">Serial: {{ serial_number }}</div>
     {% endif %}
     <div class="info-row">
-        <div class="field">Name: <span class="underline"></span></div>
+        <div class="field">Name: <span class="underline">{% if child %}{{ child.name }}{% endif %}</span></div>
         <div class="field">Date: <span class="underline"></span></div>
         <div class="field">Score: <span class="underline"></span>/{{ problems|length }}</div>
     </div>
