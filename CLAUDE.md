@@ -31,6 +31,7 @@ pytest tests/ -k "test_name"     # Single test
 - `src/device_tokens.py` - Revocable device tokens and bearer auth for `/api` (acts as the first `ALLOWED_EMAILS` entry)
 - `src/database/` - Postgres: `db.py` (per-request connection from `DATABASE_URL`), `schema.sql`, `models.py`, `repository.py` (`PostgresRepository`)
 - `src/problem_generators/` - Strategy pattern for math problems (basic_operations.py, multiplication.py, fractions.py)
+- `pi/` - Raspberry Pi print-button service (stdlib client of `/api`, CUPS printing, gpiozero buttons); has its own tests, run separately: `pytest pi/tests -W error`
 
 **Problem generation flow:**
 1. `ProblemGenerator.generate_math_problems(age, count, difficulty)` in `src/problem_generator.py`

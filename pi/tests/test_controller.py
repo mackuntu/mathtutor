@@ -338,3 +338,27 @@ def test_pdf_paths_unique_per_job(tmp_path, kid):
     _press_and_wait(button)
     first, second = (pdf for _, pdf in render.calls)
     assert first != second
+
+
+def test_run_once_returns_true_on_success(tmp_path):
+    light, printer = FakeLight(), FakePrinter()
+    button = _button(tmp_path, light=light, printer=printer)
+
+    assert button.run_once() is True
+
+    assert light.calls == ["steady", "blink", "steady"]
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_run_once_returns_false_on_failure_and_can_rerun(tmp_path):
+    button = _button(tmp_path, printer=FakePrinter(error=PrintError("jammed")))
+
+    assert button.run_once() is False
+    assert button.run_once() is False  # busy lock was released
+
+
+def test_run_once_returns_false_when_busy(tmp_path):
+    button = _button(tmp_path)
+    assert button._busy.acquire(blocking=False)
+
+    assert button.run_once() is False

@@ -70,16 +70,26 @@ class KidButton:
         self._thread = thread
         return True
 
+    def run_once(self) -> bool:
+        """Run one job synchronously. False if busy or the job failed."""
+        if not self._busy.acquire(blocking=False):
+            log.info("%s: busy, run ignored", self._kid)
+            return False
+        return self._run()
+
     def join(self, timeout: float | None = None) -> None:
         thread = self._thread
         if thread is not None:
             thread.join(timeout)
 
-    def _run(self) -> None:
+    def _run(self) -> bool:
+        """Run the job; the caller must hold `_busy`, released here."""
         pdf = self._workdir / f"{uuid.uuid4().hex}.pdf"
+        succeeded = False
         try:
             try:
                 self._print_one(pdf)
+                succeeded = True
             except _EXPECTED_ERRORS as exc:
                 log.warning("%s: failed: %s", self._kid, exc)
                 self._show_failure()
@@ -91,6 +101,7 @@ class KidButton:
                 self._set_light("steady")
         finally:
             self._busy.release()
+        return succeeded
 
     def _print_one(self, pdf: Path) -> None:
         self._light.blink()

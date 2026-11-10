@@ -39,4 +39,8 @@ jobs:
           pytest tests/ -v
         env:
           TEST_DATABASE_URL: postgresql://postgres:mathtutor@localhost:5432/mathtutor_test
-          FLASK_ENV: testing 
+          FLASK_ENV: testing
+
+      - name: Run Pi service tests
+        run: |
+          pytest pi/tests -W error -v 

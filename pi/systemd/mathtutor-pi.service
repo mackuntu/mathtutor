@@ -1,0 +1,21 @@
+[Unit]
+Description=MathTutor print buttons
+After=network-online.target cups.service
+Wants=network-online.target
+
+[Service]
+User=mathtutor-pi
+SupplementaryGroups=gpio lp
+WorkingDirectory=/opt/mathtutor-pi
+Environment=PYTHONPATH=/opt/mathtutor-pi
+ExecStart=/usr/bin/python3 -m mathtutor_pi run --config /etc/mathtutor-pi/config.toml
+Restart=always
+RestartSec=5
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectHome=yes
+MemoryMax=600M
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
