@@ -145,3 +145,27 @@ def test_session(repository, test_user):
     )
     repository.create_session(session)
     return session
+
+
+OWNER = "owner@example.com"
+
+
+def bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def owner_env(monkeypatch):
+    """Configure OWNER as the first (and only) allowed email."""
+    monkeypatch.setenv("ALLOWED_EMAILS", OWNER)
+
+
+@pytest.fixture
+def owner(owner_env, auth_manager):
+    return auth_manager.get_or_create_user(OWNER, "Owner")
+
+
+@pytest.fixture
+def logged_in(client, auth_manager, owner):
+    client.set_cookie("session_token", auth_manager.create_session(owner.email))
+    return client

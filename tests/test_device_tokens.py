@@ -7,28 +7,12 @@ import pytest
 
 from src.database.db import get_conn
 from src.device_tokens import issue_token
-
-OWNER = "owner@example.com"
+from tests.conftest import OWNER, bearer
 
 
 @pytest.fixture(autouse=True)
-def owner_env(monkeypatch):
-    monkeypatch.setenv("ALLOWED_EMAILS", OWNER)
-
-
-@pytest.fixture
-def owner(auth_manager):
-    return auth_manager.get_or_create_user(OWNER, "Owner")
-
-
-@pytest.fixture
-def logged_in(client, auth_manager, owner):
-    client.set_cookie("session_token", auth_manager.create_session(owner.email))
-    return client
-
-
-def bearer(token):
-    return {"Authorization": f"Bearer {token}"}
+def _owner_configured(owner_env):
+    """Every test in this module runs with the owner configured."""
 
 
 def test_issued_token_authorizes_api_ping_and_updates_last_used(
