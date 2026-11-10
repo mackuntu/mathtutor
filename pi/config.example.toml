@@ -1,0 +1,16 @@
+site_url = "https://mathtutor.mackuntu.com"
+token_file = "/etc/mathtutor-pi/token"   # file mode 0600, contents: mt_...
+printer = "Brother_HL_L2340DW"
+
+# Child ids: GET /api/children (or the child's page on the site). Placeholders below.
+[[buttons]]
+kid = "Philip"
+child_id = "REPLACE-WITH-PHILIP-CHILD-ID"
+button_pin = 17   # BCM numbering
+led_pin = 27
+
+[[buttons]]
+kid = "Sudo"
+child_id = "REPLACE-WITH-SUDO-CHILD-ID"
+button_pin = 22
+led_pin = 23
