@@ -1,6 +1,7 @@
 """Render worksheet HTML to PDF with headless Chromium."""
 
 import os
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -40,19 +41,24 @@ def render_pdf(
     ) as handle:
         handle.write(html)
         tmp_html = Path(handle.name)
+    profile = Path(tempfile.mkdtemp(prefix="chromium-profile-", dir=out_pdf.parent))
     try:
-        _run_chromium(tmp_html, out_pdf, timeout_s, popen, chromium)
+        _run_chromium(tmp_html, out_pdf, profile, timeout_s, popen, chromium)
     except RenderError:
         out_pdf.unlink(missing_ok=True)
         raise
     finally:
         tmp_html.unlink(missing_ok=True)
+        shutil.rmtree(profile, ignore_errors=True)
 
 
-def _run_chromium(tmp_html: Path, out_pdf: Path, timeout_s, popen, chromium) -> None:
+def _run_chromium(
+    tmp_html: Path, out_pdf: Path, profile: Path, timeout_s, popen, chromium
+) -> None:
     args = [
         chromium,
         *CHROMIUM_FLAGS,
+        f"--user-data-dir={profile}",
         f"--print-to-pdf={out_pdf}",
         tmp_html.resolve().as_uri(),
     ]

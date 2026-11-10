@@ -25,7 +25,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 echo "==> Service user"
 if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
-  useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
+  useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$SERVICE_USER"
 fi
 for group in gpio lp; do
   if getent group "$group" >/dev/null; then
@@ -61,7 +61,7 @@ else
   if [[ -z "$uri" ]]; then
     echo "searching the network for the printer (may take a few seconds)..."
     uri="$(lpinfo --include-schemes dnssd -v 2>/dev/null \
-      | awk -v pat="$PRINTER_MODEL_PATTERN" '$2 ~ /^ipp:\/\// && index($0, pat) {print $2; exit}' || true)"
+      | awk -v pat="$PRINTER_MODEL_PATTERN" '$2 ~ /^(dnssd|ipp):\/\// && index($2, pat) {print $2; exit}' || true)"
   fi
   if [[ -n "$uri" ]]; then
     lpadmin -p "$PRINTER_NAME" -E -v "$uri" -m everywhere
@@ -75,18 +75,20 @@ fi
 echo "==> systemd service"
 install -m 0644 "$SRC_DIR/systemd/mathtutor-pi.service" /etc/systemd/system/mathtutor-pi.service
 systemctl daemon-reload
-systemctl enable mathtutor-pi.service
 if [[ -s "$TOKEN_FILE" ]]; then
+  systemctl enable mathtutor-pi.service
   systemctl restart mathtutor-pi.service
-  echo "service restarted"
+  echo "service enabled and restarted"
 else
+  systemctl disable mathtutor-pi.service >/dev/null 2>&1 || true
   cat <<MSG
-The service is enabled but not started: the token file is empty.
+The service is NOT enabled yet: the token file is empty.
 Next steps:
   1. Create a device token at <site>/settings/devices
-  2. Write it to $TOKEN_FILE  (e.g. sudoedit; keep mode 0600, owner $SERVICE_USER)
+  2. Put it in $TOKEN_FILE (owner $SERVICE_USER, mode 0600)
   3. Fill in the child ids in $CONF_FILE
-     (sudo -u $SERVICE_USER PYTHONPATH=$APP_DIR python3 -m mathtutor_pi children --config $CONF_FILE)
-  4. sudo systemctl restart mathtutor-pi
+     (sudo -u $SERVICE_USER env HOME=/tmp PYTHONPATH=$APP_DIR python3 -m mathtutor_pi children --config $CONF_FILE)
+  4. Re-run setup.sh (it enables and restarts the service once the token is
+     present), or: sudo systemctl enable --now mathtutor-pi
 MSG
 fi

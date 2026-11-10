@@ -142,3 +142,29 @@ def test_console_light_logs(caplog):
 
 def test_default_config_path_is_etc():
     assert main_mod.DEFAULT_CONFIG == Path("/etc/mathtutor-pi/config.toml")
+
+
+def test_children_malformed_entry_exit_1(monkeypatch, capsys):
+    monkeypatch.setattr(main_mod, "load_config", lambda path: _config())
+
+    class FakeSiteClient:
+        def __init__(self, *a):
+            pass
+
+        def children(self):
+            return [{"id": "abc"}]
+
+    monkeypatch.setattr(main_mod, "SiteClient", FakeSiteClient)
+
+    assert main_mod.main(["children", "--config", "c.toml"]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and "Traceback" not in err
+
+
+def test_logging_goes_to_stderr_not_stdout(patched, capsys, monkeypatch):
+    import logging
+
+    monkeypatch.setattr(logging, "basicConfig", lambda **kw: captured.update(kw))
+    captured = {}
+    main_mod.main(["print", "Philip", "--config", "c.toml"])
+    assert captured["stream"] is sys.stderr

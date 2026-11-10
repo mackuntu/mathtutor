@@ -117,3 +117,50 @@ def test_render_timeout_kills_whole_process_group(tmp_path):
         time.sleep(0.05)
     with pytest.raises(ProcessLookupError):
         os.kill(child_pid, 0)
+
+
+def _profile_dir(args):
+    flags = [a for a in args if a.startswith("--user-data-dir=")]
+    assert len(flags) == 1
+    return Path(flags[0].split("=", 1)[1])
+
+
+@pytest.mark.parametrize("returncode", [0, 1])
+def test_render_uses_private_profile_dir_and_removes_it(tmp_path, returncode):
+    calls = []
+    out = tmp_path / "ws.pdf"
+    seen = {}
+
+    def popen(args, **kwargs):
+        profile = _profile_dir(args)
+        seen["profile"] = profile
+        assert profile.is_dir()
+        assert profile.parent == tmp_path
+        return _fake_popen(returncode, calls=calls)(args, **kwargs)
+
+    try:
+        render_pdf("<html></html>", out, popen=popen)
+    except RenderError:
+        assert returncode != 0
+
+    assert not seen["profile"].exists()
+
+
+def test_render_removes_profile_dir_on_timeout(tmp_path):
+    seen = {}
+
+    class Hung:
+        pid = 2**22 + 12345  # not a real process group
+
+        def wait(self, timeout=None):
+            if timeout is not None:
+                raise subprocess.TimeoutExpired("x", timeout)
+
+    def popen(args, **kwargs):
+        seen["profile"] = _profile_dir(args)
+        return Hung()
+
+    with pytest.raises(RenderError):
+        render_pdf("<html></html>", tmp_path / "ws.pdf", popen=popen, timeout_s=0.01)
+
+    assert not seen["profile"].exists()

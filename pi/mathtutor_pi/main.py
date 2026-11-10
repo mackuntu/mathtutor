@@ -89,8 +89,12 @@ def _cmd_print(args, config: Config) -> int:
 
 def _cmd_children(args, config: Config) -> int:
     client = SiteClient(config.site_url, config.token, config.site_timeout_s)
-    for child in client.children():
-        print(f"{child['name']}  {child['id']}")
+    try:
+        lines = [f"{child['name']}  {child['id']}" for child in client.children()]
+    except (KeyError, TypeError):
+        raise SiteError("unexpected response from /api/children") from None
+    for line in lines:
+        print(line)
     return 0
 
 
@@ -140,7 +144,7 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     logging.basicConfig(
-        level=logging.INFO, stream=sys.stdout, format="%(levelname)s %(message)s"
+        level=logging.INFO, stream=sys.stderr, format="%(levelname)s %(message)s"
     )
     try:
         return args.handler(args, load_config(args.config))

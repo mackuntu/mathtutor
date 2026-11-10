@@ -12,7 +12,9 @@ Button light: **steady** = ready, **slow blink** = working, **fast flash** = fai
 
 - 2 x 30 mm momentary arcade buttons with built-in 5 V LEDs
 - Female-female Dupont jumper wires (2 per button for the switch, 2 for the LED)
-- Pre-wired 2.8 mm spade connectors (to fit the button and LED tabs)
+- Pre-wired spade connectors to fit the button and LED tabs. Many arcade
+  microswitches use 4.8 mm tabs for the switch and 2.8 mm for the LED: check
+  the listing and buy matching connectors
 - Optional: project box
 
 ## Wiring
@@ -54,26 +56,26 @@ or Samba.
 ## Owner steps (once)
 
 1. On the site, open `/settings/devices` and create a device token.
-2. Put it in the token file (mode 0600, owned by `mathtutor-pi`):
-   `sudoedit /etc/mathtutor-pi/token` (contents: just `mt_...`). If sudoedit
-   loosens the mode, run
-   `sudo chown mathtutor-pi:mathtutor-pi /etc/mathtutor-pi/token && sudo chmod 600 /etc/mathtutor-pi/token`.
+2. Put it in the token file (contents: just `mt_...`):
+   `sudoedit /etc/mathtutor-pi/token`. sudoedit keeps the file's existing owner
+   (`mathtutor-pi`) and mode (0600), which the service requires.
 3. List the children and copy their ids into `/etc/mathtutor-pi/config.toml`:
 
    ```bash
-   sudo -u mathtutor-pi PYTHONPATH=/opt/mathtutor-pi python3 -m mathtutor_pi children --config /etc/mathtutor-pi/config.toml
+   sudo -u mathtutor-pi env HOME=/tmp PYTHONPATH=/opt/mathtutor-pi python3 -m mathtutor_pi children --config /etc/mathtutor-pi/config.toml
    ```
 
 4. Test a print without the buttons:
 
    ```bash
-   sudo -u mathtutor-pi PYTHONPATH=/opt/mathtutor-pi python3 -m mathtutor_pi print Philip --config /etc/mathtutor-pi/config.toml
+   sudo -u mathtutor-pi env HOME=/tmp PYTHONPATH=/opt/mathtutor-pi python3 -m mathtutor_pi print Philip --config /etc/mathtutor-pi/config.toml
    ```
 
-5. Start the service and watch it:
+5. Start the service (re-running `sudo ./setup.sh` also enables and starts it
+   once the token exists) and watch it:
 
    ```bash
-   sudo systemctl restart mathtutor-pi
+   sudo systemctl enable --now mathtutor-pi
    journalctl -u mathtutor-pi -f
    ```
 

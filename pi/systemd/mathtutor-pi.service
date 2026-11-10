@@ -8,6 +8,8 @@ User=mathtutor-pi
 SupplementaryGroups=gpio lp
 WorkingDirectory=/opt/mathtutor-pi
 Environment=PYTHONPATH=/opt/mathtutor-pi
+Environment=LG_WD=/tmp
+Environment=HOME=/tmp XDG_CONFIG_HOME=/tmp XDG_CACHE_HOME=/tmp
 ExecStart=/usr/bin/python3 -m mathtutor_pi run --config /etc/mathtutor-pi/config.toml
 Restart=always
 RestartSec=5
